@@ -19,11 +19,9 @@ import {
     SafetyOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import React, { useState } from "react"; // 👈 THÊM useState
-// FIX LỖI ĐƯỜNG DẪN MỚI: Dùng '../../../' để truy cập từ src/pages/Clients/Home/ đến src/components/Layout/
+import React, { useState } from "react";
 import AppHeader from "../../../components/Layout/AppHeader.tsx";
 import AppFooter from "../../../components/Layout/AppFooter.tsx";
-// import RegisterPopup from "../components/Auth/RegisterPopup"; 
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -31,12 +29,9 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 
-// TypeScript nên được định nghĩa là React.FC
 const HomePage: React.FC = () => {
-    // 1. KHAI BÁO STATE MÔ PHỎNG TRẠNG THÁI ĐĂNG NHẬP
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // Hàm mô phỏng đăng nhập/đăng xuất
     const toggleLoginStatus = () => {
         setIsLoggedIn(!isLoggedIn);
     };
@@ -47,10 +42,10 @@ const HomePage: React.FC = () => {
 
     return (
         <Layout style={{ background: "#fff" }}>
-            {/* SỬ DỤNG APP HEADER & TRUYỀN PROP isLoggedIn */}
+            { }
             <AppHeader isLoggedIn={isLoggedIn} />
 
-            {/* HERO BANNER */}
+            { }
             <div
                 style={{
                     position: "relative",
@@ -61,7 +56,7 @@ const HomePage: React.FC = () => {
                     padding: "200px 50px 180px",
                     textAlign: "center",
                     color: "#fff",
-                    marginTop: 70, // Đảm bảo nội dung nằm dưới Header cố định
+                    marginTop: 70,
                 }}
             >
 

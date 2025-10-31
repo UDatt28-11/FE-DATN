@@ -42,56 +42,61 @@ import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
 
-export const adminRoutes: RouteObject = {
-  path: "/admin",
-  element: <AdminLayout />,
-  children: [
-    { path: "", element: <Dashboard /> },
-    { path: "dashboard", element: <Dashboard /> },
+// SỬA ĐỔI: Chuyển từ export một object thành một mảng (array)
+// để nhất quán với clientRoutes
+export const adminRoutes: RouteObject[] = [
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      { path: "", element: <Dashboard /> },
+      { path: "dashboard", element: <Dashboard /> },
 
-    // Quản lý phòng
-    { path: "listing", element: <ListRoom /> },
-    { path: "listing/add", element: <AddRoom /> },
-    { path: "listing/edit/:id", element: <EditRoom /> },
+      // Quản lý phòng
+      { path: "listing", element: <ListRoom /> },
+      { path: "listing/add", element: <AddRoom /> },
+      { path: "listing/edit/:id", element: <EditRoom /> },
 
-    // Quản lý dat phòng
-    { path: "booking", element: <ListBooking /> },
-    { path: "booking/add", element: <AddBooking /> },
-    { path: "booking/edit/:id", element: <EditBooking /> },
-    { path: "booking/view/:id", element: <ViewBooking /> },
+      // Quản lý dat phòng
+      { path: "booking", element: <ListBooking /> },
+      { path: "booking/add", element: <AddBooking /> },
+      { path: "booking/edit/:id", element: <EditBooking /> },
+      { path: "booking/view/:id", element: <ViewBooking /> },
 
-    // Quản lý danh mục
-    { path: "category", element: <ListCategory /> },
-    { path: "category/add", element: <AddCategory /> },
-    { path: "category/edit/:id", element: <EditCategory /> },
+      // Quản lý danh mục
+      { path: "category", element: <ListCategory /> },
+      { path: "category/add", element: <AddCategory /> },
+      { path: "category/edit/:id", element: <EditCategory /> },
 
-    // Quản lý tiện ích (Amenities)
-    { path: "amenities", element: <ListAmenity /> },
-    { path: "amenities/add", element: <AddAmenity /> },
-    { path: "amenities/edit/:id", element: <EditAmenity /> },
-    { path: "amenities/variant/:id", element: <VariantAmenity /> },
+      // Quản lý tiện ích (Amenities)
+      { path: "amenities", element: <ListAmenity /> },
+      { path: "amenities/add", element: <AddAmenity /> },
+      { path: "amenities/edit/:id", element: <EditAmenity /> },
+      { path: "amenities/variant/:id", element: <VariantAmenity /> },
 
-    // Quản lý lưu trú
-    { path: "accommodations", element: <ListAccommodation /> },
-    { path: "accommodations/add", element: <AddAccommodation /> },
-    { path: "accommodations/edit/:id", element: <EditAccommodation /> },
-    { path: "accommodations/view/:id", element: <ViewAccommodation /> },
+      // Quản lý lưu trú
+      { path: "accommodations", element: <ListAccommodation /> },
+      { path: "accommodations/add", element: <AddAccommodation /> },
+      { path: "accommodations/edit/:id", element: <EditAccommodation /> },
+      { path: "accommodations/view/:id", element: <ViewAccommodation /> },
 
-    // Quản lý user
-    { path: "user", element: <ListUser /> },
-    { path: "user/add", element: <AddUser /> },
-    { path: "user/edit/:id", element: <EditUser /> },
-    { path: "user/blocked", element: <BlockedUsers /> },
+      // Quản lý user
+      { path: "user", element: <ListUser /> },
+      { path: "user/add", element: <AddUser /> },
+      { path: "user/edit/:id", element: <EditUser /> },
+      { path: "user/blocked", element: <BlockedUsers /> },
 
-    // Quản lý mã giảm giá
-    { path: "promotion", element: <ListPromotion /> },
-    { path: "promotion/add", element: <AddPromotion /> },
-    { path: "promotion/edit/:id", element: <EditPromotion /> },
+      // Quản lý mã giảm giá
+      { path: "promotion", element: <ListPromotion /> },
+      { path: "promotion/add", element: <AddPromotion /> },
+      { path: "promotion/edit/:id", element: <EditPromotion /> },
 
-    // Quản lý mã đánh giá
-    { path: "review", element: <ListReview /> },
+      // Quản lý mã đánh giá
+      { path: "review", element: <ListReview /> },
 
-    // Quản lý bình luận
-    { path: "message", element: <ListMessage /> },
-  ],
-};
+      // Quản lý bình luận
+      { path: "message", element: <ListMessage /> },
+    ],
+  },
+];
+

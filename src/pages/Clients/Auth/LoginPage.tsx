@@ -2,28 +2,22 @@ import { Form, Input, Button, Divider, Typography } from "antd";
 import { GoogleOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import React from "react";
-// Đường dẫn giả định: pages/ và context/ là hai thư mục cùng cấp dưới src/
 import { useAuth } from "../../../context/AuthContext";
 
 const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    // Lấy hàm login từ AuthContext
     const { login } = useAuth();
 
     const onFinish = (values: any) => {
         console.log("Login values:", values);
 
-        // 1. Thực hiện logic đăng nhập (Mô phỏng thành công)
-        // Đây là bước quan trọng giúp ẩn nút Đăng nhập/Đăng ký
         login();
 
-        // 2. Chuyển hướng người dùng sang trang chủ ('/')
         navigate("/");
     };
 
-    // --- Inline Styles để căn giữa và giới hạn kích thước ---
     const overlayStyle: React.CSSProperties = {
         position: "fixed",
         top: 0,
@@ -39,18 +33,16 @@ const LoginPage: React.FC = () => {
     const formContainerStyle: React.CSSProperties = {
         backgroundColor: "white",
         width: "100%",
-        maxWidth: "360px", // GIỚI HẠN CHIỀU RỘNG TỐI ĐA
+        maxWidth: "360px",
         borderRadius: "16px",
         boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
         padding: "24px",
         zIndex: 10,
     };
-    // --------------------------------------------------------
 
     return (
-        // Nền mờ + căn giữa
         <div style={overlayStyle}>
-            {/* Khung form */}
+            { }
             <div style={formContainerStyle}>
                 <Title level={4} style={{ textAlign: "center", color: "#1890ff", marginBottom: "8px" }}>
                     Đăng nhập
@@ -77,7 +69,7 @@ const LoginPage: React.FC = () => {
                         <Input.Password size="large" placeholder="Mật khẩu" />
                     </Form.Item>
 
-                    {/* Link Quên mật khẩu */}
+                    { }
                     <div style={{ textAlign: "right", marginBottom: "24px" }}>
                         <Link to="/forgot-password" style={{ color: "#1890ff", fontSize: "14px" }}>
                             Quên mật khẩu?

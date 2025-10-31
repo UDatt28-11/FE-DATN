@@ -7,26 +7,16 @@ import React from "react";
 const { Title, Text } = Typography;
 
 const RegisterPage: React.FC = () => {
-    // 1. Khai báo hook useNavigate
     const navigate = useNavigate();
 
     const onFinish = (values: any) => {
         console.log("Form values:", values);
 
-        // **Giả định logic đăng ký thành công ở đây**
-        // Sau khi đăng ký thành công, thực hiện chuyển hướng:
-
-        // 2. Sử dụng navigate để chuyển sang URL '/login'
         navigate("/login");
 
-        // Hoặc bạn có thể sử dụng Promise.resolve() 
-        // để mô phỏng một tác vụ bất đồng bộ thành công
-        // return Promise.resolve().then(() => {
-        //     navigate("/login");
-        // });
+
     };
 
-    // --- Inline Styles (Giữ nguyên phần style) ---
     const overlayStyle: React.CSSProperties = {
         position: "fixed",
         top: 0,
@@ -48,7 +38,6 @@ const RegisterPage: React.FC = () => {
         padding: "24px",
         zIndex: 10,
     };
-    // ---------------------------------------------
 
 
     return (
@@ -62,7 +51,7 @@ const RegisterPage: React.FC = () => {
                 </p>
 
                 <Form layout="vertical" onFinish={onFinish}>
-                    {/* ... Các Form.Item (name, email, password, confirmPassword) giữ nguyên ... */}
+                    { }
                     <Form.Item name="name" rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}>
                         <Input size="large" placeholder="Họ và tên" />
                     </Form.Item>
