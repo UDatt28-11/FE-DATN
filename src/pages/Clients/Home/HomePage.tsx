@@ -1,6 +1,5 @@
 import {
     Layout,
-    Menu,
     Row,
     Col,
     Typography,
@@ -15,77 +14,41 @@ import {
 } from "antd";
 import {
     SearchOutlined,
-    UserOutlined,
     CheckCircleOutlined,
     StarFilled,
-    HomeOutlined,
     SafetyOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
+import React, { useState } from "react"; // 👈 THÊM useState
+// FIX LỖI ĐƯỜNG DẪN MỚI: Dùng '../../../' để truy cập từ src/pages/Clients/Home/ đến src/components/Layout/
+import AppHeader from "../../../components/Layout/AppHeader.tsx";
+import AppFooter from "../../../components/Layout/AppFooter.tsx";
+// import RegisterPopup from "../components/Auth/RegisterPopup"; 
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-export default function HomePage() {
-    const onFinish = (values) => {
+
+// TypeScript nên được định nghĩa là React.FC
+const HomePage: React.FC = () => {
+    // 1. KHAI BÁO STATE MÔ PHỎNG TRẠNG THÁI ĐĂNG NHẬP
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Hàm mô phỏng đăng nhập/đăng xuất
+    const toggleLoginStatus = () => {
+        setIsLoggedIn(!isLoggedIn);
+    };
+
+    const onFinish = (values: any) => {
         console.log("Booking form values:", values);
     };
 
     return (
         <Layout style={{ background: "#fff" }}>
-            {/* HEADER */}
-            <Header
-                style={{
-                    position: "fixed",
-                    top: 0,
-                    width: "100%",
-                    zIndex: 1000,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    background: "#fff",
-                    padding: "0 50px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    height: 70,
-                }}
-            >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <HomeOutlined style={{ fontSize: 28, color: "#1677ff" }} />
-                    <Title level={3} style={{ margin: 0, color: "#1677ff", fontWeight: 700 }}>
-                        HomestayBooking
-                    </Title>
-                </div>
-
-                <Menu
-                    mode="horizontal"
-                    defaultSelectedKeys={["1"]}
-                    items={[
-                        { key: "1", label: "Trang chủ" },
-                        { key: "2", label: "Giới thiệu" },
-                        { key: "3", label: "Homestay" },
-                        { key: "4", label: "Tin tức" },
-                        { key: "5", label: "Liên hệ" },
-                    ]}
-                    style={{
-                        borderBottom: "none",
-                        flex: 1,
-                        justifyContent: "center",
-                        fontSize: 15,
-                        fontWeight: 500,
-                    }}
-                />
-
-                <Space size="middle">
-                    <Button type="text" icon={<UserOutlined />} size="large">
-                        Đăng nhập
-                    </Button>
-                    <Button type="primary" size="large" style={{ fontWeight: 500 }}>
-                        Đăng ký
-                    </Button>
-                </Space>
-            </Header>
+            {/* SỬ DỤNG APP HEADER & TRUYỀN PROP isLoggedIn */}
+            <AppHeader isLoggedIn={isLoggedIn} />
 
             {/* HERO BANNER */}
             <div
@@ -98,9 +61,10 @@ export default function HomePage() {
                     padding: "200px 50px 180px",
                     textAlign: "center",
                     color: "#fff",
-                    marginTop: 70,
+                    marginTop: 70, // Đảm bảo nội dung nằm dưới Header cố định
                 }}
             >
+
                 <Title
                     level={1}
                     style={{
@@ -437,55 +401,10 @@ export default function HomePage() {
                 </Row>
             </Content>
 
-            {/* FOOTER */}
-            <Footer
-                style={{
-                    textAlign: "center",
-                    color: "#666",
-                    background: "#001529",
-                    padding: "50px 50px 30px",
-                    marginTop: 0,
-                }}
-            >
-                <Row gutter={[32, 32]} justify="center" style={{ maxWidth: 1200, margin: "0 auto 40px" }}>
-                    <Col xs={24} sm={12} md={6}>
-                        <Title level={5} style={{ color: "#fff", marginBottom: 20 }}>Về chúng tôi</Title>
-                        <div style={{ color: "#999", lineHeight: 2 }}>
-                            <div>Giới thiệu</div>
-                            <div>Tuyển dụng</div>
-                            <div>Liên hệ</div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Title level={5} style={{ color: "#fff", marginBottom: 20 }}>Hỗ trợ</Title>
-                        <div style={{ color: "#999", lineHeight: 2 }}>
-                            <div>Trung tâm trợ giúp</div>
-                            <div>Chính sách</div>
-                            <div>Điều khoản</div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Title level={5} style={{ color: "#fff", marginBottom: 20 }}>Khám phá</Title>
-                        <div style={{ color: "#999", lineHeight: 2 }}>
-                            <div>Đà Lạt</div>
-                            <div>Sa Pa</div>
-                            <div>Phú Quốc</div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                        <Title level={5} style={{ color: "#fff", marginBottom: 20 }}>Kết nối</Title>
-                        <div style={{ color: "#999", lineHeight: 2 }}>
-                            <div>Facebook</div>
-                            <div>Instagram</div>
-                            <div>Zalo</div>
-                        </div>
-                    </Col>
-                </Row>
-                <Divider style={{ borderColor: "#333" }} />
-                <Paragraph style={{ color: "#999", margin: 0 }}>
-                    © {new Date().getFullYear()} HomestayBooking. All rights reserved.
-                </Paragraph>
-            </Footer>
+            {/* SỬ DỤNG APP FOOTER ĐÃ TÁCH */}
+            <AppFooter />
         </Layout>
     );
-}
+};
+
+export default HomePage;
