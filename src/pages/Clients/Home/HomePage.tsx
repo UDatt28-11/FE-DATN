@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Layout,
     Row,
@@ -8,39 +8,22 @@ import {
     Card,
     Form,
     DatePicker,
-    Select,
     Input,
     Rate,
-    Carousel,
     Avatar,
-    Badge,
-    Steps,
     Statistic,
     Popover,
-    InputNumber,
     Checkbox,
     Space,
     Divider,
 } from 'antd';
 import {
     SearchOutlined,
-    CheckCircleOutlined,
     StarFilled,
-    SafetyOutlined,
-    ThunderboltOutlined,
     EnvironmentOutlined,
     HomeOutlined,
     HeartOutlined,
-    GiftOutlined,
-    TrophyOutlined,
-    PhoneOutlined,
-    MailOutlined,
-    FacebookFilled,
-    InstagramFilled,
-    YoutubeFilled,
-    TwitterOutlined,
     RightOutlined,
-    ClockCircleOutlined,
     TeamOutlined,
     UserOutlined,
     CalendarOutlined,
@@ -51,9 +34,10 @@ import {
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
-const { Option } = Select;
+
 import AppHeader from '../../../components/Layout/AppHeader';
 import AppFooter from '../../../components/Layout/AppFooter';
+
 const GuestSelector = () => {
     const [adults, setAdults] = useState(2);
     const [children, setChildren] = useState(0);
@@ -76,8 +60,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: adults <= 1 ? '#ccc' : '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: adults <= 1 ? '#ccc' : '#1890ff',
                             }}
                         />
                         <Text strong style={{ fontSize: 16, minWidth: 24, textAlign: 'center' }}>{adults}</Text>
@@ -89,8 +73,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: '#1890ff',
                             }}
                         />
                     </div>
@@ -110,8 +94,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: children <= 0 ? '#ccc' : '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: children <= 0 ? '#ccc' : '#1890ff',
                             }}
                         />
                         <Text strong style={{ fontSize: 16, minWidth: 24, textAlign: 'center' }}>{children}</Text>
@@ -123,8 +107,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: '#1890ff',
                             }}
                         />
                     </div>
@@ -144,8 +128,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: rooms <= 1 ? '#ccc' : '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: rooms <= 1 ? '#ccc' : '#1890ff',
                             }}
                         />
                         <Text strong style={{ fontSize: 16, minWidth: 24, textAlign: 'center' }}>{rooms}</Text>
@@ -157,8 +141,8 @@ const GuestSelector = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                border: '1px solid #0071c2',
-                                color: '#0071c2',
+                                border: '1px solid #1890ff',
+                                color: '#1890ff',
                             }}
                         />
                     </div>
@@ -171,11 +155,6 @@ const GuestSelector = () => {
                 <Checkbox checked={pets} onChange={(e) => setPets(e.target.checked)}>
                     <Text>Mang thú cưng đi cùng</Text>
                 </Checkbox>
-                <div style={{ marginTop: 8, paddingLeft: 24 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                        Động vật trợ giúp không được xem là vật nuôi.
-                    </Text>
-                </div>
             </div>
 
             <Button
@@ -219,32 +198,21 @@ const GuestSelector = () => {
 };
 
 const HomePage = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [videoLoaded, setVideoLoaded] = useState(false);
 
-    const bannerImages = [
-        {
-            url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-            title: 'Trải nghiệm kỳ nghỉ đáng nhớ',
-            subtitle: 'Khám phá những homestay tuyệt vời trên khắp Việt Nam',
-        },
-        {
-            url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d',
-            title: 'Không gian nghỉ dưỡng hoàn hảo',
-            subtitle: 'Nơi bạn có thể thư giãn và tận hưởng cuộc sống',
-        },
-        {
-            url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945',
-            title: 'Homestay sang trọng & tiện nghi',
-            subtitle: 'Đặt phòng dễ dàng - Giá cả hợp lý - Trải nghiệm tuyệt vời',
-        },
-    ];
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.playbackRate = 0.6; // Chuyển động chậm
+        }
+    }, []);
 
     const destinations = [
         { name: 'Studio view đồi thông', count: '20 homestay', img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482' },
         { name: 'Villa hồ bơi riêng', count: '6 homestay', img: 'https://images.unsplash.com/photo-1583221234656-5e0a85305de9' },
         { name: 'Cabin gỗ trên cao', count: '30 homestay', img: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19' },
         { name: 'Căn hộ 1 phòng ngủ', count: '20 homestay', img: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1' },
-        { name: 'Bungalow sát biển', count: '25 homestay', img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482' },
+        { name: 'Bungalow ', count: '25 homestay', img: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482' },
         { name: 'Phòng dorm giá rẻ', count: '45 homestay', img: 'https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6' },
     ];
 
@@ -256,7 +224,6 @@ const HomePage = () => {
             rating: 4.8,
             reviews: 256,
             location: 'Đà Lạt',
-            tag: 'Phổ biến',
         },
         {
             name: 'The Chill House Sapa',
@@ -265,7 +232,6 @@ const HomePage = () => {
             rating: 4.9,
             reviews: 189,
             location: 'Sapa',
-            tag: 'Tốt nhất',
         },
         {
             name: 'Santorini Villa Phú Quốc',
@@ -274,7 +240,6 @@ const HomePage = () => {
             rating: 5.0,
             reviews: 324,
             location: 'Phú Quốc',
-            tag: 'Sang trọng',
         },
         {
             name: 'Làng Gió Biển Nha Trang',
@@ -283,7 +248,6 @@ const HomePage = () => {
             rating: 4.7,
             reviews: 198,
             location: 'Nha Trang',
-            tag: 'Ưu đãi',
         },
     ];
 
@@ -293,76 +257,87 @@ const HomePage = () => {
 
     return (
         <Layout style={{ background: '#fff' }}>
+            <AppHeader />
 
-
-
-            {/* HERO BANNER WITH CAROUSEL */}
-            <div style={{ marginTop: 70, position: 'relative' }}>
-                <Carousel
-                    autoplay
-                    autoplaySpeed={5000}
-                    effect="fade"
+            {/* VIDEO HERO BANNER */}
+            <div style={{ marginTop: 64, position: 'relative', overflow: 'hidden' }}>
+                {/* Video Background */}
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onLoadedData={() => setVideoLoaded(true)}
+                    style={{
+                        width: '100%',
+                        height: '85vh',
+                        objectFit: 'cover',
+                        display: 'block',
+                    }}
                 >
-                    {bannerImages.map((banner, index) => (
-                        <div key={index}>
-                            <div
-                                style={{
-                                    position: 'relative',
-                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${banner.url}')`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    height: '85vh',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    textAlign: 'center',
-                                }}
-                            >
-                                <div style={{ maxWidth: 900, padding: '0 20px' }}>
-                                    <Title
-                                        level={1}
-                                        style={{
-                                            color: '#fff',
-                                            fontSize: 64,
-                                            fontWeight: 800,
-                                            marginBottom: 24,
-                                            textShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                                            animation: 'fadeInUp 1s',
-                                        }}
-                                    >
-                                        {banner.title}
-                                    </Title>
-                                    <Paragraph
-                                        style={{
-                                            color: '#fff',
-                                            fontSize: 22,
-                                            marginBottom: 40,
-                                            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                                            animation: 'fadeInUp 1.2s',
-                                        }}
-                                    >
-                                        {banner.subtitle}
-                                    </Paragraph>
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        style={{
-                                            height: 56,
-                                            fontSize: 18,
-                                            fontWeight: 600,
-                                            paddingLeft: 48,
-                                            paddingRight: 48,
-                                            borderRadius: 8,
-                                            animation: 'fadeInUp 1.4s',
-                                        }}
-                                    >
-                                        Khám phá ngay <RightOutlined />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </Carousel>
+                    {/* Sử dụng video miễn phí từ Pexels */}
+                    <source src="https://res.cloudinary.com/dzazpiela/video/upload/v1762077662/Hailuo_Video_animate_an_image_441329764660391937_tpwteg.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+
+                {/* Overlay */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                    }}
+                >
+                    <div style={{ maxWidth: 900, padding: '0 20px' }}>
+                        <Title
+                            level={1}
+                            style={{
+                                color: '#fff',
+                                fontSize: 64,
+                                fontWeight: 800,
+                                marginBottom: 24,
+                                textShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                                animation: 'fadeInUp 1s ease-out',
+                            }}
+                        >
+                            Trải Nghiệm Kỳ Nghỉ Đáng Nhớ
+                        </Title>
+                        <Paragraph
+                            style={{
+                                color: '#fff',
+                                fontSize: 22,
+                                marginBottom: 40,
+                                textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                                animation: 'fadeInUp 1.2s ease-out',
+                            }}
+                        >
+                            Khám phá những homestay tuyệt vời trên khắp Việt Nam
+                        </Paragraph>
+                        <Button
+                            type="primary"
+                            size="large"
+                            style={{
+                                height: 56,
+                                fontSize: 18,
+                                fontWeight: 600,
+                                paddingLeft: 48,
+                                paddingRight: 48,
+                                borderRadius: 8,
+                                animation: 'fadeInUp 1.4s ease-out',
+                            }}
+                        >
+                            Khám phá ngay <RightOutlined />
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             {/* BOOKING FORM */}
@@ -372,7 +347,7 @@ const HomePage = () => {
                         maxWidth: 1400,
                         margin: '0 auto',
                         borderRadius: 8,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         border: '3px solid #FFB700',
                         padding: 0,
                     }}
@@ -458,13 +433,13 @@ const HomePage = () => {
                 <Row gutter={[48, 48]} justify="center" style={{ maxWidth: 1200, margin: '0 auto' }}>
                     {[
                         { title: 'Homestay', value: '100', icon: <HomeOutlined /> },
-                        { title: 'Khách hàng', value: '5', icon: <TeamOutlined /> },
+                        { title: 'Khách hàng', value: '5K', icon: <TeamOutlined /> },
                         { title: 'Tỉnh thành', value: 'Hà Nội', icon: <EnvironmentOutlined /> },
                         { title: 'Đánh giá 5⭐', value: '1k', icon: <StarFilled /> },
                     ].map((stat, index) => (
                         <Col key={index} xs={12} sm={6}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 48, color: '#1677ff', marginBottom: 12 }}>
+                                <div style={{ fontSize: 48, color: '#1890ff', marginBottom: 12 }}>
                                     {stat.icon}
                                 </div>
                                 <Statistic
@@ -545,67 +520,64 @@ const HomePage = () => {
                 <Row gutter={[24, 24]} justify="center" style={{ maxWidth: 1200, margin: '0 auto' }}>
                     {featuredHomestays.map((item, index) => (
                         <Col key={index} xs={24} sm={12} md={6}>
-                            <Badge.Ribbon text={item.tag} color={index === 1 ? 'gold' : 'blue'}>
-                                <Card
-                                    hoverable
-                                    bordered={false}
-                                    cover={
-                                        <div style={{ position: 'relative', overflow: 'hidden', height: 240 }}>
-                                            <img
-                                                src={item.img}
-                                                alt={item.name}
-                                                style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover',
-                                                    transition: 'transform 0.3s',
-                                                }}
-                                                onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-                                                onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                            />
-                                            <Button
-                                                type="text"
-                                                icon={<HeartOutlined />}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 12,
-                                                    right: 12,
-                                                    background: 'rgba(255,255,255,0.9)',
-                                                    borderRadius: '50%',
-                                                    width: 40,
-                                                    height: 40,
-                                                }}
-                                            />
-                                        </div>
-                                    }
-                                    style={{ borderRadius: 16, overflow: 'hidden' }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-                                        <StarFilled style={{ color: '#faad14' }} />
-                                        <Text strong style={{ fontSize: 15 }}>{item.rating}</Text>
-                                        <Text type="secondary" style={{ fontSize: 14 }}>({item.reviews})</Text>
+                            <Card
+                                hoverable
+                                bordered={false}
+                                cover={
+                                    <div style={{ position: 'relative', overflow: 'hidden', height: 240 }}>
+                                        <img
+                                            src={item.img}
+                                            alt={item.name}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                transition: 'transform 0.3s',
+                                            }}
+                                            onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                                            onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                                        />
+                                        <Button
+                                            type="text"
+                                            icon={<HeartOutlined />}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 12,
+                                                right: 12,
+                                                background: 'rgba(255,255,255,0.9)',
+                                                borderRadius: '50%',
+                                                width: 40,
+                                                height: 40,
+                                            }}
+                                        />
                                     </div>
-                                    <Title level={5} style={{ marginBottom: 8, fontWeight: 600 }}>
-                                        {item.name}
-                                    </Title>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
-                                        <EnvironmentOutlined style={{ color: '#666' }} />
-                                        <Text type="secondary" style={{ fontSize: 14 }}>{item.location}</Text>
+                                }
+                                style={{ borderRadius: 16, overflow: 'hidden' }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                                    <StarFilled style={{ color: '#faad14' }} />
+                                    <Text strong style={{ fontSize: 15 }}>{item.rating}</Text>
+                                    <Text type="secondary" style={{ fontSize: 14 }}>({item.reviews})</Text>
+                                </div>
+                                <Title level={5} style={{ marginBottom: 8, fontWeight: 600 }}>
+                                    {item.name}
+                                </Title>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
+                                    <EnvironmentOutlined style={{ color: '#666' }} />
+                                    <Text type="secondary" style={{ fontSize: 14 }}>{item.location}</Text>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <Text strong style={{ fontSize: 18, color: '#1890ff' }}>{item.price}</Text>
+                                        <Text type="secondary" style={{ fontSize: 14 }}>/đêm</Text>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <Text strong style={{ fontSize: 18, color: '#1677ff' }}>{item.price}</Text>
-                                            <Text type="secondary" style={{ fontSize: 14 }}>/đêm</Text>
-                                        </div>
-                                        <Button type="primary" size="small">Đặt ngay</Button>
-                                    </div>
-                                </Card>
-                            </Badge.Ribbon>
+                                    <Button type="primary" size="small">Đặt ngay</Button>
+                                </div>
+                            </Card>
                         </Col>
                     ))}
                 </Row>
             </Content>
-
 
             {/* HOMESTAY ĐỘC ĐÁO TẠI HÀ NỘI */}
             <Content style={{ padding: '80px 50px', background: '#fff' }}>
@@ -978,8 +950,21 @@ const HomePage = () => {
                 </Row>
             </Content>
 
-            {/* FOOTER */}
             <AppFooter />
+
+            {/* CSS Animation */}
+            <style>{`
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
         </Layout>
     );
 };
