@@ -46,52 +46,241 @@ const { Option } = Select;
 
 const allHomestays = [
     {
+
         id: 1,
-        name: "Biệt thự Biển An Viên",
-        price: 3500000,
+        name: "Nhà Vườn Hoa Sen",
+        price: 800000,
         rating: 4.8,
-        category: "villa",
-        location: "Nha Trang, Khánh Hòa",
-        description: "Tọa lạc tại vị trí đắc địa trong khu đô thị An Viên, biệt thự này cung cấp một không gian nghỉ dưỡng sang trọng bậc nhất. Với 4 phòng ngủ, hồ bơi riêng và view biển trực diện, đây là lựa chọn hoàn hảo cho gia đình hoặc nhóm bạn lớn.",
+        category: "garden_house",
+        location: "Xuân Giang, Sóc Sơn",
+        description: "Không gian nhà vườn yên bình được bao quanh bởi hồ sen và cây xanh. Phù hợp các nhóm bạn hoặc gia đình thích một buổi nghỉ dưỡng nhẹ nhàng, thoát khỏi ồn ào nội thành.",
         amenities: [
             { icon: <WifiOutlined />, text: "Wifi miễn phí" },
-            { icon: <CheckCircleFilled style={{ color: "#52c41a" }} />, text: "Hồ bơi riêng" },
-            { icon: <CarOutlined />, text: "Bếp đầy đủ" },
-            { icon: <CheckCircleFilled style={{ color: "#52c41a" }} />, text: "Chỗ đỗ xe" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "Khu vườn rộng" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
         ],
         galleryImages: [
             "https://images.unsplash.com/photo-1613977257363-27618c7c3886?w=800&q=80",
-            "https://images.unsplash.com/photo-1576647334338-1f1f34088b39?w=600&q=80",
-            "https://images.unsplash.com/photo-1594498656108-e4d05b5b321a?w=600&q=80",
-            "https://images.unsplash.com/photo-1594498656003-6d63b33e3f42?w=600&q=80",
+            "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
         ],
         reviews: [
-            { user: "Minh Anh", rating: 5, comment: "Tuyệt vời! Sạch sẽ, sang trọng, view biển cực đẹp. Sẽ quay lại!" },
-            { user: "Gia Hân", rating: 4.5, comment: "Hồ bơi sạch, biệt thự rộng rãi. Rất đáng tiền." },
+            { user: "Thu Hà", rating: 5, comment: "Không gian chill cực, hoa sen nở nhìn mê!" },
+            { user: "Quang Minh", rating: 4.5, comment: "Đáng tiền, chủ nhà nhiệt tình." },
         ]
     },
     {
         id: 2,
-        name: "Căn hộ The Sóng Vũng Tàu",
-        price: 1200000,
-        rating: 4.5,
-        category: "apartment",
-        location: "Vũng Tàu, Bà Rịa - Vũng Tàu",
-        description: "Căn hộ 2 phòng ngủ tại The Sóng với view biển trực diện. Tòa nhà có hồ bơi vô cực, phòng gym, và khu vui chơi trẻ em. Nội thất hiện đại, đầy đủ tiện nghi, phù hợp cho gia đình nhỏ.",
+        name: "Villa Minh Phú Sóc Sơn",
+        price: 2500000,
+        rating: 4.9,
+        category: "villa",
+        location: "Minh Phú, Sóc Sơn",
+        description: "Villa cao cấp hồ bơi riêng, nội thất hiện đại, sân rộng cho BBQ. Đi nhóm đông cực hợp.",
         amenities: [
             { icon: <WifiOutlined />, text: "Wifi miễn phí" },
-            { icon: <CheckCircleFilled style={{ color: "#52c41a" }} />, text: "Hồ bơi chung" },
-            { icon: <CarOutlined />, text: "Bếp" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "Hồ bơi riêng" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
         ],
         galleryImages: [
             "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-            "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
-            "https://images.unsplash.com/photo-1501183638710-841dd1904471?w=600&q=80",
+            "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
         ],
         reviews: [
-            { user: "Hoàng Long", rating: 4.5, comment: "Hồ bơi vô cực trên tầng thượng rất đẹp. Căn hộ sạch sẽ." },
+            { user: "Tú Anh", rating: 5, comment: "Bể bơi xịn, view chill, đi team building quá hợp." },
+            { user: "Hữu Đức", rating: 4.5, comment: "Phòng đẹp, sạch, view xử lý tốt." },
         ]
     },
+    {
+        id: 3,
+        name: "Bungalow Tre Xanh",
+        price: 600000,
+        rating: 4.5,
+        category: "bungalow",
+        location: "Mai Đình, Sóc Sơn",
+        description: "Bungalow bằng tre đơn giản, mộc mạc kiểu retreat thiên nhiên.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "Không gian xanh" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Phương Linh", rating: 4.5, comment: "Mộc mạc, dễ thương, đáng thử." },
+            { user: "Khánh Duy", rating: 4, comment: "Ổn trong tầm giá." },
+        ]
+    },
+    {
+        id: 4,
+        name: "Homestay Gỗ Bắc Phú",
+        price: 1200000,
+        rating: 4.7,
+        category: "wooden_house",
+        location: "Bắc Phú, Sóc Sơn",
+        description: "Nhà gỗ ấm áp phong cách Bắc Âu, phù hợp nhóm từ 8–10 người.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "BBQ ngoài trời" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Lan", rating: 4.8, comment: "Gỗ thơm, view đẹp, đêm chill lắm." },
+            { user: "Phong", rating: 4.6, comment: "Sạch, chủ nhà hỗ trợ ok." },
+        ]
+    },
+    {
+        id: 5,
+        name: "Villa View Hồ Đầm Vạc",
+        price: 3000000,
+        rating: 5.0,
+        category: "lake_view",
+        location: "Đức Hoà, Sóc Sơn",
+        description: "Biệt thự view hồ cực đẹp, phù hợp nhóm đông cần chụp ảnh & party.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "View mặt hồ" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Mỹ Tiên", rating: 5, comment: "Ảnh ra đẹp như resort quốc tế." },
+            { user: "Hải Nam", rating: 5, comment: "Xứng đáng 10/10." },
+        ]
+    },
+    {
+        id: 6,
+        name: "Nhà Vườn Thanh Xuân",
+        price: 750000,
+        rating: 4.6,
+        category: "garden_house",
+        location: "Thanh Xuân, Sóc Sơn",
+        description: "Nhà vườn yên tĩnh, nhiều cây, hợp gia đình có trẻ em.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "Vườn rộng" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Hồng Nhung", rating: 4.6, comment: "Nhiều cây xanh dễ chịu." },
+            { user: "Đức Tài", rating: 4.5, comment: "Giá ổn, yên bình." },
+        ]
+    },
+    {
+        id: 7,
+        name: "Biệt Thự Tiến Thắng Resort",
+        price: 2800000,
+        rating: 4.8,
+        category: "villa",
+        location: "Tiến Thắng, Sóc Sơn",
+        description: "Villa rộng, hồ bơi, sân cỏ, hợp đi team building & chụp ảnh cưới.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "Hồ bơi" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Gia Bảo", rating: 4.8, comment: "Rộng, sạch, chụp ảnh cực chill." },
+            { user: "An Khoa", rating: 4.7, comment: "Hợp đi đông." },
+        ]
+    },
+    {
+        id: 8,
+        name: "Homestay Núi Cầu Bích",
+        price: 900000,
+        rating: 4.4,
+        category: "mountain_view",
+        location: "Phú Minh, Sóc Sơn",
+        description: "View núi – rất hợp retreat, đọc sách, detox.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "View núi" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Bảo Châu", rating: 4.4, comment: "Núi gần, không khí mát." },
+            { user: "Hoài Phương", rating: 4.3, comment: "Chill, dễ chịu." },
+        ]
+    },
+    {
+        id: 9,
+        name: "Homestay Núi Cầu Bích",
+        price: 900000,
+        rating: 4.4,
+        category: "mountain_view",
+        location: "Phú Minh, Sóc Sơn",
+        description: "Cùng khu với id 8 — phong cách nature friendly, rất dễ chịu.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "View núi" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Lan Anh", rating: 4.4, comment: "Mát mẻ, không khí sạch." },
+            { user: "Cường", rating: 4.3, comment: "Ăn BBQ ngoài trời sướng." },
+        ]
+    },
+    {
+        id: 10,
+        name: "Homestay Núi Cầu Bích",
+        price: 900000,
+        rating: 4.4,
+        category: "mountain_view",
+        location: "Phú Minh, Sóc Sơn",
+        description: "Phong cách gần núi – thư giãn, thoải mái.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "View núi" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Hòa Bình", rating: 4.4, comment: "Giá ok, không khí ok." },
+            { user: "Uyên", rating: 4.3, comment: "Tĩnh, relax tốt." },
+        ]
+    },
+    {
+        id: 11,
+        name: "Homestay Núi Cầu Bích",
+        price: 900000,
+        rating: 4.4,
+        category: "mountain_view",
+        location: "Phú Minh, Sóc Sơn",
+        description: "Dành cho nhóm nhỏ thích retreat, đọc sách, làm việc từ xa.",
+        amenities: [
+            { icon: <WifiOutlined />, text: "Wifi miễn phí" },
+            { icon: <CheckCircleFilled style={{ color: '#52c41a' }} />, text: "View núi" },
+            { icon: <CarOutlined />, text: "Bãi đỗ xe" },
+        ],
+        galleryImages: [
+            "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
+        ],
+        reviews: [
+            { user: "Kiều My", rating: 4.4, comment: "Rất yên tĩnh." },
+            { user: "Thuận", rating: 4.3, comment: "Chill." },
+        ]
+    },
+
+
     // Thêm các homestay khác nếu cần
 ];
 // ------------------------------

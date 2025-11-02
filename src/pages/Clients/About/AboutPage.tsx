@@ -1,145 +1,180 @@
-import { Layout, Typography, Row, Col, Card, Statistic, Avatar, Divider } from "antd";
-import { SmileOutlined, TeamOutlined, HomeOutlined, TrophyOutlined } from "@ant-design/icons";
+import { Layout, Typography, Row, Col, Card, Statistic, Avatar, Divider, Timeline, Tag, Button } from "antd";
+import { SmileOutlined, TeamOutlined, HomeOutlined, TrophyOutlined, HeartOutlined, StarFilled, GlobalOutlined, RocketOutlined, CustomerServiceOutlined, DollarOutlined, ThunderboltOutlined, LockOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useState, useEffect } from "react";
+
+
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
+import AppHeader from "../../../components/Layout/AppHeader";
+import AppFooter from "../../../components/Layout/AppFooter";
 
 export default function AboutPage() {
+    const banners = [
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+        "https://images.unsplash.com/photo-1490645935967-10de6ba17061"
+    ];
+
+    const [index, setIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIndex((prev) => (prev + 1) % banners.length);
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, []);
     return (
         <Layout>
             {/* BANNER */}
+            < AppHeader />
             <div
                 style={{
-                    backgroundImage:
-                        "url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267')",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    padding: "140px 0",
-                    textAlign: "center",
-                    color: "#fff",
+                    marginTop: 70,
+                    position: 'relative',
+                    transition: 'background-image 1.5s ease-in-out',
+                    backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${banners[index]}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    height: '75vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
                 }}
             >
-                <Title style={{ color: "#fff", fontSize: "48px", fontWeight: "bold" }}>
-                    Giới thiệu về HomestayBooking
-                </Title>
-                <Paragraph style={{ color: "#eee", fontSize: "18px" }}>
-                    Nền tảng kết nối hàng ngàn homestay đẹp trên khắp Việt Nam 🇻🇳
-                </Paragraph>
+                <div style={{ maxWidth: 900, padding: '0 20px' }}>
+                    <Title
+                        level={1}
+                        style={{
+                            color: '#fff',
+                            fontSize: 58,
+                            fontWeight: 800,
+                            marginBottom: 24,
+                            textShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                            lineHeight: 1.2,
+                        }}
+                    >
+                        Về HomestayBooking
+                    </Title>
+                    <Paragraph
+                        style={{
+                            color: '#fff',
+                            fontSize: 22,
+                            marginBottom: 40,
+                            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                            maxWidth: 700,
+                            margin: '0 auto 40px',
+                        }}
+                    >
+                        Nền tảng đặt homestay hàng đầu Việt Nam - Kết nối du khách với những trải nghiệm lưu trú độc đáo
+                    </Paragraph>
+                    <Button
+                        type="primary"
+                        size="large"
+                        style={{
+                            height: 54,
+                            fontSize: 17,
+                            fontWeight: 600,
+                            paddingLeft: 48,
+                            paddingRight: 48,
+                            borderRadius: 8,
+                        }}
+                    >
+                        Khám phá homestay ngay
+                    </Button>
+                </div>
             </div>
 
             {/* GIỚI THIỆU */}
-            <Content style={{ padding: "80px 100px" }}>
-                <Row gutter={[48, 48]} align="middle">
+            <Content style={{ padding: '100px 50px', background: '#fff' }}>
+                <Row gutter={[80, 64]} align="middle" style={{ maxWidth: 1200, margin: '0 auto' }}>
                     <Col xs={24} md={12}>
-                        <img
-                            src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85"
-                            alt="Giới thiệu"
-                            style={{ width: "100%", borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                        />
+                        <Tag color="blue" style={{ marginBottom: 16, fontSize: 13, padding: '4px 12px' }}>
+                            Câu chuyện của chúng tôi
+                        </Tag>
+                        <Title level={2} style={{ fontSize: 40, fontWeight: 700, marginBottom: 24 }}>
+                            Chúng tôi là ai?
+                        </Title>
+                        <Paragraph style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
+                            Tại BookStay, chúng tôi tin rằng việc nghỉ dưỡng không chỉ là ngủ qua đêm – mà là tận hưởng một trải nghiệm sống hoàn toàn khác.
+                            Vì vậy, chúng tôi chọn lọc những homestay có concept rõ ràng, có gu, có chiều sâu câu chuyện, và thật sự mang lại cảm xúc.
+                            Dữ liệu được cập nhật liên tục theo đánh giá, lượt đặt, mức độ yêu thích và mức độ tin tưởng từ cộng đồng du lịch.
+                        </Paragraph>
+
+                        <Paragraph style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
+                            Bạn có thể dễ dàng khám phá homestay theo phong cách, vị trí, ngân sách hoặc vibe mong muốn – từ view núi mây ôm Sapa,
+                            phố cổ Hội An đầy hoài niệm, cho đến những căn nằm sát biển chỉ cần mở cửa là nghe sóng.
+                            BookStay hướng tới một nền tảng gọn – nhanh – trực quan, giúp bạn chọn đúng nơi, đúng cảm xúc, ngay lần đầu tìm kiếm.
+                        </Paragraph>
+
+                        <div style={{ display: 'flex', gap: 24, marginTop: 32, flexWrap: 'wrap' }}>
+                            <div>
+                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>200K+</Title>
+                                <Text style={{ color: '#8c8c8c' }}>Khách hàng tin tưởng</Text>
+                            </div>
+                            <div>
+                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>5000+</Title>
+                                <Text style={{ color: '#8c8c8c' }}>Homestay đối tác</Text>
+                            </div>
+                            <div>
+                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>63</Title>
+                                <Text style={{ color: '#8c8c8c' }}>Tỉnh thành</Text>
+                            </div>
+                        </div>
                     </Col>
                     <Col xs={24} md={12}>
-                        <Title level={2}>Chúng tôi là ai?</Title>
-                        <Paragraph style={{ fontSize: 16, color: "#555" }}>
-                            HomestayBooking ra đời với sứ mệnh giúp du khách dễ dàng tìm kiếm, so sánh
-                            và đặt homestay yêu thích trên khắp Việt Nam.
-                            Chúng tôi tin rằng mỗi chuyến đi là một hành trình cảm xúc,
-                            và nơi bạn ở chính là phần không thể thiếu trong trải nghiệm đó.
-                        </Paragraph>
-                        <Paragraph style={{ fontSize: 16, color: "#555" }}>
-                            Với hàng ngàn lựa chọn homestay, biệt thự và căn hộ nghỉ dưỡng,
-                            HomestayBooking mang đến sự tiện lợi, nhanh chóng và minh bạch —
-                            giúp bạn có kỳ nghỉ hoàn hảo nhất.
-                        </Paragraph>
+                        <div style={{ position: 'relative' }}>
+                            <img
+                                src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85"
+                                alt="Về chúng tôi"
+                                style={{
+                                    width: '100%',
+                                    borderRadius: 20,
+                                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                                }}
+                            />
+                            <Card
+                                bordered={false}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -40,
+                                    left: -40,
+                                    background: '#fff',
+                                    borderRadius: 16,
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                                    minWidth: 200,
+                                }}
+                                bodyStyle={{ padding: 24 }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    <div
+                                        style={{
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius: '50%',
+                                            background: '#f0f5ff',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <StarFilled style={{ fontSize: 24, color: '#1677ff' }} />
+                                    </div>
+                                    <div>
+                                        <Title level={4} style={{ margin: 0, marginBottom: 4 }}>4.8/5.0</Title>
+                                        <Text type="secondary">Đánh giá trung bình</Text>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
                     </Col>
                 </Row>
             </Content>
 
-            {/* TẦM NHÌN & SỨ MỆNH */}
-            <Content style={{ background: "#fafafa", padding: "80px 100px" }}>
-                <Row gutter={[32, 32]} justify="center">
-                    <Col xs={24} md={10}>
-                        <Card bordered={false} style={{ textAlign: "center", height: "100%" }}>
-                            <Title level={3}>Tầm nhìn 🌏</Title>
-                            <Paragraph>
-                                Trở thành nền tảng đặt homestay hàng đầu Đông Nam Á,
-                                mang đến trải nghiệm nghỉ dưỡng đáng nhớ cho mọi du khách.
-                            </Paragraph>
-                        </Card>
-                    </Col>
-                    <Col xs={24} md={10}>
-                        <Card bordered={false} style={{ textAlign: "center", height: "100%" }}>
-                            <Title level={3}>Sứ mệnh ❤️</Title>
-                            <Paragraph>
-                                Kết nối hàng triệu chủ nhà và khách du lịch thông qua công nghệ hiện đại,
-                                giúp việc đặt homestay trở nên dễ dàng, an toàn và thú vị hơn bao giờ hết.
-                            </Paragraph>
-                        </Card>
-                    </Col>
-                </Row>
-            </Content>
 
-            {/* THÀNH TỰU */}
-            <Content style={{ padding: "80px 100px" }}>
-                <Title level={2} style={{ textAlign: "center", marginBottom: 60 }}>
-                    Những con số biết nói
-                </Title>
-                <Row gutter={[24, 24]} justify="center">
-                    <Col xs={12} sm={6}>
-                        <Card>
-                            <Statistic title="Homestay đối tác" value={5000} suffix="+" prefix={<HomeOutlined />} />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card>
-                            <Statistic title="Khách hàng hài lòng" value={200000} suffix="+" prefix={<SmileOutlined />} />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card>
-                            <Statistic title="Đội ngũ nhân viên" value={120} prefix={<TeamOutlined />} />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card>
-                            <Statistic title="Giải thưởng uy tín" value={15} prefix={<TrophyOutlined />} />
-                        </Card>
-                    </Col>
-                </Row>
-            </Content>
 
-            {/* ĐỘI NGŨ */}
-            <Content style={{ background: "#fafafa", padding: "80px 100px" }}>
-                <Title level={2} style={{ textAlign: "center", marginBottom: 40 }}>
-                    Đội ngũ của chúng tôi
-                </Title>
-                <Row gutter={[24, 24]} justify="center">
-                    {[
-                        {
-                            name: "Nguyễn Minh Anh",
-                            role: "CEO & Founder",
-                            img: "https://randomuser.me/api/portraits/women/68.jpg",
-                        },
-                        {
-                            name: "Trần Tuấn Kiệt",
-                            role: "Giám đốc Kỹ thuật",
-                            img: "https://randomuser.me/api/portraits/men/32.jpg",
-                        },
-                        {
-                            name: "Lê Lan Hương",
-                            role: "Trưởng phòng Marketing",
-                            img: "https://randomuser.me/api/portraits/women/44.jpg",
-                        },
-                    ].map((member, index) => (
-                        <Col key={index} xs={24} sm={12} md={8} style={{ textAlign: "center" }}>
-                            <Avatar size={120} src={member.img} />
-                            <Title level={4} style={{ marginTop: 16 }}>
-                                {member.name}
-                            </Title>
-                            <Text type="secondary">{member.role}</Text>
-                        </Col>
-                    ))}
-                </Row>
-            </Content>
 
             {/* CAM KẾT */}
             <Content style={{ padding: "80px 100px" }}>
@@ -155,20 +190,9 @@ export default function AboutPage() {
             </Content>
 
             {/* FOOTER */}
-            <Footer
-                style={{
-                    textAlign: "center",
-                    color: "#777",
-                    background: "#f0f2f5",
-                    padding: "40px 0",
-                    marginTop: 40,
-                }}
-            >
-                <Paragraph>
-                    <strong>HomestayBooking</strong> — Cùng bạn tận hưởng từng chuyến đi ✨
-                </Paragraph>
-                <Text>© {new Date().getFullYear()} HomestayBooking. All rights reserved.</Text>
-            </Footer>
+
+
+            <AppFooter />
         </Layout>
     );
 }

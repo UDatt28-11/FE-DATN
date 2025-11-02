@@ -43,9 +43,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ isLoggedIn }) => {
                 defaultSelectedKeys={["1"]}
                 items={[
                     { key: "1", label: <Link to="/">Trang chủ</Link> },
-                    { key: "2", label: <Link to="/about">Giới thiệu</Link> },
-                    { key: "3", label: <Link to="/homestay">Homestay</Link> },
-                    { key: "4", label: <Link to="/News">Tin Tức </Link> },
+                    { key: "2", label: <Link to="/homestay">Khám phá  </Link> },
+                    { key: "3", label: <Link to="/about">Giới thiệu</Link> },
+                    { key: "4", label: <Link to="/promotion">Ưu Đãi   </Link> },
                     { key: "5", label: <Link to="/contact">Liên Hệ </Link> },
                 ]}
                 style={{

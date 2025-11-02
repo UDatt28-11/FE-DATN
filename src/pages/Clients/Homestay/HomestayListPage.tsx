@@ -11,142 +11,197 @@ import {
     Checkbox,
     Slider,
     Input,
-    Divider,
     Space,
+    Tag,
+    Button,
+    Drawer,
 } from "antd";
 import {
     HomeOutlined,
     SearchOutlined,
     DollarCircleOutlined,
     AppstoreOutlined,
+    EnvironmentOutlined,
+    HeartOutlined,
+    FilterOutlined,
+    UserOutlined,
+    CloseOutlined,
 } from "@ant-design/icons";
-import { Link } from "react-router-dom"; // Đảm bảo đã import Link
+import { Link } from "react-router-dom";
 import type { CheckboxValueType } from "antd/es/checkbox/Group";
 import type { SliderSingleProps } from "antd/es/slider";
 
-// Import các layout chung
-// (Đảm bảo đường dẫn này đúng với cấu trúc thư mục của bạn)
 import AppHeader from "../../../components/Layout/AppHeader";
 import AppFooter from "../../../components/Layout/AppFooter";
 
-const { Content, Sider } = Layout;
-const { Title, Text, Paragraph } = Typography;
-const { Meta } = Card;
+const { Content } = Layout;
+const { Title, Text } = Typography;
 
-// --- Dữ liệu giả lập (Mock Data) ---
-
-// Danh mục để lọc
+// Dữ liệu danh mục đơn giản
 const categories = [
-    { label: "Biệt thự (Villa)", value: "villa" },
-    { label: "Căn hộ (Apartment)", value: "apartment" },
+    { label: "Nhà vườn", value: "garden_house" },
+    { label: "Biệt thự", value: "villa" },
     { label: "Bungalow", value: "bungalow" },
-    { label: "View biển", value: "sea_view" },
+    { label: "Nhà gỗ", value: "wooden_house" },
+    { label: "View hồ", value: "lake_view" },
     { label: "View núi", value: "mountain_view" },
-    { label: "Có hồ bơi", value: "pool" },
 ];
 
-// Danh sách tất cả homestay
+// Danh sách homestay
 const allHomestays = [
     {
         id: 1,
-        name: "Biệt thự Biển An Viên",
-        price: 3500000,
+        name: "Nhà Vườn Hoa Sen",
+        location: "Xuân Giang, Sóc Sơn",
+        price: 800000,
         rating: 4.8,
-        category: "villa",
+        reviews: 156,
+        category: "garden_house",
         image: "https://images.unsplash.com/photo-1613977257363-27618c7c3886?w=600&q=80",
+        capacity: "6-8 người",
     },
     {
         id: 2,
-        name: "Căn hộ The Sóng Vũng Tàu",
-        price: 1200000,
-        rating: 4.5,
-        category: "apartment",
+        name: "Villa Minh Phú Sóc Sơn",
+        location: "Minh Phú, Sóc Sơn",
+        price: 2500000,
+        rating: 4.9,
+        reviews: 203,
+        category: "villa",
         image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80",
+        capacity: "10-12 người",
     },
     {
         id: 3,
-        name: "Bungalow Làng Cù Lần",
-        price: 800000,
-        rating: 4.2,
+        name: "Bungalow Tre Xanh",
+        location: "Mai Đình, Sóc Sơn",
+        price: 600000,
+        rating: 4.5,
+        reviews: 89,
         category: "bungalow",
         image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=600&q=80",
+        capacity: "4-6 người",
     },
     {
         id: 4,
-        name: "Homestay Topas Ecolodge Sapa",
-        price: 4500000,
-        rating: 4.9,
-        category: "mountain_view",
+        name: "Homestay Gỗ Bắc Phú",
+        location: "Bắc Phú, Sóc Sơn",
+        price: 1200000,
+        rating: 4.7,
+        reviews: 134,
+        category: "wooden_house",
         image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+        capacity: "8-10 người",
     },
     {
         id: 5,
-        name: "Villa View Biển Phú Quốc",
-        price: 5000000,
+        name: "Villa View Hồ Đầm Vạc",
+        location: "Đức Hoà, Sóc Sơn",
+        price: 3000000,
         rating: 5.0,
-        category: "sea_view",
+        reviews: 287,
+        category: "lake_view",
         image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80",
+        capacity: "12-15 người",
     },
     {
         id: 6,
-        name: "Căn hộ view núi Đà Lạt",
-        price: 900000,
-        rating: 4.3,
-        category: "mountain_view",
+        name: "Nhà Vườn Thanh Xuân",
+        location: "Thanh Xuân, Sóc Sơn",
+        price: 750000,
+        rating: 4.6,
+        reviews: 98,
+        category: "garden_house",
         image: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80",
+        capacity: "6-8 người",
     },
     {
         id: 7,
-        name: "Biệt thự Hồ Bơi Đà Nẵng",
-        price: 4000000,
-        rating: 4.7,
-        category: "pool",
+        name: "Biệt Thú Tiến Thắng Resort",
+        location: "Tiến Thắng, Sóc Sơn",
+        price: 2800000,
+        rating: 4.8,
+        reviews: 176,
+        category: "villa",
         image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&q=80",
+        capacity: "10-12 người",
     },
     {
         id: 8,
-        name: "Căn hộ studio Sài Gòn",
-        price: 750000,
-        rating: 4.0,
-        category: "apartment",
+        name: "Homestay Núi Cầu Bích",
+        location: "Phú Minh, Sóc Sơn",
+        price: 900000,
+        rating: 4.4,
+        reviews: 67,
+        category: "mountain_view",
         image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80",
+        capacity: "6-8 người",
+    },
+    {
+        id: 9,
+        name: "Homestay Núi Cầu Bích",
+        location: "Phú Minh, Sóc Sơn",
+        price: 900000,
+        rating: 4.4,
+        reviews: 67,
+        category: "mountain_view",
+        image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80",
+        capacity: "6-8 người",
+    },
+    {
+        id: 10,
+        name: "Homestay Núi Cầu Bích",
+        location: "Phú Minh, Sóc Sơn",
+        price: 900000,
+        rating: 4.4,
+        reviews: 67,
+        category: "mountain_view",
+        image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80",
+        capacity: "6-8 người",
+    },
+    {
+        id: 11,
+        name: "Homestay Núi Cầu Bích",
+        location: "Phú Minh, Sóc Sơn",
+        price: 900000,
+        rating: 4.4,
+        reviews: 67,
+        category: "mountain_view",
+        image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80",
+        capacity: "6-8 người",
     },
 ];
-// ------------------------------
 
-const PAGE_SIZE = 8; // Số lượng homestay mỗi trang
+const PAGE_SIZE = 9;
 
 const HomestayListPage: React.FC = () => {
-    // --- State cho bộ lọc ---
     const [selectedCategories, setSelectedCategories] = useState<CheckboxValueType[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000000]);
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 3000000]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [drawerVisible, setDrawerVisible] = useState(false);
 
-    // --- Định dạng tiền tệ ---
     const formatter: SliderSingleProps["formatter"] = (value) => {
         return `${Number(value).toLocaleString("vi-VN")}đ`;
     };
 
-    // --- Logic lọc ---
+    // Logic lọc
     const filteredHomestays = useMemo(() => {
         let items = allHomestays;
 
-        // Lọc theo tìm kiếm (Tên)
         if (searchTerm) {
             items = items.filter((item) =>
-                item.name.toLowerCase().includes(searchTerm.toLowerCase())
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.location.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
-        // Lọc theo danh mục
         if (selectedCategories.length > 0) {
             items = items.filter((item) =>
                 selectedCategories.includes(item.category)
             );
         }
 
-        // Lọc theo giá
         items = items.filter(
             (item) => item.price >= priceRange[0] && item.price <= priceRange[1]
         );
@@ -154,97 +209,148 @@ const HomestayListPage: React.FC = () => {
         return items;
     }, [selectedCategories, searchTerm, priceRange]);
 
-    // --- Logic phân trang ---
     const paginatedHomestays = useMemo(() => {
         const startIndex = (currentPage - 1) * PAGE_SIZE;
         return filteredHomestays.slice(startIndex, startIndex + PAGE_SIZE);
     }, [filteredHomestays, currentPage]);
 
-    return (
-        <Layout style={{ background: "#fff" }}>
-            {/* Sử dụng AppHeader.
-         Vì AppHeader đã được kết nối với AuthContext, 
-         nó sẽ tự động hiển thị đúng (Đăng nhập/Avatar) 
-      */}
-            <AppHeader />
+    const activeFiltersCount = selectedCategories.length + (searchTerm ? 1 : 0);
 
-            <Layout style={{ background: "#fff", marginTop: 70 }}>
-                {/* --- Thanh Bên (Sider) cho Bộ Lọc --- */}
-                <Sider
-                    width={300}
-                    theme="light"
-                    style={{
-                        padding: "24px",
-                        borderRight: "1px solid #f0f0f0",
-                        position: "fixed",
-                        left: 0,
-                        top: 70, // Dưới Header
-                        bottom: 0,
-                        overflow: "auto",
-                    }}
-                >
-                    <Title level={4}>Bộ lọc</Title>
-
-                    {/* Lọc theo tên */}
-                    <Paragraph strong>Tìm kiếm</Paragraph>
+    // Component bộ lọc
+    const FilterContent = () => (
+        <div>
+            {/* Tìm kiếm */}
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <div>
+                    <Text strong style={{ fontSize: 15, marginBottom: 8, display: 'block' }}>
+                        Tìm kiếm
+                    </Text>
                     <Input
-                        placeholder="Tên homestay..."
+                        size="large"
+                        placeholder="Nhập tên hoặc địa điểm..."
                         prefix={<SearchOutlined />}
                         allowClear
+                        value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
-                            setCurrentPage(1); // Reset trang khi tìm kiếm
+                            setCurrentPage(1);
                         }}
-                        style={{ marginBottom: 24 }}
                     />
+                </div>
 
-                    {/* Lọc theo danh mục */}
-                    <Divider />
-                    <Paragraph strong>
-                        <AppstoreOutlined style={{ marginRight: 8 }} />
+                {/* Loại hình */}
+                <div>
+                    <Text strong style={{ fontSize: 15, marginBottom: 8, display: 'block' }}>
                         Loại hình
-                    </Paragraph>
+                    </Text>
                     <Checkbox.Group
-                        style={{ display: "flex", flexDirection: "column" }}
-                        options={categories}
+                        style={{ width: '100%' }}
                         value={selectedCategories}
                         onChange={(values) => {
                             setSelectedCategories(values);
-                            setCurrentPage(1); // Reset trang khi lọc
+                            setCurrentPage(1);
                         }}
-                    />
+                    >
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            {categories.map((cat) => (
+                                <Checkbox
+                                    key={cat.value}
+                                    value={cat.value}
+                                    style={{ fontSize: 14 }}
+                                >
+                                    {cat.label}
+                                </Checkbox>
+                            ))}
+                        </Space>
+                    </Checkbox.Group>
+                </div>
 
-                    {/* Lọc theo giá */}
-                    <Divider />
-                    <Paragraph strong>
-                        <DollarCircleOutlined style={{ marginRight: 8 }} />
+                {/* Khoảng giá */}
+                <div>
+                    <Text strong style={{ fontSize: 15, marginBottom: 12, display: 'block' }}>
                         Khoảng giá (/đêm)
-                    </Paragraph>
+                    </Text>
                     <Slider
                         range
                         min={0}
-                        max={5000000}
+                        max={3000000}
                         step={100000}
-                        defaultValue={priceRange}
-                        tipFormatter={formatter}
+                        value={priceRange}
+                        tooltip={{ formatter }}
                         onChange={(value) => {
                             setPriceRange(value);
-                            setCurrentPage(1); // Reset trang khi lọc
+                            setCurrentPage(1);
                         }}
-                        style={{ marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 }}
                     />
-                    <Row justify="space-between">
-                        <Col><Text type="secondary">{formatter(priceRange[0])}</Text></Col>
-                        <Col><Text type="secondary">{formatter(priceRange[1])}</Text></Col>
+                    <Row justify="space-between" style={{ marginTop: 8 }}>
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                            {formatter(priceRange[0])}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                            {formatter(priceRange[1])}
+                        </Text>
                     </Row>
+                </div>
 
-                </Sider>
+                {/* Nút xóa bộ lọc */}
+                {activeFiltersCount > 0 && (
+                    <Button
+                        block
+                        icon={<CloseOutlined />}
+                        onClick={() => {
+                            setSelectedCategories([]);
+                            setSearchTerm("");
+                            setPriceRange([0, 3000000]);
+                            setCurrentPage(1);
+                        }}
+                    >
+                        Xóa bộ lọc ({activeFiltersCount})
+                    </Button>
+                )}
+            </Space>
+        </div>
+    );
 
-                {/* --- Khu vực Nội dung chính (Content) --- */}
-                <Layout style={{ padding: "0 24px 24px", marginLeft: 300, background: "#fff" }}>
-                    <Content>
-                        {/* Breadcrumb (Điều hướng) */}
-                        <Breadcrumb style={{ margin: "24px 0" }}>
+    return (
+        <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+            <AppHeader />
+
+            <Layout style={{ background: '#f0f2f5', marginTop: 64 }}>
+                <Row style={{ maxWidth: 1400, margin: '0 auto', width: '100%', padding: '0 16px' }}>
+                    {/* Sidebar - Desktop */}
+                    <Col xs={0} lg={6} style={{ padding: '24px 12px 24px 0' }}>
+                        <div style={{
+                            background: '#fff',
+                            borderRadius: 8,
+                            padding: 20,
+                            position: 'sticky',
+                            top: 88,
+                        }}>
+                            <Title level={4} style={{ marginBottom: 20 }}>
+                                <FilterOutlined /> Bộ lọc
+                            </Title>
+                            <FilterContent />
+                        </div>
+                    </Col>
+
+                    {/* Main content */}
+                    <Col xs={24} lg={18} style={{ padding: '24px 0 24px 12px' }}>
+                        {/* Button bộ lọc mobile */}
+                        <Button
+                            size="large"
+                            icon={<FilterOutlined />}
+                            onClick={() => setDrawerVisible(true)}
+                            style={{
+                                marginBottom: 16,
+                                display: 'none',
+                            }}
+                            className="filter-mobile-btn"
+                        >
+                            Bộ lọc {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+                        </Button>
+
+                        {/* Breadcrumb */}
+                        <Breadcrumb style={{ marginBottom: 16 }}>
                             <Breadcrumb.Item>
                                 <Link to="/">
                                     <HomeOutlined /> Trang chủ
@@ -253,55 +359,128 @@ const HomestayListPage: React.FC = () => {
                             <Breadcrumb.Item>Danh sách Homestay</Breadcrumb.Item>
                         </Breadcrumb>
 
-                        <Title level={2}>
-                            Tìm thấy {filteredHomestays.length} homestay
-                        </Title>
-                        <Paragraph type="secondary">
-                            Hiển thị kết quả cho tìm kiếm của bạn.
-                        </Paragraph>
+                        {/* Tiêu đề */}
+                        <div style={{ marginBottom: 24 }}>
+                            <Title level={2} style={{ marginBottom: 4 }}>
+                                Homestay Sóc Sơn - Hà Nội
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: 15 }}>
+                                Tìm thấy {filteredHomestays.length} homestay
+                            </Text>
+                        </div>
 
-                        {/* Danh sách Homestay */}
-                        <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+                        {/* Danh sách homestay */}
+                        <Row gutter={[16, 16]}>
                             {paginatedHomestays.map((item) => (
-                                <Col key={item.id} xs={24} sm={12} md={8} lg={6}>
-                                    <Card
-                                        hoverable
-                                        bordered={false}
-                                        style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                                        cover={
-                                            <img
-                                                alt={item.name}
-                                                src={item.image}
-                                                style={{ height: 200, objectFit: "cover" }}
-                                            />
-                                        }
-                                    >
-                                        <Meta
-                                            // SỬA ĐỔI: Bọc Title trong <Link>
-                                            title={
-                                                <Link to={`/homestay/${item.id}`} style={{ color: 'inherit' }}>
-                                                    <Title level={5} ellipsis style={{ marginBottom: 0 }}>
-                                                        {item.name}
-                                                    </Title>
-                                                </Link>
+                                <Col key={item.id} xs={24} sm={12} lg={12} xl={8}>
+                                    <Link to={`/homestay/${item.id}`}>
+                                        <Card
+                                            hoverable
+                                            style={{
+                                                borderRadius: 8,
+                                                overflow: 'hidden',
+                                                height: '100%',
+                                            }}
+                                            bodyStyle={{ padding: 16 }}
+                                            cover={
+                                                <div style={{ position: 'relative' }}>
+                                                    <img
+                                                        alt={item.name}
+                                                        src={item.image}
+                                                        style={{
+                                                            height: 200,
+                                                            width: '100%',
+                                                            objectFit: 'cover',
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        shape="circle"
+                                                        icon={<HeartOutlined />}
+                                                        size="small"
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: 12,
+                                                            right: 12,
+                                                            background: 'white',
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                        }}
+                                                    />
+                                                </div>
                                             }
-                                            description={
-                                                <Space direction="vertical" style={{ width: '100%' }}>
-                                                    <Text strong style={{ fontSize: 16, color: "#1677ff" }}>
-                                                        {item.price.toLocaleString("vi-VN")}đ / đêm
+                                        >
+                                            <Title level={5} ellipsis style={{ marginBottom: 8, marginTop: 0 }}>
+                                                {item.name}
+                                            </Title>
+
+                                            <Space direction="vertical" size={4} style={{ width: '100%', marginBottom: 12 }}>
+                                                <Text type="secondary" style={{ fontSize: 13 }}>
+                                                    <EnvironmentOutlined /> {item.location}
+                                                </Text>
+                                                <Text type="secondary" style={{ fontSize: 13 }}>
+                                                    <UserOutlined /> {item.capacity}
+                                                </Text>
+                                            </Space>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                borderTop: '1px solid #f0f0f0',
+                                                paddingTop: 12,
+                                            }}>
+                                                <div>
+                                                    <Text
+                                                        strong
+                                                        style={{
+                                                            fontSize: 18,
+                                                            color: '#1890ff',
+                                                        }}
+                                                    >
+                                                        {item.price.toLocaleString("vi-VN")}đ
                                                     </Text>
-                                                    <Rate allowHalf disabled defaultValue={item.rating} style={{ fontSize: 14 }} />
+                                                    <Text type="secondary" style={{ fontSize: 12 }}> /đêm</Text>
+                                                </div>
+                                                <Space size={4}>
+                                                    <Rate disabled defaultValue={item.rating} style={{ fontSize: 14 }} />
+                                                    <Text style={{ fontSize: 13 }}>
+                                                        ({item.reviews})
+                                                    </Text>
                                                 </Space>
-                                            }
-                                        />
-                                    </Card>
+                                            </div>
+                                        </Card>
+                                    </Link>
                                 </Col>
                             ))}
 
-                            {/* Nếu không tìm thấy kết quả */}
                             {filteredHomestays.length === 0 && (
-                                <Col span={24} style={{ textAlign: 'center', marginTop: 48 }}>
-                                    <Paragraph>Không tìm thấy homestay nào phù hợp với bộ lọc của bạn.</Paragraph>
+                                <Col span={24}>
+                                    <div style={{
+                                        textAlign: 'center',
+                                        padding: '60px 24px',
+                                        background: '#fff',
+                                        borderRadius: 8,
+                                    }}>
+                                        <Title level={4}>
+                                            Không tìm thấy homestay phù hợp
+                                        </Title>
+                                        <Text type="secondary">
+                                            Hãy thử điều chỉnh bộ lọc để xem thêm kết quả
+                                        </Text>
+                                        <br /><br />
+                                        <Button
+                                            type="primary"
+                                            onClick={() => {
+                                                setSelectedCategories([]);
+                                                setSearchTerm("");
+                                                setPriceRange([0, 3000000]);
+                                                setCurrentPage(1);
+                                            }}
+                                        >
+                                            Xóa bộ lọc
+                                        </Button>
+                                    </div>
                                 </Col>
                             )}
                         </Row>
@@ -313,19 +492,40 @@ const HomestayListPage: React.FC = () => {
                                     current={currentPage}
                                     total={filteredHomestays.length}
                                     pageSize={PAGE_SIZE}
-                                    onChange={(page) => setCurrentPage(page)}
+                                    onChange={(page) => {
+                                        setCurrentPage(page);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
                                     showSizeChanger={false}
                                 />
                             </Row>
                         )}
-                    </Content>
-                </Layout>
+                    </Col>
+                </Row>
             </Layout>
 
+            {/* Drawer bộ lọc cho mobile */}
+            <Drawer
+                title="Bộ lọc"
+                placement="left"
+                onClose={() => setDrawerVisible(false)}
+                open={drawerVisible}
+                width={300}
+            >
+                <FilterContent />
+            </Drawer>
+
             <AppFooter />
+
+            <style>{`
+                @media (max-width: 991px) {
+                    .filter-mobile-btn {
+                        display: inline-flex !important;
+                    }
+                }
+            `}</style>
         </Layout>
     );
 };
 
 export default HomestayListPage;
-
