@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Filter Logic</title>
+</head>
+<body>
+  <h1>Booking Filter Test</h1>
+  <div id="output"></div>
+  
+  <script>
+    // Mock data từ database
+    const mockData = [
+      { id: 1, code: "BK20251021001", status: "confirmed", customer_name: "Nguyen Van A" },
+      { id: 2, code: "BK20251021002", status: "completed", customer_name: "Tran Thi B" },
+      { id: 3, code: "BK20251021003", status: "confirmed", customer_name: "Le Van C" },
+      { id: 4, code: "BK20251014004", status: "completed", customer_name: "Pham Thi D" },
+      { id: 5, code: "BK20251019005", status: "cancelled", customer_name: "Hoang Van E" },
+      { id: 6, code: "BK20251006006", status: "completed", customer_name: "Do Thi F" },
+      { id: 7, code: "BK20251021007", status: "completed", customer_name: "Nguyen Van G" },
+      { id: 8, code: "BK20251021008", status: "confirmed", customer_name: "Tran Van H" }
+    ];
+
+    function applyFilters(data, status) {
+      console.log('🔍 Filtering with status:', status);
+      console.log('📊 Input data:', data.length);
+      
+      let filtered = data;
+      
+      if (status !== "all") {
+        console.log('🎯 Applying status filter:', status);
+        filtered = filtered.filter((b) => {
+          console.log(`  - Checking ${b.code}: ${b.status} === ${status}?`, b.status === status);
+          return b.status === status;
+        });
+      }
+      
+      console.log('✅ Filtered result:', filtered.length);
+      return filtered;
+    }
+
+    // Test cases
+    const tests = [
+      { status: 'all', expected: 8 },
+      { status: 'confirmed', expected: 3 },
+      { status: 'completed', expected: 4 },
+      { status: 'cancelled', expected: 1 },
+      { status: 'pending', expected: 0 }
+    ];
+
+    let output = '<h2>Test Results:</h2>';
+    tests.forEach(test => {
+      const result = applyFilters(mockData, test.status);
+      const passed = result.length === test.expected;
+      output += `<div style="color: ${passed ? 'green' : 'red'}">
+        ✓ Status "${test.status}": Expected ${test.expected}, Got ${result.length} 
+        ${passed ? '✓ PASS' : '✗ FAIL'}
+      </div>`;
+    });
+
+    document.getElementById('output').innerHTML = output;
+  </script>
+</body>
+</html>

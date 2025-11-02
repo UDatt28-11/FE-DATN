@@ -1,20 +1,13 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import AdminBookingTable from './pages/admin/bookings/AdminBookingTable';
-import AdminBookingDetail from './pages/admin/bookings/AdminBookingDetail';
+import { RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import router from "./router";
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/admin/bookings" element={<AdminBookingTable />} />
-        <Route path="/admin/bookings/:id" element={<AdminBookingDetail />} />
-        <Route path="*" element={<Navigate to="/admin/bookings" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   );
 }
 
-
-
-
+export default App;

@@ -13,6 +13,11 @@ export const api = axios.create({
   baseURL,
   // Avoid CORS credential restrictions when calling http://localhost:8000 from :5173
   withCredentials: false,
+  // Tắt cache cho GET requests
+  headers: {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+  },
 });
 
 api.interceptors.response.use(
