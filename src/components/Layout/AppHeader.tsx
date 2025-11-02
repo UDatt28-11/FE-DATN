@@ -40,7 +40,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ isLoggedIn }) => {
 
             <Menu
                 mode="horizontal"
-                defaultSelectedKeys={["1"]}
+                defaultSelectedKeys={[""]}
                 items={[
                     { key: "1", label: <Link to="/">Trang chủ</Link> },
                     { key: "2", label: <Link to="/homestay">Khám phá  </Link> },
