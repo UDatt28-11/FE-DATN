@@ -1,9 +1,6 @@
 import { RouteObject } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 
-// Dashboard
-import Dashboard from "../pages/Admin/Dashboard";
-
 // Quản lý phòng
 import ListRoom from "../pages/Admin/quanliphong/ListRoom";
 import AddRoom from "../pages/Admin/quanliphong/addroom";
@@ -41,14 +38,15 @@ import AddPromotion from "../pages/Admin/quanlimagiamgia/addPromotion";
 import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
+import ListSupplies from "../pages/Admin/quanlivattu/listsupply";
+import AddSupply from "../pages/Admin/quanlivattu/addsupply";
+import EditSupply from "../pages/Admin/quanlivattu/editsupply";
+import ViewSupply from "../pages/Admin/quanlivattu/viewsupply";
 
 export const adminRoutes: RouteObject = {
   path: "/admin",
   element: <AdminLayout />,
   children: [
-    { path: "", element: <Dashboard /> },
-    { path: "dashboard", element: <Dashboard /> },
-
     // Quản lý phòng
     { path: "listing", element: <ListRoom /> },
     { path: "listing/add", element: <AddRoom /> },
@@ -87,6 +85,12 @@ export const adminRoutes: RouteObject = {
     { path: "promotion", element: <ListPromotion /> },
     { path: "promotion/add", element: <AddPromotion /> },
     { path: "promotion/edit/:id", element: <EditPromotion /> },
+
+    // 🧱 Quản lý vật tư (Supplies)
+    { path: "supplies", element: <ListSupplies /> },
+    { path: "supplies/add", element: <AddSupply /> },
+    { path: "supplies/edit/:id", element: <EditSupply /> },
+    { path: "supplies/view/:id", element: <ViewSupply /> },
 
     // Quản lý mã đánh giá
     { path: "review", element: <ListReview /> },
