@@ -44,7 +44,7 @@ const supplyService = {
   // Tạo mới vật tư
   async create(data: Partial<Supply>): Promise<Supply> {
     const res = await api.post("/supplies", data);
-    return res.data;
+     return res.data.data;
   },
 
   // Cập nhật vật tư

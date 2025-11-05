@@ -1,3 +1,5 @@
+export type SupplyStatus = "Hoạt động" | "Ngưng hoạt động";
+
 export interface Supply {
   id: number;
   name: string;
@@ -10,7 +12,7 @@ export interface Supply {
   unit_price: number;
   supplier: string;
   supplier_contact: string;
-  status: "Hoạt động" | "Ngưng hoạt động";
+  status: SupplyStatus;
   created_at: string;
   updated_at: string;
 }

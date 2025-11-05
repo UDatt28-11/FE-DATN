@@ -1,51 +1,74 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Form, Input, InputNumber, Select, message } from "antd";
-import { Supply } from "../../../types/supply/supplies";
+import { Supply, SupplyStatus } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
+
+// Map frontend <-> backend status
+const statusMapToBackend: Record<SupplyStatus, "active" | "inactive"> = {
+  "Hoạt động": "active",
+  "Ngưng hoạt động": "inactive",
+};
+const statusMapToFrontend: Record<"active" | "inactive", SupplyStatus> = {
+  active: "Hoạt động",
+  inactive: "Ngưng hoạt động",
+};
 
 interface EditSupplyProps {
   visible: boolean;
   onCancel: () => void;
-  supply: Supply | null; // object vật tư cần sửa
-  onUpdate: (supply: Supply) => void; // callback khi cập nhật thành công
+  supply: Supply | null;
+  onUpdate: (supply: Supply) => void;
 }
 
-const EditSupply: React.FC<EditSupplyProps> = ({ visible, onCancel, supply, onUpdate }) => {
+const EditSupply: React.FC<EditSupplyProps> = ({
+  visible,
+  onCancel,
+  supply,
+  onUpdate,
+}) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (supply) {
-      form.setFieldsValue(supply);
+      form.setFieldsValue({
+        ...supply,
+        status: supply.status,
+      });
     } else {
       form.resetFields();
     }
-  }, [supply]);
+  }, [supply, form]);
 
   const handleOk = async () => {
+    if (!supply) return;
+
     try {
-      if (!supply) return;
       const values = await form.validateFields();
       setLoading(true);
 
-      // gọi API cập nhật
-      const updated: any = await supplyService.update(supply.id, {
-        ...supply,
+      // Tách status ra và map sang backend
+      const payload: any = {
         ...values,
-        updated_at: new Date().toISOString(),
-      });
+        status: statusMapToBackend[values.status as SupplyStatus],
+      };
 
-      // thông báo và truyền lên parent
-      onUpdate(updated);
+      // Gọi API
+      const res: any = await supplyService.update(supply.id, payload);
+
+      // Map status backend về frontend
+      const updatedSupply: Supply = {
+        ...res.data.data,
+        status: statusMapToFrontend[res.data.status as "active" | "inactive"],
+      };
+
+      onUpdate(updatedSupply);
       message.success("Cập nhật vật tư thành công!");
       onCancel();
     } catch (err: any) {
       console.error(err);
-      if (err.response?.data?.message) {
-        message.error(`Lỗi: ${err.response.data.message}`);
-      } else {
-        message.error("Không thể cập nhật vật tư!");
-      }
+      const msg = err.response?.data?.message || "Không thể cập nhật vật tư!";
+      message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -92,7 +115,7 @@ const EditSupply: React.FC<EditSupplyProps> = ({ visible, onCancel, supply, onUp
         <Form.Item label="Liên hệ NCC" name="supplier_contact">
           <Input />
         </Form.Item>
-        <Form.Item label="Trạng thái" name="status">
+        <Form.Item label="Trạng thái" name="status" rules={[{ required: true }]}>
           <Select>
             <Select.Option value="Hoạt động">Hoạt động</Select.Option>
             <Select.Option value="Ngưng hoạt động">Ngưng hoạt động</Select.Option>

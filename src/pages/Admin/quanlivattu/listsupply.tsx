@@ -9,6 +9,7 @@ import {
   Tooltip,
   message,
   Spin,
+  notification,
 } from "antd";
 import {
   PlusOutlined,
@@ -35,24 +36,23 @@ const ListSupplies: React.FC = () => {
   const [viewModal, setViewModal] = useState(false);
   const [selected, setSelected] = useState<Supply | null>(null);
 
+  // ✅ Modal context (bắt buộc với AntD v5)
+  const [modal, contextHolder] = Modal.useModal();
+
   /** 🔹 Gọi API lấy danh sách vật tư */
   const fetchSupplies = async () => {
     setLoading(true);
     try {
-      const res: any = await supplyService.getAll(); // dùng any tạm thời
-      if (Array.isArray(res)) {
-        setData(res);
-      } else if (Array.isArray(res.data)) {
-        setData(res.data); // ✅ Lấy mảng từ res.data nếu API trả object
-      } else {
-        setData([]); // fallback an toàn
-        message.warning("API không trả về danh sách hợp lệ!");
-      }
-    } catch (err) {
-      console.error(err);
-      message.error("Không thể tải danh sách vật tư!");
+      const res: any = await supplyService.getAll();
+      setData(res.data ?? res ?? []);
+    } catch {
+      notification.error({
+        message: "Lỗi tải dữ liệu",
+        description: "Không thể tải danh sách vật tư. Vui lòng thử lại!",
+        placement: "topRight",
+      });
     } finally {
-      setLoading(false);
+      setLoading(false); // ✅ Quan trọng
     }
   };
 
@@ -60,7 +60,7 @@ const ListSupplies: React.FC = () => {
     fetchSupplies();
   }, []);
 
-  /** 🔹 Tìm kiếm */
+  /** 🔹 Lọc theo tìm kiếm */
   const filteredData = data.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -69,58 +69,41 @@ const ListSupplies: React.FC = () => {
   );
 
   /** 🔹 Xóa vật tư */
-  const handleDelete = (id: number) => {
-    Modal.confirm({
-      title: "Xóa vật tư này?",
+  const handleDelete = (id: number | string) => {
+    modal.confirm({
+      title: "Xóa vật tư?",
+      content: "Bạn có chắc chắn muốn xóa? Hành động này không thể hoàn tác.",
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
-      async onOk() {
-        try {
-          await supplyService.remove(id);
-          setData((prev) => prev.filter((d) => d.id !== id));
-          message.success("Đã xóa vật tư thành công!");
-        } catch (err) {
-          message.error("Không thể xóa vật tư!");
-        }
-      },
+      onOk: async () => {
+  return supplyService
+    .remove(id)
+    .then(() => {
+      fetchSupplies();
+      notification.success({
+        message: "Xóa thành công",
+        description: "Vật tư đã được xóa khỏi hệ thống.",
+        placement: "topRight",
+        duration: 2,
+      });
+    })
+    .catch((err: any) => {
+      notification.error({
+        message: "Xóa thất bại",
+        description: err?.response?.data?.message || "Không thể xóa vật tư!",
+        placement: "topRight",
+        duration: 3,
+      });
+    });
+},
+
     });
   };
 
-  /** 🔹 Khi thêm vật tư mới */
-  const handleAdd = async (s: Supply) => {
-    try {
-      const newItem = await supplyService.create(s);
-      setData((prev) => [...prev, newItem]);
-      message.success("Thêm vật tư thành công!");
-    } catch (err) {
-      message.error("Không thể thêm vật tư!");
-    }
-  };
-
-  /** 🔹 Khi cập nhật vật tư */
-  const handleUpdate = async (s: Supply) => {
-    try {
-      const updated = await supplyService.update(s.id, s);
-      setData((prev) => prev.map((d) => (d.id === s.id ? updated : d)));
-      message.success("Cập nhật vật tư thành công!");
-    } catch (err) {
-      message.error("Không thể cập nhật vật tư!");
-    }
-  };
-
   const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      sorter: (a: Supply, b: Supply) => a.id - b.id,
-      width: 70,
-    },
-    {
-      title: "Tên vật tư",
-      dataIndex: "name",
-      sorter: (a: Supply, b: Supply) => a.name.localeCompare(b.name),
-    },
+    { title: "ID", dataIndex: "id", width: 70 },
+    { title: "Tên vật tư", dataIndex: "name" },
     { title: "Loại", dataIndex: "category" },
     { title: "Đơn vị", dataIndex: "unit", width: 100 },
     {
@@ -131,7 +114,7 @@ const ListSupplies: React.FC = () => {
     {
       title: "Đơn giá (₫)",
       dataIndex: "unit_price",
-      render: (v: number) => v.toLocaleString(),
+      render: (v: number) => v?.toLocaleString(),
     },
     {
       title: "Trạng thái",
@@ -143,18 +126,19 @@ const ListSupplies: React.FC = () => {
     {
       title: "Thao tác",
       key: "actions",
-      width: 150,
+      width: 160,
       render: (_: any, record: Supply) => (
         <Space>
           <Tooltip title="Xem chi tiết">
             <Button
               icon={<EyeOutlined />}
               onClick={() => {
-                setSelected(record); // lưu toàn bộ object để dùng cho các thao tác khác
+                setSelected(record);
                 setViewModal(true);
               }}
             />
           </Tooltip>
+
           <Tooltip title="Chỉnh sửa">
             <Button
               icon={<EditOutlined />}
@@ -164,10 +148,11 @@ const ListSupplies: React.FC = () => {
               }}
             />
           </Tooltip>
+
           <Tooltip title="Xóa">
             <Button
-              icon={<DeleteOutlined />}
               danger
+              icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.id)}
             />
           </Tooltip>
@@ -178,6 +163,7 @@ const ListSupplies: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
+      {contextHolder} {/* ✅ Quan trọng: phải có dòng này */}
       <Space style={{ marginBottom: 16 }}>
         <Search
           placeholder="Tìm vật tư..."
@@ -185,6 +171,7 @@ const ListSupplies: React.FC = () => {
           onSearch={setSearch}
           style={{ width: 300 }}
         />
+
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -192,6 +179,7 @@ const ListSupplies: React.FC = () => {
         >
           Thêm vật tư
         </Button>
+
         <Button
           icon={<ReloadOutlined />}
           onClick={fetchSupplies}
@@ -200,7 +188,6 @@ const ListSupplies: React.FC = () => {
           Làm mới
         </Button>
       </Space>
-
       <Spin spinning={loading}>
         <Table
           rowKey="id"
@@ -210,27 +197,21 @@ const ListSupplies: React.FC = () => {
           bordered
         />
       </Spin>
-
-      {/* Modal thêm vật tư */}
       <AddSupply
         visible={addModal}
         onCancel={() => setAddModal(false)}
-        onAdd={handleAdd}
+        onAdd={fetchSupplies}
       />
-
-      {/* Modal sửa vật tư */}
       <EditSupply
         visible={editModal}
         supply={selected}
         onCancel={() => setEditModal(false)}
-        onUpdate={handleUpdate}
+        onUpdate={fetchSupplies}
       />
-
-      {/* Modal xem chi tiết vật tư */}
       <ViewSupply
         visible={viewModal}
         onCancel={() => setViewModal(false)}
-        supplyId={selected ? selected.id : null}
+        supplyId={selected?.id ?? null}
       />
     </div>
   );
