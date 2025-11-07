@@ -1,0 +1,121 @@
+/* :: 13.0 Footer Area CSS */
+.footer-area {
+  position: relative;
+  z-index: 1;
+  background-color: #363636;
+  padding-bottom: 40px;
+}
+
+.footer-area .footer-widget-area p {
+  color: #cccccc;
+  font-size: 16px;
+  margin-bottom: 0;
+}
+
+.footer-area .footer-widget-area .d-block {
+  display: block;
+}
+
+.footer-area .footer-widget-area .mb-5 {
+  margin-bottom: 3rem !important;
+}
+
+.footer-area .footer-widget-area img {
+  max-width: 100%;
+  height: auto;
+}
+
+.footer-area .footer-widget-area .widget-title {
+  padding-top: 15px;
+  color: #ffffff;
+  font-weight: 400;
+  font-size: 18px;
+  margin-bottom: 0;
+}
+
+.footer-area .footer-widget-area .subscribe-form {
+  position: relative;
+  z-index: 1;
+}
+
+.footer-area .footer-widget-area .subscribe-form input,
+.footer-area .footer-widget-area .subscribe-form .ant-input {
+  width: 100%;
+  height: 46px;
+  background-color: transparent !important;
+  border: 2px solid #cb8670 !important;
+  padding: 0 15px;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+}
+
+.footer-area .footer-widget-area .subscribe-form input::placeholder,
+.footer-area .footer-widget-area .subscribe-form .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.footer-area .footer-widget-area .subscribe-form input:focus,
+.footer-area .footer-widget-area .subscribe-form .ant-input:focus {
+  box-shadow: none !important;
+  border-color: #cb8670 !important;
+  background-color: transparent !important;
+}
+
+.footer-area .footer-widget-area .subscribe-form button,
+.footer-area .footer-widget-area .subscribe-form .ant-btn {
+  transition-duration: 500ms;
+  width: 100%;
+  height: 46px !important;
+  border: none !important;
+  font-size: 16px !important;
+  margin-top: 15px;
+  color: #ffffff !important;
+  cursor: pointer;
+  background-color: #cb8670 !important;
+  border-radius: 0 !important;
+  line-height: 46px !important;
+  padding: 0 !important;
+}
+
+.footer-area .footer-widget-area .subscribe-form button:hover,
+.footer-area .footer-widget-area .subscribe-form button:focus,
+.footer-area .footer-widget-area .subscribe-form .ant-btn:hover,
+.footer-area .footer-widget-area .subscribe-form .ant-btn:focus {
+  background-color: #363636 !important;
+  border-color: #cb8670 !important;
+}
+
+.footer-area .copywrite-text {
+  position: relative;
+  z-index: 1;
+}
+
+.footer-area .copywrite-text p {
+  margin-bottom: 0;
+  line-height: 1.5;
+  font-size: 12px;
+  color: rgba(204, 204, 204, 0.4);
+  text-align: center;
+}
+
+.footer-area .copywrite-text p a {
+  font-size: 12px;
+  color: rgba(204, 204, 204, 0.4);
+  transition: color 0.3s;
+}
+
+.footer-area .copywrite-text p a:hover {
+  color: #ffffff;
+}
+
+.footer-area .copywrite-text i {
+  color: #cb8670;
+  margin: 0 5px;
+}
+
+/* Responsive */
+@media only screen and (max-width: 767px) {
+  .footer-area .footer-widget-area {
+    margin-bottom: 30px;
+  }
+}

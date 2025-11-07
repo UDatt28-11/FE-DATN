@@ -1,269 +1,321 @@
-import React from 'react';
-import { Carousel, DatePicker, Select, Button, Row, Col, Card, Typography } from 'antd';
-import { CalendarOutlined, UserOutlined, TeamOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import React, { useState, useEffect } from 'react';
+import { Carousel, Select, Button, Row, Col, Form } from 'antd';
+import { CheckOutlined } from '@ant-design/icons';
+import BookRoomButton from '../components/common/BookRoomButton';
 import './Home.css';
 
-const { Title, Paragraph } = Typography;
+const { Option } = Select;
 
 const Home: React.FC = () => {
-  const [checkIn, setCheckIn] = React.useState<dayjs.Dayjs | null>(null);
-  const [checkOut, setCheckOut] = React.useState<dayjs.Dayjs | null>(null);
-  const [adults, setAdults] = React.useState(2);
-  const [children, setChildren] = React.useState(0);
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
 
-  const handleBookNow = () => {
-    console.log({
-      checkIn: checkIn?.format('YYYY-MM-DD'),
-      checkOut: checkOut?.format('YYYY-MM-DD'),
-      adults,
-      children
-    });
+  useEffect(() => {
+    // Simulate preloader
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBookNow = (values: any) => {
+    console.log('Booking:', values);
   };
 
-  const slides = [
+  const heroSlides = [
     {
-      image: '/img/bg-img/1.jpg',
+      image: '/img/bg-img/bg-1.jpg',
       title: 'The Vacation Heaven',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien.'
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus.'
     },
     {
-      image: '/img/bg-img/5.jpg',
-      title: 'The Vacation Heaven',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien.'
+      image: '/img/bg-img/bg-2.jpg',
+      title: 'A place to remember',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus.'
+    },
+    {
+      image: '/img/bg-img/bg-3.jpg',
+      title: 'Enjoy your life',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus.'
+    }
+  ];
+
+  const rooms = [
+    {
+      image: '/img/bg-img/1.jpg',
+      title: 'Deluxe Room',
+      price: '$150',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.'
+    },
+    {
+      image: '/img/bg-img/8.jpg',
+      title: 'Double Suite',
+      price: '$150',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.'
+    },
+    {
+      image: '/img/bg-img/9.jpg',
+      title: 'Single Room',
+      price: '$100',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.'
     }
   ];
 
   return (
     <div className="home-wrapper">
-      {/* Hero Section with Carousel */}
-      <section className="hero-section">
+      {/* Preloader */}
+      {loading && (
+        <div className="preloader d-flex align-items-center justify-content-center">
+          <div className="cssload-container">
+            <div className="cssload-loading">
+              <i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hero Area */}
+      <section className="hero-area">
         <Carousel 
           autoplay 
           effect="fade" 
-          dotPosition="bottom"
-          style={{ height: '100vh' }}
+          className="hero-slides"
+          dots={true}
         >
-          {slides.map((slide, index) => (
-            <div key={index}>
+          {heroSlides.map((slide, index) => (
+            <div key={index} className="single-hero-slide d-flex align-items-center justify-content-center">
               <div 
-                className="slide-content"
-                style={{ 
-                  backgroundImage: `url(${slide.image})`,
-                  height: '100vh',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative'
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  zIndex: 1
-                }} />
-                <div style={{ 
-                  textAlign: 'center', 
-                  color: '#fff',
-                  position: 'relative',
-                  zIndex: 2,
-                  padding: '0 20px'
-                }}>
-                  <Title level={1} style={{ color: '#fff', fontSize: '4rem', marginBottom: '1rem' }}>
-                    {slide.title}
-                  </Title>
-                  <Paragraph style={{ color: '#fff', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
-                    {slide.description}
-                  </Paragraph>
-                  <Button type="primary" size="large" style={{ 
-                    backgroundColor: '#cb8670', 
-                    borderColor: '#cb8670',
-                    height: '50px',
-                    padding: '0 40px',
-                    fontSize: '16px'
-                  }}>
-                    Read More
-                  </Button>
-                </div>
+                className="slide-img bg-img" 
+                style={{ backgroundImage: `url(${slide.image})` }}
+              ></div>
+              <div className="container">
+                <Row justify="center">
+                  <Col xs={24} lg={18}>
+                    <div className="hero-slides-content" data-animation="fadeInUp" data-delay="100ms">
+                      <div className="line" data-animation="fadeInUp" data-delay="300ms"></div>
+                      <h2 data-animation="fadeInUp" data-delay="500ms">{slide.title}</h2>
+                      <p data-animation="fadeInUp" data-delay="700ms">{slide.description}</p>
+                      <a 
+                        href="#" 
+                        className="btn palatin-btn mt-50" 
+                        data-animation="fadeInUp" 
+                        data-delay="900ms"
+                      >
+                        Read More
+                      </a>
+                    </div>
+                  </Col>
+                </Row>
               </div>
             </div>
           ))}
         </Carousel>
-
-        {/* Booking Form */}
-        <div className="booking-form-container" style={{
-          position: 'absolute',
-          bottom: '50px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '90%',
-          maxWidth: '1200px',
-          zIndex: 10
-        }}>
-          <Card style={{ 
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-          }}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} md={5}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-                  <CalendarOutlined /> Check In
-                </label>
-                <DatePicker 
-                  style={{ width: '100%' }}
-                  value={checkIn}
-                  onChange={(date) => setCheckIn(date)}
-                  format="YYYY-MM-DD"
-                  size="large"
-                />
-              </Col>
-              <Col xs={24} sm={12} md={5}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-                  <CalendarOutlined /> Check Out
-                </label>
-                <DatePicker 
-                  style={{ width: '100%' }}
-                  value={checkOut}
-                  onChange={(date) => setCheckOut(date)}
-                  format="YYYY-MM-DD"
-                  size="large"
-                />
-              </Col>
-              <Col xs={24} sm={12} md={5}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-                  <UserOutlined /> Adults
-                </label>
-                <Select 
-                  style={{ width: '100%' }}
-                  value={adults}
-                  onChange={(value) => setAdults(value)}
-                  size="large"
-                >
-                  {[1,2,3,4,5].map(num => (
-                    <Select.Option key={num} value={num}>{num}</Select.Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={5}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-                  <TeamOutlined /> Children
-                </label>
-                <Select 
-                  style={{ width: '100%' }}
-                  value={children}
-                  onChange={(value) => setChildren(value)}
-                  size="large"
-                >
-                  {[0,1,2,3,4].map(num => (
-                    <Select.Option key={num} value={num}>{num}</Select.Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col xs={24} md={4}>
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  block
-                  onClick={handleBookNow}
-                  style={{ 
-                    backgroundColor: '#cb8670', 
-                    borderColor: '#cb8670',
-                    height: '50px',
-                    marginTop: '24px'
-                  }}
-                >
-                  Book Now
-                </Button>
-              </Col>
-            </Row>
-          </Card>
-        </div>
       </section>
 
-      {/* About Section */}
-      <section className="about-us-area" style={{ padding: '100px 0', background: '#f8f9fa' }}>
+      {/* Book Now Area */}
+      <div className="book-now-area">
         <div className="container">
-          <Row gutter={[32, 32]} align="middle">
-            <Col xs={24} lg={12}>
-              <div data-aos="fade-right">
-                <Title level={2} style={{ color: '#2a2a2a', marginBottom: '2rem' }}>
-                  Welcome to Palatin
-                </Title>
-                <Paragraph style={{ color: '#6c757d', fontSize: '16px', marginBottom: '2rem' }}>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam eu metus sit amet odio sodales placerat. Sed varius leo ac leo fermentum, eu cursus nunc maximus. Integer convallis nisi nibh, et ornare neque ullamcorper ac.
-                </Paragraph>
-                <Button type="primary" size="large" style={{ 
-                  backgroundColor: '#cb8670', 
-                  borderColor: '#cb8670',
-                  height: '50px',
-                  padding: '0 40px'
-                }}>
-                  Read More
-                </Button>
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <div className="book-now-form">
+                <Form form={form} onFinish={handleBookNow} layout="inline">
+                  <Form.Item name="checkIn" label="Check In" style={{ flex: 1 }}>
+                    <Select placeholder="19 June" size="large">
+                      <Option value="19">19 June</Option>
+                      <Option value="20">20 June</Option>
+                      <Option value="21">21 June</Option>
+                      <Option value="22">22 June</Option>
+                      <Option value="23">23 June</Option>
+                      <Option value="24">24 June</Option>
+                      <Option value="25">25 June</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item name="checkOut" label="Check Out" style={{ flex: 1 }}>
+                    <Select placeholder="20 June" size="large">
+                      <Option value="20">20 June</Option>
+                      <Option value="21">21 June</Option>
+                      <Option value="22">22 June</Option>
+                      <Option value="23">23 June</Option>
+                      <Option value="24">24 June</Option>
+                      <Option value="25">25 June</Option>
+                      <Option value="26">26 June</Option>
+                      <Option value="27">27 June</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item name="adults" label="Adults" style={{ flex: 1 }}>
+                    <Select placeholder="02" size="large">
+                      <Option value="02">02</Option>
+                      <Option value="03">03</Option>
+                      <Option value="04">04</Option>
+                      <Option value="05">05</Option>
+                      <Option value="06">06</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item name="children" label="Childrens" style={{ flex: 1 }}>
+                    <Select placeholder="01" size="large">
+                      <Option value="01">01</Option>
+                      <Option value="02">02</Option>
+                      <Option value="03">03</Option>
+                      <Option value="04">04</Option>
+                      <Option value="05">05</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit" size="large" className="book-now-btn">
+                      Book Now
+                    </Button>
+                  </Form.Item>
+                </Form>
               </div>
             </Col>
+          </Row>
+        </div>
+      </div>
+
+      {/* About Us Area */}
+      <section className="about-us-area section-padding-100">
+        <div className="container">
+          <Row align="middle" gutter={[30, 30]}>
             <Col xs={24} lg={12}>
-              <div data-aos="fade-left">
-                <img 
-                  src="/img/bg-img/2.jpg" 
-                  alt="About Us" 
-                  style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
-                />
+              <div className="about-text text-center mb-100" data-aos="fade-up">
+                <div className="section-heading text-center">
+                  <div className="line-"></div>
+                  <h2>A place to remember</h2>
+                </div>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus.</p>
+                <div className="about-key-text">
+                  <h6><CheckOutlined /> Donec malesuada lorem maximus mauris sceleri</h6>
+                  <h6><CheckOutlined /> Malesuada lorem maximus mauris sceleri</h6>
+                </div>
+                <a href="#" className="btn palatin-btn mt-50">Read More</a>
+              </div>
+            </Col>
+
+            <Col xs={24} lg={12}>
+              <div className="about-thumbnail homepage mb-100">
+                <div className="first-img" data-aos="fade-up" data-aos-delay="100">
+                  <img src="/img/bg-img/5.jpg" alt="" />
+                </div>
+                <div className="second-img" data-aos="fade-up" data-aos-delay="300">
+                  <img src="/img/bg-img/6.jpg" alt="" />
+                </div>
+                <div className="third-img" data-aos="fade-up" data-aos-delay="500">
+                  <img src="/img/bg-img/7.jpg" alt="" />
+                </div>
               </div>
             </Col>
           </Row>
         </div>
       </section>
 
-      {/* Pool Section */}
-      <section 
-        className="pool-area" 
-        style={{ 
-          backgroundImage: 'url(/img/bg-img/3.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          padding: '100px 0',
-          position: 'relative',
-          zIndex: 1
-        }}
-      >
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: -1
-        }} />
+      {/* Pool Area */}
+      <section className="pool-area section-padding-100 bg-img bg-fixed" style={{ backgroundImage: 'url(/img/bg-img/4.png)' }}>
         <div className="container">
-          <Row>
-            <Col span={24}>
-              <div style={{ textAlign: 'center', color: '#fff' }} data-aos="fade-up">
-                <Title level={2} style={{ color: '#fff', fontSize: '48px', marginBottom: '25px' }}>
-                  Infinity Pool
-                </Title>
-                <Paragraph style={{ color: '#fff', fontSize: '16px', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.
-                </Paragraph>
-                <Button type="primary" size="large" style={{ 
-                  backgroundColor: '#cb8670', 
-                  borderColor: '#cb8670',
-                  height: '50px',
-                  padding: '0 40px'
-                }}>
-                  Read More
-                </Button>
+          <Row justify="end">
+            <Col xs={24} lg={14}>
+              <div className="pool-content text-center" data-aos="fade-up" data-aos-delay="300">
+                <div className="section-heading text-center white">
+                  <div className="line-"></div>
+                  <h2>Infinity Pool</h2>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum.</p>
+                </div>
+
+                <Row gutter={[30, 30]}>
+                  <Col xs={24} sm={8}>
+                    <div className="pool-feature">
+                      <i className="icon-cocktail-1"></i>
+                      <p>Pool Beachbar</p>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <div className="pool-feature">
+                      <i className="icon-swimming-pool"></i>
+                      <p>Infinity Pool</p>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <div className="pool-feature">
+                      <i className="icon-beach"></i>
+                      <p>Sunbeds</p>
+                    </div>
+                  </Col>
+                </Row>
+                <a href="#" className="btn palatin-btn mt-50">Read More</a>
               </div>
             </Col>
           </Row>
+        </div>
+      </section>
+
+      {/* Rooms Area */}
+      <section className="rooms-area section-padding-100-0">
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={12}>
+              <div className="section-heading text-center" data-aos="fade-up">
+                <div className="line-"></div>
+                <h2>Choose a room</h2>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien.</p>
+              </div>
+            </Col>
+          </Row>
+
+          <Row justify="center" gutter={[30, 30]}>
+            {rooms.map((room, index) => (
+              <Col xs={24} md={12} lg={8} key={index}>
+                <div className="single-rooms-area" data-aos="fade-up" data-aos-delay={index * 200}>
+                  <div className="bg-thumbnail bg-img" style={{ backgroundImage: `url(${room.image})` }}></div>
+                  <p className="price-from">From {room.price}/night</p>
+                  <div className="rooms-text">
+                    <div className="line"></div>
+                    <h4>{room.title}</h4>
+                    <p>{room.description}</p>
+                  </div>
+                  <BookRoomButton />
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </div>
+      </section>
+
+
+      {/* Contact Area */}
+      <section className="contact-area d-flex flex-wrap align-items-center">
+        <div className="home-map-area" data-aos="fade-right">
+          <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d22236.40558254599!2d-118.25292394686001!3d34.057682914027104!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80c2c75ddc27da13%3A0xe22fdf6f254608f4!2zTG9zIEFuZ2VsZXM!5e0!3m2!1sen!2sbd!4v1532328708137" 
+            allowFullScreen
+            title="Map"
+          ></iframe>
+        </div>
+        <div className="contact-info" data-aos="fade-left">
+          <div className="single-contact-information">
+            <div className="section-heading">
+              <div className="line-"></div>
+              <h2>Contact Info</h2>
+              <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus. Lorem ipsum dolor sit amet, consectetur adipiscing.</p>
+            </div>
+            
+            <h4 className="mt-50">Los Angeles 1481 Creekside Lane Avila Beach, CA 931</h4>
+            
+            <h5 className="mt-30">+53 345 7953 32453</h5>
+            
+            <h5>bookstay@homestay.com</h5>
+            
+            <div className="social-info mt-50">
+              <a href="#"><i className="fa-brands fa-pinterest" aria-hidden="true"></i></a>
+              <a href="https://www.facebook.com/storeFW"><i className="fa-brands fa-facebook" aria-hidden="true"></i></a>
+              <a href="#"><i className="fa-brands fa-twitter" aria-hidden="true"></i></a>
+              <a href="#"><i className="fa-brands fa-dribbble" aria-hidden="true"></i></a>
+              <a href="#"><i className="fa-brands fa-behance" aria-hidden="true"></i></a>
+              <a href="#"><i className="fa-brands fa-linkedin" aria-hidden="true"></i></a>
+            </div>
+          </div>
         </div>
       </section>
     </div>

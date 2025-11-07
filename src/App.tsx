@@ -40,7 +40,7 @@ function App() {
         <ScrollToTop />
         <Layout style={{ minHeight: '100vh' }}>
           <Header />
-          <Content style={{ marginTop: '64px' }}>
+          <Content style={{ marginTop: '0' }}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />

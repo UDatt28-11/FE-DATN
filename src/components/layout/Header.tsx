@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, Button, Drawer, Layout } from 'antd';
-import { MenuOutlined, DownOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-
-const { Header: AntHeader } = Layout;
+import { Button } from 'antd';
+import './Header.css';
 
 const Header: React.FC = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 992);
-    };
-
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -34,176 +25,178 @@ const Header: React.FC = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/',
-      label: <Link to="/">Home</Link>,
-    },
-    {
-      key: '/about',
-      label: <Link to="/about">About Us</Link>,
-    },
-    {
-      key: 'pages',
-      label: 'Pages',
-      icon: <DownOutlined style={{ fontSize: '10px' }} />,
-      children: [
-        {
-          key: '/rooms',
-          label: <Link to="/rooms">Rooms</Link>,
-        },
-        {
-          key: '/blog',
-          label: <Link to="/blog">Blog</Link>,
-        },
-        {
-          key: '/gallery',
-          label: <Link to="/gallery">Gallery</Link>,
-        },
-      ],
-    },
-    {
-      key: 'mega',
-      label: 'Mega Menu',
-      icon: <DownOutlined style={{ fontSize: '10px' }} />,
-      children: [
-        {
-          type: 'group',
-          label: 'Room & Suites',
-          children: [
-            { key: '/rooms/single', label: <Link to="/rooms/single">Single Room</Link> },
-            { key: '/rooms/double', label: <Link to="/rooms/double">Double Room</Link> },
-            { key: '/rooms/suite', label: <Link to="/rooms/suite">Deluxe Suite</Link> },
-          ],
-        },
-        {
-          type: 'group',
-          label: 'Facilities',
-          children: [
-            { key: '/facilities/restaurant', label: <Link to="/facilities/restaurant">Restaurant</Link> },
-            { key: '/facilities/gym', label: <Link to="/facilities/gym">Gym</Link> },
-            { key: '/facilities/spa', label: <Link to="/facilities/spa">Spa</Link> },
-          ],
-        },
-      ],
-    },
-    {
-      key: '/services',
-      label: <Link to="/services">Services</Link>,
-    },
-    {
-      key: '/contact',
-      label: <Link to="/contact">Contact</Link>,
-    },
-  ];
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    setActiveDropdown(null);
+  };
+
+  const toggleDropdown = (key: string) => {
+    setActiveDropdown(activeDropdown === key ? null : key);
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path ? 'active' : '';
+  };
 
   return (
-    <AntHeader
-      style={{
-        position: 'fixed',
-        width: '100%',
-        zIndex: 999,
-        backgroundColor: isScrolled ? '#000000' : 'rgba(0, 0, 0, 0.9)',
-        padding: isScrolled ? '10px 50px' : '20px 50px',
-        transition: 'all 0.3s ease-in-out',
-        boxShadow: isScrolled ? '0 2px 10px rgba(0, 0, 0, 0.2)' : 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', color: '#fff' }}>
-            <span style={{ fontSize: '28px', color: '#cb8670', marginRight: '10px' }}>◈</span>
-            <span style={{ fontSize: '24px', fontWeight: 500 }}>The Palatin</span>
-          </div>
-        </Link>
-      </div>
-
-      {!isMobile ? (
-        <>
-          <Menu
-            mode="horizontal"
-            selectedKeys={[location.pathname]}
-            items={menuItems}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              flex: 1,
-              justifyContent: 'center',
-              color: '#fff',
-            }}
-            theme="dark"
-          />
-          <Button
-            type="primary"
-            style={{
-              backgroundColor: '#cb8670',
-              borderColor: '#cb8670',
-              height: '44px',
-              padding: '0 28px',
-              fontSize: '14px',
-              fontWeight: 600,
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.5px',
-            }}
-          >
-            <Link to="/booking" style={{ color: '#fff', textDecoration: 'none' }}>
-              Make A Reservation
-            </Link>
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button
-            type="text"
-            icon={<MenuOutlined style={{ fontSize: '24px', color: '#fff' }} />}
-            onClick={toggleMenu}
-          />
-          <Drawer
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', color: '#fff' }}>
-                <span style={{ fontSize: '28px', color: '#cb8670', marginRight: '10px' }}>◈</span>
-                <span style={{ fontSize: '20px', fontWeight: 500 }}>The Palatin</span>
-              </div>
-            }
-            placement="right"
-            onClose={() => setIsMenuOpen(false)}
-            open={isMenuOpen}
-            styles={{
-              body: { padding: 0 },
-              header: { backgroundColor: '#000', borderBottom: '1px solid #333' },
-            }}
-            width={300}
-          >
-            <Menu
-              mode="inline"
-              selectedKeys={[location.pathname]}
-              items={menuItems}
-              style={{ backgroundColor: '#000', border: 'none' }}
-              theme="dark"
-              onClick={() => setIsMenuOpen(false)}
-            />
-            <div style={{ padding: '20px' }}>
-              <Button
-                type="primary"
-                block
-                style={{
-                  backgroundColor: '#cb8670',
-                  borderColor: '#cb8670',
-                  height: '44px',
-                }}
-              >
-                <Link to="/booking" style={{ color: '#fff', textDecoration: 'none' }}>
-                  Make A Reservation
+    <>
+      {/* Menu overlay for mobile - using div with custom CSS */}
+      <div className={`menu-overlay ${isMenuOpen ? 'active' : ''}`} onClick={closeMenu}></div>
+      
+      <header className={`header-area ${isScrolled ? 'is-sticky' : ''}`}>
+        <div className="palatin-main-menu">
+          <div className="classy-nav-container breakpoint-off">
+            <div className="container">
+              <nav className="classy-navbar justify-content-between" id="palatinNav">
+                
+                {/* Nav brand */}
+                <Link to="/" className="nav-brand">
+                  <img src="/img/core-img/logo.png" alt="The Palatin Logo" />
                 </Link>
-              </Button>
+
+                {/* Navbar Toggler - Using Ant Design Button */}
+                <Button
+                  type="text"
+                  className="classy-navbar-toggler"
+                  onClick={toggleMenu}
+                  icon={
+                    <span className="navbarToggler">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </span>
+                  }
+                  style={{ 
+                    display: 'none',
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0
+                  }}
+                />
+
+                {/* Menu */}
+                <div className={`classy-menu ${isMenuOpen ? 'menu-on' : ''}`}>
+                  
+                  {/* Close btn - Using Ant Design Button */}
+                  <Button
+                    type="text"
+                    className="classycloseIcon"
+                    onClick={closeMenu}
+                    icon={
+                      <div className="cross-wrap">
+                        <span className="top"></span>
+                        <span className="bottom"></span>
+                      </div>
+                    }
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      padding: 20
+                    }}
+                  />
+
+                  {/* Nav Start */}
+                  <div className="classynav">
+                    <ul>
+                      <li className={isActive('/')}>
+                        <Link to="/" onClick={closeMenu}>Home</Link>
+                      </li>
+                      <li className={isActive('/about')}>
+                        <Link to="/about" onClick={closeMenu}>About Us</Link>
+                      </li>
+                      <li className={`has-down ${activeDropdown === 'pages' ? 'dropdown-active' : ''}`}>
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleDropdown('pages');
+                          }}
+                        >
+                          Pages
+                        </a>
+                        <ul className="dropdown">
+                          <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                          <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                          <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                          <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                          <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                          <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                        </ul>
+                      </li>
+                      <li className={`megamenu-item ${activeDropdown === 'mega' ? 'megamenu-active' : ''}`}>
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleDropdown('mega');
+                          }}
+                        >
+                          Mega Menu
+                        </a>
+                        <div className="megamenu">
+                          <ul className="single-mega cn-col-4">
+                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                          </ul>
+                          <ul className="single-mega cn-col-4">
+                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                          </ul>
+                          <ul className="single-mega cn-col-4">
+                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                          </ul>
+                          <ul className="single-mega cn-col-4">
+                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                          </ul>
+                        </div>
+                      </li>
+                      <li className={isActive('/services')}>
+                        <Link to="/services" onClick={closeMenu}>Services</Link>
+                      </li>
+                      <li className={isActive('/contact')}>
+                        <Link to="/contact" onClick={closeMenu}>Contact</Link>
+                      </li>
+                    </ul>
+
+                    {/* Button - Using Ant Design Button */}
+                    <div className="menu-btn">
+                      <Button 
+                        type="primary" 
+                        className="palatin-btn"
+                        onClick={closeMenu}
+                      >
+                        <Link to="/booking" style={{ color: 'inherit', textDecoration: 'none' }}>
+                          Make a Reservation
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Nav End */}
+                </div>
+              </nav>
             </div>
-          </Drawer>
-        </>
-      )}
-    </AntHeader>
+          </div>
+        </div>
+      </header>
+    </>
   );
 };
 
