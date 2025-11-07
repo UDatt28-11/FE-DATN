@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Space,
   Button,
-  Tag,
   Tooltip,
   Rate,
   Image,
@@ -11,81 +10,69 @@ import {
   Select,
   Input,
   message,
+  Spin,
 } from "antd";
 import {
   EyeOutlined,
   DeleteOutlined,
   SearchOutlined,
-  VideoCameraOutlined,
   StarOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-
 import dayjs from "dayjs";
+
 import { Review } from "../../../types/review/review";
+import reviewService from "../../../service/reviewService";
 
 const { Option } = Select;
 const { Search } = Input;
 
-// 🔹 Mock dữ liệu mẫu
-const mockReviews: Review[] = [
-  {
-    id: "1",
-    userName: "Nguyễn Văn A",
-    userAvatar: "https://i.pravatar.cc/100?img=12",
-    accommodationName: "Resort Biển Xanh",
-    roomName: "Phòng Deluxe Sea View",
-    rating: 5,
-    comment: "Dịch vụ tuyệt vời, nhân viên thân thiện, view biển rất đẹp!",
-    media: [
-      { id: "m1", type: "image", url: "https://placekitten.com/200/140" },
-      { id: "m2", type: "video", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
-    ],
-    createdAt: "2025-08-15T10:00:00",
-    status: "Hiển thị",
-  },
-  {
-    id: "2",
-    userName: "Trần Thị B",
-    accommodationName: "Khách sạn Hoa Mai",
-    rating: 3,
-    comment: "Phòng ổn, nhưng hơi ồn ào, ăn sáng chưa đa dạng.",
-    media: [],
-    createdAt: "2025-08-20T15:30:00",
-    status: "Hiển thị",
-  },
-  {
-    id: "3",
-    userName: "Phạm Quốc C",
-    accommodationName: "Villa Núi Rừng",
-    rating: 4,
-    comment: "Không gian yên tĩnh, phù hợp nghỉ dưỡng. Sẽ quay lại.",
-    media: [{ id: "m3", type: "image", url: "https://placekitten.com/300/200" }],
-    createdAt: "2025-09-01T12:45:00",
-    status: "Ẩn",
-  },
-];
-
 const ListReview: React.FC = () => {
-  const [reviews, setReviews] = useState<Review[]>(mockReviews);
-  const [filtered, setFiltered] = useState<Review[]>(mockReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [filtered, setFiltered] = useState<Review[]>([]);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | Review["status"]>(
+    "all"
+  );
   const [modalReview, setModalReview] = useState<Review | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // --- Bộ lọc ---
-  const applyFilters = (text: string, status: string) => {
+  // 🔹 Fetch danh sách review từ API
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      const res = await reviewService.getAll({ per_page: 50 });
+      const reviewList: Review[] = Array.isArray(res?.data)
+        ? res.data
+        : res?.data?.data || [];
+      setReviews(reviewList);
+      setFiltered(reviewList);
+    } catch (error: any) {
+      message.error("Lỗi khi tải danh sách đánh giá: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  // 🔹 Filter search & status
+  const applyFilters = (text: string, status: "all" | Review["status"]) => {
     let data = reviews;
     if (text) {
       const lower = text.toLowerCase();
       data = data.filter(
         (r) =>
-          r.userName.toLowerCase().includes(lower) ||
-          r.accommodationName.toLowerCase().includes(lower) ||
-          r.comment.toLowerCase().includes(lower)
+          r.userId.toLowerCase().includes(lower) ||
+          r.propertyId.toLowerCase().includes(lower) ||
+          r.comment?.toLowerCase().includes(lower)
       );
     }
-    if (status !== "all") data = data.filter((r) => r.status === status);
+    if (status !== "all") {
+      data = data.filter((r) => r.status === status);
+    }
     setFiltered(data);
   };
 
@@ -94,51 +81,56 @@ const ListReview: React.FC = () => {
     applyFilters(value, statusFilter);
   };
 
-  const handleStatusChange = (id: string, newStatus: "Hiển thị" | "Ẩn") => {
-    const updated = reviews.map((r) =>
-      r.id === id ? { ...r, status: newStatus } : r
-    );
-    setReviews(updated);
-    applyFilters(searchText, statusFilter);
-    message.success("Đã cập nhật trạng thái đánh giá!");
+  const handleStatusChange = async (
+    id: string,
+    newStatus: Review["status"]
+  ) => {
+    try {
+      await reviewService.update(id, { status: newStatus });
+      message.success("Đã cập nhật trạng thái đánh giá!");
+      fetchReviews();
+    } catch (error: any) {
+      message.error("Cập nhật trạng thái thất bại: " + error.message);
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
       title: "Xóa đánh giá này?",
-      onOk: () => {
-        const updated = reviews.filter((r) => r.id !== id);
-        setReviews(updated);
-        applyFilters(searchText, statusFilter);
-        message.success("Đã xóa đánh giá!");
+      okText: "Xóa",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          // Gọi API xóa review
+          await reviewService.remove(id);
+          message.success("Đã xóa đánh giá!");
+          // Load lại danh sách sau khi xóa
+          fetchReviews();
+        } catch (error: any) {
+          message.error("Xóa thất bại: " + error.message);
+        }
       },
     });
   };
 
+  // 🔹 Columns cho Table
   const columns: ColumnsType<Review> = [
     {
       title: "Người đánh giá",
-      dataIndex: "userName",
-      key: "userName",
-      render: (name, record) => (
+      dataIndex: "userId",
+      key: "user",
+      render: (_, record) => (
         <Space>
-          {record.userAvatar ? (
-            <img
-              src={record.userAvatar}
-              alt={name}
-              style={{ width: 32, height: 32, borderRadius: "50%" }}
-            />
-          ) : (
-            <StarOutlined style={{ fontSize: 20, color: "#faad14" }} />
-          )}
-          <span>{name}</span>
+          <StarOutlined style={{ fontSize: 20, color: "#faad14" }} />
+          <span>{record.userId}</span>
         </Space>
       ),
     },
     {
       title: "Cơ sở lưu trú",
-      dataIndex: "accommodationName",
-      key: "accommodationName",
+      dataIndex: "propertyId",
+      key: "property",
+      render: (_, record) => record.propertyId,
     },
     {
       title: "Sao",
@@ -154,26 +146,14 @@ const ListReview: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: "Ảnh/Video",
-      key: "media",
-      render: (_, record) =>
-        record.media.length > 0 ? (
-          <Button
-            icon={<EyeOutlined />}
-            size="small"
-            onClick={() => setModalReview(record)}
-          >
-            Xem ({record.media.length})
-          </Button>
-        ) : (
-          <Tag color="default">Không có</Tag>
-        ),
-    },
-    {
       title: "Ngày tạo",
-      dataIndex: "createdAt",
-      render: (date) => dayjs(date).format("DD/MM/YYYY HH:mm"),
-      sorter: (a, b) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
+      dataIndex: "reviewedAt",
+      key: "reviewedAt",
+      render: (_, record) =>
+        dayjs(record.reviewedAt || record.createdAt).format("DD/MM/YYYY HH:mm"),
+      sorter: (a, b) =>
+        dayjs(a.reviewedAt || a.createdAt).unix() -
+        dayjs(b.reviewedAt || b.createdAt).unix(),
     },
     {
       title: "Trạng thái",
@@ -183,12 +163,13 @@ const ListReview: React.FC = () => {
         <Select
           value={status}
           onChange={(value) =>
-            handleStatusChange(record.id, value as "Hiển thị" | "Ẩn")
+            handleStatusChange(record.id, value as Review["status"])
           }
           style={{ width: 120 }}
         >
-          <Option value="Hiển thị">Hiển thị</Option>
-          <Option value="Ẩn">Ẩn</Option>
+          <Option value="pending">Chờ duyệt</Option>
+          <Option value="approved">Hiển thị</Option>
+          <Option value="rejected">Ẩn</Option>
         </Select>
       ),
     },
@@ -204,7 +185,11 @@ const ListReview: React.FC = () => {
             />
           </Tooltip>
           <Tooltip title="Xóa">
-            <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+            />
           </Tooltip>
         </Space>
       ),
@@ -231,19 +216,23 @@ const ListReview: React.FC = () => {
           style={{ width: 160 }}
         >
           <Option value="all">Tất cả</Option>
-          <Option value="Hiển thị">Hiển thị</Option>
-          <Option value="Ẩn">Ẩn</Option>
+          <Option value="approved">Hiển thị</Option>
+          <Option value="pending">Chờ duyệt</Option>
+          <Option value="rejected">Ẩn</Option>
         </Select>
       </Space>
 
-      <Table
-        columns={columns}
-        dataSource={filtered}
-        rowKey="id"
-        pagination={{ pageSize: 10 }}
-      />
+      {loading ? (
+        <Spin size="large" style={{ display: "block", margin: "50px auto" }} />
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={filtered}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+        />
+      )}
 
-      {/* Modal xem chi tiết */}
       <Modal
         open={!!modalReview}
         onCancel={() => setModalReview(null)}
@@ -254,42 +243,27 @@ const ListReview: React.FC = () => {
         {modalReview && (
           <div>
             <h3 style={{ marginBottom: 8 }}>
-              {modalReview.userName} –{" "}
+              {modalReview.userId} –{" "}
               <Rate disabled defaultValue={modalReview.rating} />
             </h3>
             <p>
-              <strong>Chỗ ở:</strong> {modalReview.accommodationName}
+              <strong>Chỗ ở:</strong> {modalReview.propertyId}
             </p>
             <p>
-              <strong>Nhận xét:</strong> {modalReview.comment}
+              <strong>Nhận xét:</strong> {modalReview.comment || "-"}
             </p>
-
-            {modalReview.media.length > 0 && (
-              <>
-                <h4>Ảnh/Video:</h4>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {modalReview.media.map((m) =>
-                    m.type === "image" ? (
-                      <Image
-                        key={m.id}
-                        width={120}
-                        height={90}
-                        src={m.url}
-                        style={{ borderRadius: 6 }}
-                      />
-                    ) : (
-                      <video
-                        key={m.id}
-                        width={200}
-                        controls
-                        style={{ borderRadius: 6 }}
-                      >
-                        <source src={m.url} type="video/mp4" />
-                      </video>
-                    )
-                  )}
-                </div>
-              </>
+            {modalReview.photos && modalReview.photos.length > 0 && (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {modalReview.photos.map((p, index) => (
+                  <Image
+                    key={index}
+                    width={120}
+                    height={90}
+                    src={p}
+                    style={{ borderRadius: 6 }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         )}

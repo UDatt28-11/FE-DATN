@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Form, Input, Button, InputNumber, message, Card, Space, Spin } from "antd";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
-import { BookingOrder, getBooking, updateBooking, UpdateBookingData } from "../../../api/booking";
+import { BookingOrder, getBooking, updateBooking, UpdateBookingData } from "../../../service/bookingService";
+
 ;
 
 const EditBooking: React.FC = () => {

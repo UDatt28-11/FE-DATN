@@ -2,8 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Form, Input, Button, DatePicker, InputNumber, Select, message, Space, Card, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { listRooms, Room } from "../../../api/room";
-import { createBooking, CreateBookingData } from "../../../api/booking";
+import { Room } from "../../../types/room/room";
+
+import { createBooking, CreateBookingData } from "../../../service/bookingService";
+import { listRooms } from "../../../service/room";
+
 
 
 const { RangePicker } = DatePicker;

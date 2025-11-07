@@ -1,178 +1,218 @@
-import React, { useEffect, useState } from "react";
-import { Form, Input, InputNumber, Select, DatePicker, Button, message, Row, Col, Spin, Space } from "antd";
+import React, { useState, useEffect } from "react";
+import {
+    Form,
+    Input,
+    InputNumber,
+    DatePicker,
+    Button,
+    Card,
+    message,
+    Space,
+    Radio,
+    Spin,
+} from "antd";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
+
+import type { Promotion } from "../../../types/promotion/promotion";
 import dayjs from "dayjs";
-import { Promotion } from "../../../types/promotion/promotion";
+import promotionService from "../../../service/promotionService";
 
-
-const { Option } = Select;
-const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-
-const allLocations = ["Tất cả", "Hà Nội", "Đà Lạt", "Phú Quốc", "Nha Trang"];
-
-// Mock dữ liệu (giống bên listPromotion)
-const mockPromotions: Promotion[] = [
-    {
-        id: "1",
-        code: "NEWYEAR2025",
-        name: "Mừng Năm Mới 2025",
-        description: "Giảm giá đặc biệt cho mùa lễ hội năm mới.",
-        discountType: "Phần trăm",
-        discountValue: 20,
-        minOrderValue: 500000,
-        maxDiscount: 200000,
-        startDate: "2025-01-01",
-        endDate: "2025-01-15",
-        usageLimit: 200,
-        usedCount: 50,
-        status: "Đang hoạt động",
-        applicableLocations: ["Tất cả"],
-        createdAt: "2024-12-15",
-        updatedAt: "2025-01-01",
-    },
-    {
-        id: "2",
-        code: "SUMMER2025",
-        name: "Khuyến mãi mùa hè",
-        description: "Giảm 100.000đ cho đơn hàng từ 1 triệu.",
-        discountType: "Số tiền cố định",
-        discountValue: 100000,
-        minOrderValue: 1000000,
-        startDate: "2025-06-01",
-        endDate: "2025-08-31",
-        usageLimit: 100,
-        usedCount: 10,
-        status: "Chưa áp dụng",
-        applicableLocations: ["Phú Quốc", "Nha Trang"],
-        createdAt: "2025-05-01",
-        updatedAt: "2025-05-01",
-    },
-];
+const { RangePicker } = DatePicker;
 
 const EditPromotion: React.FC = () => {
-    const { id } = useParams();
-    const [form] = Form.useForm();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [promotion, setPromotion] = useState<Promotion | null>(null);
+    const { id } = useParams<{ id: string }>();
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [fetchLoading, setFetchLoading] = useState(true);
+    const [discountType, setDiscountType] = useState<"percentage" | "fixed_amount">("percentage");
 
-    // Giả lập tải dữ liệu từ API
     useEffect(() => {
-        setLoading(true);
-        setTimeout(() => {
-            const found = mockPromotions.find((p) => p.id === id);
-            if (found) {
-                setPromotion(found);
-                form.setFieldsValue({
-                    ...found,
-                    dateRange: [dayjs(found.startDate), dayjs(found.endDate)],
-                });
-            } else {
-                message.error("Không tìm thấy mã giảm giá!");
-                navigate("/quanlimagiamgia");
-            }
-            setLoading(false);
-        }, 500);
+        fetchPromotion();
     }, [id]);
 
-    const handleUpdate = (values: any) => {
-        const [startDate, endDate] = values.dateRange;
-        const updatedPromotion: Promotion = {
-            ...(promotion as Promotion),
-            ...values,
-            startDate: startDate.format("YYYY-MM-DD"),
-            endDate: endDate.format("YYYY-MM-DD"),
-            updatedAt: dayjs().format("YYYY-MM-DD"),
-        };
-        console.log("✅ Promotion updated:", updatedPromotion);
-        message.success("Cập nhật mã giảm giá thành công!");
-        navigate("/quanlimagiamgia");
+    const fetchPromotion = async () => {
+        if (!id) return;
+        setFetchLoading(true);
+        try {
+            const data = await promotionService.getById(id);
+            setDiscountType(data.discount_type);
+            
+            form.setFieldsValue({
+                code: data.code,
+                description: data.description,
+                discount_type: data.discount_type,
+                discount_value: data.discount_value,
+                max_discount_amount: data.max_discount_amount,
+                min_purchase_amount: data.min_purchase_amount,
+                max_usage_limit: data.max_usage_limit,
+                max_usage_per_user: data.max_usage_per_user,
+                date_range: [dayjs(data.start_date), dayjs(data.end_date)],
+                is_active: data.is_active,
+                applicable_to: data.applicable_to,
+            });
+        } catch (error: any) {
+            console.error("Lỗi khi tải mã giảm giá:", error);
+            message.error(error.response?.data?.message || "Không thể tải thông tin mã giảm giá!");
+            navigate("/admin/promotion");
+        } finally {
+            setFetchLoading(false);
+        }
     };
 
-    if (loading || !promotion) {
+    const handleSubmit = async (values: any) => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const promotionData: Partial<Promotion> = {
+                code: values.code.toUpperCase(),
+                description: values.description,
+                discount_type: values.discount_type,
+                discount_value: values.discount_value,
+                max_discount_amount: values.max_discount_amount || null,
+                min_purchase_amount: values.min_purchase_amount,
+                max_usage_limit: values.max_usage_limit,
+                max_usage_per_user: values.max_usage_per_user,
+                start_date: values.date_range[0].format("YYYY-MM-DD HH:mm:ss"),
+                end_date: values.date_range[1].format("YYYY-MM-DD HH:mm:ss"),
+                is_active: values.is_active,
+                applicable_to: values.applicable_to || null,
+            };
+
+            await promotionService.update(id, promotionData);
+            message.success("Cập nhật mã giảm giá thành công!");
+            navigate("/admin/promotion");
+        } catch (error: any) {
+            console.error("Lỗi khi cập nhật mã giảm giá:", error);
+            message.error(error.response?.data?.message || "Không thể cập nhật mã giảm giá!");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (fetchLoading) {
         return (
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 100 }}>
-                <Spin tip="Đang tải dữ liệu..." />
+            <div style={{ padding: 24, textAlign: "center" }}>
+                <Spin size="large" />
             </div>
         );
     }
 
     return (
-        <Form form={form} layout="vertical" onFinish={handleUpdate} style={{ padding: 24 }}>
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name="code" label="Mã giảm giá" rules={[{ required: true }]}>
-                        <Input disabled />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
-                        <Select>
-                            <Option value="Đang hoạt động">Đang hoạt động</Option>
-                            <Option value="Chưa áp dụng">Chưa áp dụng</Option>
-                            <Option value="Hết hạn">Hết hạn</Option>
-                            <Option value="Vô hiệu hóa">Vô hiệu hóa</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-            </Row>
+        <div style={{ padding: 24 }}>
+            <Space style={{ marginBottom: 16 }}>
+                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/admin/promotion")}>
+                    Quay lại
+                </Button>
+            </Space>
 
-            <Form.Item name="name" label="Tên chương trình" rules={[{ required: true }]}>
-                <Input />
-            </Form.Item>
-
-            <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
-                <TextArea rows={3} />
-            </Form.Item>
-
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name="discountType" label="Loại giảm" rules={[{ required: true }]}>
-                        <Select>
-                            <Option value="Phần trăm">Phần trăm</Option>
-                            <Option value="Số tiền cố định">Số tiền cố định</Option>
-                        </Select>
+            <Card title="Chỉnh sửa mã giảm giá">
+                <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                    <Form.Item
+                        label="Mã khuyến mãi"
+                        name="code"
+                        rules={[{ required: true, message: "Vui lòng nhập mã!" }]}
+                    >
+                        <Input placeholder="VD: SUMMER2025" maxLength={50} />
                     </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name="discountValue" label="Giá trị giảm" rules={[{ required: true }]}>
+
+                    <Form.Item
+                        label="Mô tả"
+                        name="description"
+                        rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
+                    >
+                        <TextArea rows={3} />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Loại giảm giá"
+                        name="discount_type"
+                        rules={[{ required: true }]}
+                    >
+                        <Radio.Group onChange={(e) => setDiscountType(e.target.value)}>
+                            <Radio value="percentage">Phần trăm (%)</Radio>
+                            <Radio value="fixed_amount">Số tiền cố định (₫)</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+
+                    <Form.Item
+                        label={discountType === "percentage" ? "Giá trị giảm (%)" : "Số tiền giảm (₫)"}
+                        name="discount_value"
+                        rules={[{ required: true, message: "Vui lòng nhập giá trị giảm!" }]}
+                    >
+                        <InputNumber
+                            min={0}
+                            max={discountType === "percentage" ? 100 : undefined}
+                            style={{ width: "100%" }}
+                        />
+                    </Form.Item>
+
+                    {discountType === "percentage" && (
+                        <Form.Item label="Giảm tối đa (₫)" name="max_discount_amount">
+                            <InputNumber min={0} style={{ width: "100%" }} />
+                        </Form.Item>
+                    )}
+
+                    <Form.Item
+                        label="Giá trị đơn hàng tối thiểu (₫)"
+                        name="min_purchase_amount"
+                        rules={[{ required: true, message: "Vui lòng nhập giá trị tối thiểu!" }]}
+                    >
                         <InputNumber min={0} style={{ width: "100%" }} />
                     </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name="maxDiscount" label="Giảm tối đa (₫)">
-                        <InputNumber min={0} style={{ width: "100%" }} />
-                    </Form.Item>
-                </Col>
-            </Row>
 
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name="minOrderValue" label="Đơn hàng tối thiểu (₫)" rules={[{ required: true }]}>
-                        <InputNumber min={0} style={{ width: "100%" }} />
+                    <Form.Item
+                        label="Thời gian áp dụng"
+                        name="date_range"
+                        rules={[{ required: true, message: "Vui lòng chọn thời gian!" }]}
+                    >
+                        <RangePicker
+                            showTime
+                            format="DD/MM/YYYY HH:mm"
+                            style={{ width: "100%" }}
+                        />
                     </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name="usageLimit" label="Giới hạn sử dụng" rules={[{ required: true }]}>
+
+                    <Form.Item
+                        label="Giới hạn số lần sử dụng"
+                        name="max_usage_limit"
+                        rules={[{ required: true }]}
+                    >
                         <InputNumber min={1} style={{ width: "100%" }} />
                     </Form.Item>
-                </Col>
-            </Row>
 
-            <Form.Item name="dateRange" label="Thời gian áp dụng" rules={[{ required: true }]}>
-                <RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-            </Form.Item>
+                    <Form.Item
+                        label="Giới hạn sử dụng mỗi người"
+                        name="max_usage_per_user"
+                        rules={[{ required: true }]}
+                    >
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                    </Form.Item>
 
-            <Form.Item name="applicableLocations" label="Địa điểm áp dụng" rules={[{ required: true }]}>
-                <Select mode="multiple" options={allLocations.map((loc) => ({ label: loc, value: loc }))} />
-            </Form.Item>
+                    <Form.Item label="Áp dụng cho" name="applicable_to">
+                        <Input />
+                    </Form.Item>
 
-            <Space>
-                <Button type="primary" htmlType="submit">Cập nhật</Button>
-                <Button onClick={() => navigate("/quanlimagiamgia")}>Hủy</Button>
-            </Space>
-        </Form>
+                    <Form.Item label="Trạng thái" name="is_active" rules={[{ required: true }]}>
+                        <Radio.Group>
+                            <Radio value={1}>Kích hoạt</Radio>
+                            <Radio value={0}>Vô hiệu hóa</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+
+                    <Form.Item>
+                        <Space>
+                            <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>
+                                Cập nhật
+                            </Button>
+                            <Button onClick={() => navigate("/admin/promotion")}>Hủy</Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Card>
+        </div>
     );
 };
 

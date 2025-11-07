@@ -1,6 +1,7 @@
 
+import api from '../ApiFromBE/axios';
 import type { BookingOrder, Pagination } from '../types/booking/booking';
-import { api } from './client';
+
 
 // Export lại các type để dùng ở component
 export type { BookingOrder } from '../types/booking/booking';

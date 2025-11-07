@@ -39,7 +39,8 @@ import dayjs, { Dayjs } from "dayjs";
 
 import type { BookingOrder } from "../../../types/booking/booking";
 import { useNavigate } from "react-router-dom";
-import { listBookings, updateBookingStatus } from "../../../api/booking";
+import { listBookings, updateBookingStatus } from "../../../service/bookingService";
+
 
 const { Search } = Input;
 const { Option } = Select;
