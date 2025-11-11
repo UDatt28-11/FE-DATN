@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { createBooking } from "../../../api/booking";
 import type { CreateBookingData } from "../../../api/booking";
-import { listRooms } from "../../../api/room";
-import type { Room } from "../../../api/room";
+import { listRooms, listRoomTypes } from "../../../api/room";
+import type { Room, RoomType } from "../../../api/room";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -14,25 +14,47 @@ const AddBooking: React.FC = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
+    const [loadingRoomTypes, setLoadingRoomTypes] = useState(false);
     const [loadingRooms, setLoadingRooms] = useState(false);
+    const [selectedRoomType, setSelectedRoomType] = useState<number | null>(null);
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
-    // Load danh sách phòng khi component mount
+    // Load danh sách loại phòng khi component mount
     useEffect(() => {
-        fetchRooms();
+        fetchRoomTypes();
     }, []);
 
-    const fetchRooms = async () => {
+    const fetchRoomTypes = async () => {
+        try {
+            setLoadingRoomTypes(true);
+            const roomTypesData = await listRoomTypes();
+            setRoomTypes(roomTypesData);
+        } catch (error) {
+            message.error("Không thể tải danh sách loại phòng");
+        } finally {
+            setLoadingRoomTypes(false);
+        }
+    };
+
+    const fetchRoomsByType = async (roomTypeId: number) => {
         try {
             setLoadingRooms(true);
-            const roomsData = await listRooms();
+            const roomsData = await listRooms(roomTypeId);
             setRooms(roomsData);
         } catch (error) {
             message.error("Không thể tải danh sách phòng");
         } finally {
             setLoadingRooms(false);
         }
+    };
+
+    const handleRoomTypeChange = (roomTypeId: number) => {
+        setSelectedRoomType(roomTypeId);
+        setSelectedRoom(null);
+        form.setFieldsValue({ roomId: undefined }); // Reset room selection
+        fetchRoomsByType(roomTypeId);
     };
 
     const handleRoomChange = (roomId: number) => {
@@ -107,7 +129,7 @@ const AddBooking: React.FC = () => {
 
     return (
         <div style={{ padding: 24 }}>
-            <Card title="📝 Thêm đặt phòng mới" bordered={false}>
+            <Card title="📝 Thêm đặt phòng mới" variant="borderless">
                 <Form 
                     form={form} 
                     layout="vertical" 
@@ -153,8 +175,27 @@ const AddBooking: React.FC = () => {
 
                     {/* Thông tin đặt phòng */}
                     <h3 style={{ marginTop: 24, marginBottom: 16, color: '#1890ff' }}>
-                        🏠 Thông tin đặt phòng
+                        🏠 Thông tin phòng
                     </h3>
+
+                    <Form.Item 
+                        label="Loại phòng" 
+                        name="roomTypeId" 
+                        rules={[{ required: true, message: 'Vui lòng chọn loại phòng' }]}
+                    >
+                        <Select 
+                            placeholder="Chọn loại phòng" 
+                            loading={loadingRoomTypes}
+                            onChange={handleRoomTypeChange}
+                        >
+                            {roomTypes.map(roomType => (
+                                <Option key={roomType.id} value={roomType.id}>
+                                    {roomType.name}
+                                    {roomType.description && ` - ${roomType.description}`}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
 
                     <Form.Item 
                         label="Phòng" 
@@ -162,8 +203,9 @@ const AddBooking: React.FC = () => {
                         rules={[{ required: true, message: 'Vui lòng chọn phòng' }]}
                     >
                         <Select 
-                            placeholder="Chọn phòng" 
+                            placeholder={selectedRoomType ? "Chọn phòng" : "Vui lòng chọn loại phòng trước"} 
                             loading={loadingRooms}
+                            disabled={!selectedRoomType}
                             onChange={handleRoomChange}
                         >
                             {rooms.map(room => (
@@ -191,20 +233,12 @@ const AddBooking: React.FC = () => {
 
                     <Space style={{ width: '100%' }} size="large">
                         <Form.Item 
-                            label="Số đêm" 
-                            name="nights"
-                            style={{ marginBottom: 0 }}
-                        >
-                            <InputNumber min={1} disabled placeholder="Tự động" style={{ width: 120 }} />
-                        </Form.Item>
-
-                        <Form.Item 
                             label="Số người lớn" 
                             name="numAdults" 
                             rules={[{ required: true, message: 'Vui lòng nhập số người lớn' }]}
                             style={{ marginBottom: 0 }}
                         >
-                            <InputNumber min={1} placeholder="Số người lớn" style={{ width: 120 }} />
+                            <InputNumber min={1} placeholder="Số người lớn" style={{ width: 150 }} />
                         </Form.Item>
 
                         <Form.Item 
@@ -212,7 +246,7 @@ const AddBooking: React.FC = () => {
                             name="numChildren"
                             style={{ marginBottom: 0 }}
                         >
-                            <InputNumber min={0} placeholder="Số trẻ em" style={{ width: 120 }} />
+                            <InputNumber min={0} placeholder="Số trẻ em" style={{ width: 150 }} />
                         </Form.Item>
                     </Space>
 
@@ -224,14 +258,16 @@ const AddBooking: React.FC = () => {
                     <Form.Item 
                         label="Tổng tiền" 
                         name="totalPrice" 
-                        rules={[{ required: true, message: 'Vui lòng nhập tổng tiền' }]}
+                        rules={[{ required: true, message: 'Vui lòng chọn phòng và ngày để tính tổng tiền' }]}
                     >
                         <InputNumber 
                             min={0} 
+                            disabled
                             style={{ width: '100%' }}
                             formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                             parser={(value: any) => value.replace(/\$\s?|(,*)/g, '')}
                             addonAfter="đ"
+                            placeholder="Tự động tính khi chọn phòng và ngày"
                         />
                     </Form.Item>
 

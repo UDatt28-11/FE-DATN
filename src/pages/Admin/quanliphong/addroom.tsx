@@ -1,10 +1,13 @@
-import React, { useState } from "react";
-import { Modal, Form, Input, Button, message, Upload, Switch, Row, Col } from "antd";
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Input, Button, message, Upload, Switch, Row, Col, Select } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-
 
 import { Listing } from "../../../types/room/room";
 import { addListing } from "../../../service/room";
+import { listRoomTypes } from "../../../api/room";
+import type { RoomType } from "../../../api/room";
+
+const { Option } = Select;
 
 interface AddRoomProps {
     visible: boolean;
@@ -14,6 +17,25 @@ interface AddRoomProps {
 const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState<any[]>([]);
+    const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+    const [loadingRoomTypes, setLoadingRoomTypes] = useState(false);
+
+    // Load room types khi component mount
+    useEffect(() => {
+        fetchRoomTypes();
+    }, []);
+
+    const fetchRoomTypes = async () => {
+        try {
+            setLoadingRoomTypes(true);
+            const roomTypesData = await listRoomTypes();
+            setRoomTypes(roomTypesData);
+        } catch (error) {
+            message.error("Không thể tải danh sách loại phòng");
+        } finally {
+            setLoadingRoomTypes(false);
+        }
+    };
 
     const handleOk = () => {
         form.validateFields().then((values) => {
@@ -41,6 +63,25 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
                 <Form.Item name="name" label="Tên phòng" rules={[{ required: true }]}>
                     <Input />
                 </Form.Item>
+
+                <Form.Item 
+                    name="room_type_id" 
+                    label="Loại phòng" 
+                    rules={[{ required: true, message: 'Vui lòng chọn loại phòng' }]}
+                >
+                    <Select 
+                        placeholder="Chọn loại phòng" 
+                        loading={loadingRoomTypes}
+                    >
+                        {roomTypes.map(roomType => (
+                            <Option key={roomType.id} value={roomType.id}>
+                                {roomType.name}
+                                {roomType.description && ` - ${roomType.description}`}
+                            </Option>
+                        ))}
+                    </Select>
+                </Form.Item>
+
                 <Form.Item name="location" label="Địa điểm" rules={[{ required: true }]}>
                     <Input />
                 </Form.Item>
