@@ -1,17 +1,18 @@
-export type UserRole = "admin" | "host" | "guest";
-export type UserStatus = "active" | "inactive" | "blocked";
+// User types
+export type UserRole = 'admin' | 'user' | 'customer';
+export type UserStatus = 'active' | 'inactive' | 'banned';
+export type Gender = 'male' | 'female' | 'other';
 
 export interface User {
-  key: string;
-  id: string;
-  name: string;
+  id: string | number;
+  full_name: string;
   email: string;
-  phone: string;
-  avatar: string;
-  role: UserRole;
+  phone_number?: string;
+  date_of_birth?: string;
+  gender?: Gender;
+  address?: string;
+  role?: UserRole;
   status: UserStatus;
-  totalBookings: number;
-  totalSpent: number;
-  joinDate: string;
-  lastLogin: string;
+  created_at?: string;
+  updated_at?: string;
 }
