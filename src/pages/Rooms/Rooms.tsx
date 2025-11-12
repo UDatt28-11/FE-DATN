@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { Row, Col } from 'antd';
+import BookingFilter from '@/components/booking/BookingFilter';
 import './Rooms.css';
 
 const Rooms: React.FC = () => {
@@ -22,6 +24,10 @@ const Rooms: React.FC = () => {
     });
   }, []);
 
+  const handleBookNow = (values: any) => {
+    console.log('Booking:', values);
+  };
+
   return (
     <div className="rooms-page">
       {/* Breadcrumb Area */}
@@ -34,69 +40,11 @@ const Rooms: React.FC = () => {
       {/* Book Now Area */}
       <div className="book-now-area">
         <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-12 col-lg-10">
-              <div className="book-now-form">
-                <form action="#">
-                  {/* Check In */}
-                  <div className="form-group">
-                    <label htmlFor="select1">Check In</label>
-                    <select className="form-control" id="select1">
-                      <option>19 June</option>
-                      <option>20 June</option>
-                      <option>21 June</option>
-                      <option>22 June</option>
-                      <option>23 June</option>
-                      <option>24 June</option>
-                      <option>25 June</option>
-                    </select>
-                  </div>
-
-                  {/* Check Out */}
-                  <div className="form-group">
-                    <label htmlFor="select2">Check Out</label>
-                    <select className="form-control" id="select2">
-                      <option>20 June</option>
-                      <option>21 June</option>
-                      <option>22 June</option>
-                      <option>23 June</option>
-                      <option>24 June</option>
-                      <option>25 June</option>
-                      <option>26 June</option>
-                      <option>27 June</option>
-                    </select>
-                  </div>
-
-                  {/* Adults */}
-                  <div className="form-group">
-                    <label htmlFor="select3">Adults</label>
-                    <select className="form-control" id="select3">
-                      <option>02</option>
-                      <option>03</option>
-                      <option>04</option>
-                      <option>05</option>
-                      <option>06</option>
-                    </select>
-                  </div>
-
-                  {/* Childrens */}
-                  <div className="form-group">
-                    <label htmlFor="select4">Childrens</label>
-                    <select className="form-control" id="select4">
-                      <option>01</option>
-                      <option>02</option>
-                      <option>03</option>
-                      <option>04</option>
-                      <option>05</option>
-                    </select>
-                  </div>
-
-                  {/* Button */}
-                  <button type="submit">Book Now</button>
-                </form>
-              </div>
-            </div>
-          </div>
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
         </div>
       </div>
 
@@ -138,9 +86,9 @@ const Rooms: React.FC = () => {
               <div className="pagination-area wow fadeInUp" data-wow-delay="400ms" style={{ animationDelay: '400ms' }}>
                 <nav>
                   <ul className="pagination">
-                    <li className="page-item active"><a className="page-link" href="#">01.</a></li>
-                    <li className="page-item"><a className="page-link" href="#">02.</a></li>
-                    <li className="page-item"><a className="page-link" href="#">03.</a></li>
+                    <li className="page-item active"><a className="page-link" href="#">01</a></li>
+                    <li className="page-item"><a className="page-link" href="#">02</a></li>
+                    <li className="page-item"><a className="page-link" href="#">03</a></li>
                   </ul>
                 </nav>
               </div>

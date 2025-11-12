@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Carousel, Select, Row, Col, Form } from 'antd';
+import { Carousel, Row, Col } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import BookRoomButton from '@/components/common/BookRoomButton';
+import BookingFilter from '@/components/booking/BookingFilter';
 import './Home.css';
 
-const { Option } = Select;
-
 const Home: React.FC = () => {
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -117,83 +115,7 @@ const Home: React.FC = () => {
         <div className="container">
           <Row justify="center">
             <Col xs={24} lg={20}>
-              <div className="book-now-form">
-                <Form form={form} onFinish={handleBookNow}>
-                  {/* Check In */}
-                  <Form.Item name="checkIn" label="Check In" className="form-group">
-                    <Select
-                      placeholder="19 June"
-                      size="large"
-                      defaultValue="19 June"
-                      suffixIcon={<i className="fa fa-angle-down" />}
-                    >
-                      <Option value="19 June">19 June</Option>
-                      <Option value="20 June">20 June</Option>
-                      <Option value="21 June">21 June</Option>
-                      <Option value="22 June">22 June</Option>
-                      <Option value="23 June">23 June</Option>
-                      <Option value="24 June">24 June</Option>
-                      <Option value="25 June">25 June</Option>
-                    </Select>
-                  </Form.Item>
-
-                  {/* Check Out */}
-                  <Form.Item name="checkOut" label="Check Out" className="form-group">
-                    <Select
-                      placeholder="20 June"
-                      size="large"
-                      defaultValue="20 June"
-                      suffixIcon={<i className="fa fa-angle-down" />}
-                    >
-                      <Option value="20 June">20 June</Option>
-                      <Option value="21 June">21 June</Option>
-                      <Option value="22 June">22 June</Option>
-                      <Option value="23 June">23 June</Option>
-                      <Option value="24 June">24 June</Option>
-                      <Option value="25 June">25 June</Option>
-                      <Option value="26 June">26 June</Option>
-                      <Option value="27 June">27 June</Option>
-                    </Select>
-                  </Form.Item>
-
-                  {/* Adults */}
-                  <Form.Item name="adults" label="Adults" className="form-group">
-                    <Select
-                      placeholder="02"
-                      size="large"
-                      defaultValue="02"
-                      suffixIcon={<i className="fa fa-angle-down" />}
-                    >
-                      <Option value="02">02</Option>
-                      <Option value="03">03</Option>
-                      <Option value="04">04</Option>
-                      <Option value="05">05</Option>
-                      <Option value="06">06</Option>
-                    </Select>
-                  </Form.Item>
-
-                  {/* Childrens */}
-                  <Form.Item name="children" label="Childrens" className="form-group">
-                    <Select
-                      placeholder="01"
-                      size="large"
-                      defaultValue="01"
-                      suffixIcon={<i className="fa fa-angle-down" />}
-                    >
-                      <Option value="01">01</Option>
-                      <Option value="02">02</Option>
-                      <Option value="03">03</Option>
-                      <Option value="04">04</Option>
-                      <Option value="05">05</Option>
-                    </Select>
-                  </Form.Item>
-
-                  {/* Button */}
-                  <button type="submit" className="form-submit">
-                    BOOK NOW
-                  </button>
-                </Form>
-              </div>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
             </Col>
           </Row>
         </div>
