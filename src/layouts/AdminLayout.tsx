@@ -112,6 +112,12 @@ const AdminLayout: React.FC = () => {
       label: "Quản lý bình luận",
       path: "/admin/message",
     },
+    {
+      key: "invoiceManagement",
+      icon: <DollarOutlined />,
+      label: "Quản lý hóa đơn",
+      path: "/admin/invoice",
+    },
 
     {
       key: "analytics",
