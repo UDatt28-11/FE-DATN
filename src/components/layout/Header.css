@@ -11,14 +11,16 @@
 .palatin-main-menu {
   position: relative;
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.63);
-  border-bottom: 2px solid rgba(203, 134, 112, 0.63);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border-bottom: none;
   transition: all 0.3s ease-in-out;
+  backdrop-filter: blur(8px);
 }
 
 .header-area.is-sticky .palatin-main-menu {
-  background-color: #000;
-  box-shadow: 0 5px 50px 15px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.65) 100%);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
 }
 
 .classy-nav-container {
@@ -49,13 +51,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 50px;
-  height: 150px;
+  height: 100px;
   transition: all 0.3s ease-in-out;
   background-color: transparent;
 }
 
 .header-area.is-sticky .classy-navbar {
-  height: 90px;
+  height: 80px;
 }
 
 .nav-brand {
@@ -68,6 +70,7 @@
 .nav-brand img {
   max-width: 180px;
   height: auto;
+  transition: all 0.3s ease-in-out;
 }
 
 .nav-brand-text {
@@ -111,29 +114,30 @@
 
 .classynav ul li a {
   display: block;
-  padding: 15px 25px;
+  padding: 15px 22px;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 15px;
   text-transform: capitalize;
   background-color: transparent;
   transition: all 0.3s ease-in-out;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .classynav ul li a:hover,
 .classynav ul li a:focus {
   color: #ffffff;
-  background-color: #cb8670;
+  background-color: #d89070;
 }
 
 .classynav ul li.active a {
   color: #ffffff;
-  background-color: #cb8670;
+  background-color: #d89070;
 }
 
 /* Dropdown arrow */
-.classynav ul li.has-down > a::after,
-.classynav ul li.megamenu-item > a::after {
+.classynav ul li.has-down>a::after,
+.classynav ul li.megamenu-item>a::after {
   content: '▼';
   color: #ffffff;
   margin-left: 8px;
@@ -142,32 +146,35 @@
   transition: transform 0.3s ease-in-out;
 }
 
-.classynav ul li.dropdown-active > a::after,
-.classynav ul li.megamenu-active > a::after {
+.classynav ul li.dropdown-active>a::after {
   transform: rotate(180deg);
 }
 
 .classynav ul li .dropdown {
   position: absolute;
   top: 100%;
-  left: 0;
-  min-width: 200px;
+  left: 50%;
+  min-width: 220px;
   background-color: #ffffff;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(20px);
-  transition: all 0.3s ease-in-out;
+  transform: translateX(-50%) translateY(20px);
+  transition: opacity 220ms ease, transform 220ms ease;
   z-index: 1000;
-  padding: 15px 0;
+  padding: 8px 0;
   list-style: none;
   margin: 0;
+  border-radius: 4px;
+  display: block;
+  /* ensure vertical stacking, override any inherited flex */
+  box-sizing: border-box;
 }
 
 .classynav ul li:hover .dropdown {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .classynav ul li .dropdown li {
@@ -177,17 +184,19 @@
 
 .classynav ul li .dropdown li a {
   color: #363636;
-  padding: 10px 25px;
+  padding: 12px 25px;
   font-size: 14px;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
 }
 
 .classynav ul li .dropdown li a:hover {
-  background-color: #cb8670;
+  background-color: #d89070;
   color: #ffffff;
 }
 
 /* Megamenu */
-.classynav ul li.megamenu-item > a::after {
+.classynav ul li.megamenu-item>a::after {
   content: '▼';
   color: #ffffff;
   margin-left: 8px;
@@ -199,51 +208,53 @@
 .megamenu {
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  width: 900px;
+  left: 0;
+  width: 200px;
   background-color: #ffffff;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   opacity: 0;
   visibility: hidden;
+  transform: translateY(20px);
   transition: all 0.3s ease-in-out;
   z-index: 1000;
-  padding: 40px 30px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 30px;
+  padding: 15px 0;
+  border-radius: 4px;
+  list-style: none;
+  margin: 0;
 }
 
 .classynav ul li:hover .megamenu {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 .megamenu .single-mega {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: contents;
 }
 
 .megamenu .single-mega li {
   display: block;
   width: 100%;
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .megamenu .single-mega li a {
   color: #363636;
-  padding: 8px 0;
+  padding: 12px 25px;
   font-size: 14px;
   display: block;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.2s ease-in-out;
+  background-color: transparent;
 }
 
 .megamenu .single-mega li a:hover {
-  color: #cb8670;
-  background-color: transparent;
-  padding-left: 10px;
+  color: #ffffff;
+  background-color: #d89070;
+  padding-left: 30px;
 }
 
 /* Menu button */
@@ -253,24 +264,25 @@
 
 .palatin-btn,
 .palatin-btn.ant-btn {
-  background-color: #cb8670 !important;
-  transition: all 0.5s ease-in-out;
+  background-color: #d89070 !important;
+  transition: all 0.3s ease-in-out;
   position: relative;
   z-index: 1;
   display: inline-block;
   min-width: 170px;
-  height: 53px !important;
+  height: 50px !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: 0 !important;
+  border-radius: 4px !important;
   padding: 0 30px !important;
-  font-size: 16px !important;
-  line-height: 53px !important;
+  font-size: 15px !important;
+  line-height: 50px !important;
   text-transform: capitalize;
   text-decoration: none;
   text-align: center;
   cursor: pointer;
-  box-shadow: none !important;
+  box-shadow: 0 4px 12px rgba(216, 144, 112, 0.35) !important;
+  font-weight: 500;
 }
 
 .palatin-btn:hover,
@@ -278,8 +290,9 @@
 .palatin-btn.ant-btn:hover,
 .palatin-btn.ant-btn:focus {
   background-color: #ffffff !important;
-  color: #cb8670 !important;
+  color: #d89070 !important;
   border: none !important;
+  box-shadow: 0 6px 18px rgba(216, 144, 112, 0.45) !important;
 }
 
 .palatin-btn a,
@@ -538,8 +551,8 @@
     width: 100% !important;
   }
 
-  .classynav ul li.has-down > a::after,
-  .classynav ul li.megamenu-item > a::after {
+  .classynav ul li.has-down>a::after,
+  .classynav ul li.megamenu-item>a::after {
     float: right;
   }
 }

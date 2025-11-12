@@ -42,13 +42,13 @@ const Header: React.FC = () => {
     <>
       {/* Menu overlay for mobile - using div with custom CSS */}
       <div className={`menu-overlay ${isMenuOpen ? 'active' : ''}`} onClick={closeMenu}></div>
-      
+
       <header className={`header-area ${isScrolled ? 'is-sticky' : ''}`}>
         <div className="palatin-main-menu">
           <div className="classy-nav-container breakpoint-off">
             <div className="container">
               <nav className="classy-navbar justify-content-between" id="palatinNav">
-                
+
                 {/* Nav brand */}
                 <Link to="/" className="nav-brand">
                   <img src="/img/core-img/logo.png" alt="The Palatin Logo" />
@@ -66,7 +66,7 @@ const Header: React.FC = () => {
                       <span></span>
                     </span>
                   }
-                  style={{ 
+                  style={{
                     display: 'none',
                     border: 'none',
                     background: 'transparent',
@@ -76,7 +76,7 @@ const Header: React.FC = () => {
 
                 {/* Menu */}
                 <div className={`classy-menu ${isMenuOpen ? 'menu-on' : ''}`}>
-                  
+
                   {/* Close btn - Using Ant Design Button */}
                   <Button
                     type="text"
@@ -105,8 +105,8 @@ const Header: React.FC = () => {
                         <Link to="/about" onClick={closeMenu}>About Us</Link>
                       </li>
                       <li className={`has-down ${activeDropdown === 'pages' ? 'dropdown-active' : ''}`}>
-                        <a 
-                          href="#" 
+                        <a
+                          href="#"
                           onClick={(e) => {
                             e.preventDefault();
                             toggleDropdown('pages');
@@ -123,9 +123,9 @@ const Header: React.FC = () => {
                           <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
                         </ul>
                       </li>
-                      <li className={`megamenu-item ${activeDropdown === 'mega' ? 'megamenu-active' : ''}`}>
-                        <a 
-                          href="#" 
+                      <li className={`has-down ${activeDropdown === 'mega' ? 'dropdown-active' : ''}`}>
+                        <a
+                          href="#"
                           onClick={(e) => {
                             e.preventDefault();
                             toggleDropdown('mega');
@@ -133,40 +133,14 @@ const Header: React.FC = () => {
                         >
                           Mega Menu
                         </a>
-                        <div className="megamenu">
-                          <ul className="single-mega cn-col-4">
-                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
-                          </ul>
-                          <ul className="single-mega cn-col-4">
-                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
-                          </ul>
-                          <ul className="single-mega cn-col-4">
-                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
-                          </ul>
-                          <ul className="single-mega cn-col-4">
-                            <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                            <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                            <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                            <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                            <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
-                          </ul>
-                        </div>
+                        <ul className="dropdown">
+                          <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+                          <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                          <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
+                          <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
+                          <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
+                          <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                        </ul>
                       </li>
                       <li className={isActive('/services')}>
                         <Link to="/services" onClick={closeMenu}>Services</Link>
@@ -178,8 +152,8 @@ const Header: React.FC = () => {
 
                     {/* Button - Using Ant Design Button */}
                     <div className="menu-btn">
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         className="palatin-btn"
                         onClick={closeMenu}
                       >

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Carousel, Select, Button, Row, Col, Form } from 'antd';
+import { Carousel, Select, Row, Col, Form } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
-import BookRoomButton from '../components/common/BookRoomButton';
+import BookRoomButton from '@/components/common/BookRoomButton';
 import './Home.css';
 
 const { Option } = Select;
@@ -76,16 +76,16 @@ const Home: React.FC = () => {
 
       {/* Hero Area */}
       <section className="hero-area">
-        <Carousel 
-          autoplay 
-          effect="fade" 
+        <Carousel
+          autoplay
+          effect="fade"
           className="hero-slides"
           dots={true}
         >
           {heroSlides.map((slide, index) => (
             <div key={index} className="single-hero-slide d-flex align-items-center justify-content-center">
-              <div 
-                className="slide-img bg-img" 
+              <div
+                className="slide-img bg-img"
                 style={{ backgroundImage: `url(${slide.image})` }}
               ></div>
               <div className="container">
@@ -95,10 +95,10 @@ const Home: React.FC = () => {
                       <div className="line" data-animation="fadeInUp" data-delay="300ms"></div>
                       <h2 data-animation="fadeInUp" data-delay="500ms">{slide.title}</h2>
                       <p data-animation="fadeInUp" data-delay="700ms">{slide.description}</p>
-                      <a 
-                        href="#" 
-                        className="btn palatin-btn mt-50" 
-                        data-animation="fadeInUp" 
+                      <a
+                        href="#"
+                        className="btn palatin-btn mt-50"
+                        data-animation="fadeInUp"
                         data-delay="900ms"
                       >
                         Read More
@@ -118,34 +118,52 @@ const Home: React.FC = () => {
           <Row justify="center">
             <Col xs={24} lg={20}>
               <div className="book-now-form">
-                <Form form={form} onFinish={handleBookNow} layout="inline">
-                  <Form.Item name="checkIn" label="Check In" style={{ flex: 1 }}>
-                    <Select placeholder="19 June" size="large">
-                      <Option value="19">19 June</Option>
-                      <Option value="20">20 June</Option>
-                      <Option value="21">21 June</Option>
-                      <Option value="22">22 June</Option>
-                      <Option value="23">23 June</Option>
-                      <Option value="24">24 June</Option>
-                      <Option value="25">25 June</Option>
+                <Form form={form} onFinish={handleBookNow}>
+                  {/* Check In */}
+                  <Form.Item name="checkIn" label="Check In" className="form-group">
+                    <Select
+                      placeholder="19 June"
+                      size="large"
+                      defaultValue="19 June"
+                      suffixIcon={<i className="fa fa-angle-down" />}
+                    >
+                      <Option value="19 June">19 June</Option>
+                      <Option value="20 June">20 June</Option>
+                      <Option value="21 June">21 June</Option>
+                      <Option value="22 June">22 June</Option>
+                      <Option value="23 June">23 June</Option>
+                      <Option value="24 June">24 June</Option>
+                      <Option value="25 June">25 June</Option>
                     </Select>
                   </Form.Item>
 
-                  <Form.Item name="checkOut" label="Check Out" style={{ flex: 1 }}>
-                    <Select placeholder="20 June" size="large">
-                      <Option value="20">20 June</Option>
-                      <Option value="21">21 June</Option>
-                      <Option value="22">22 June</Option>
-                      <Option value="23">23 June</Option>
-                      <Option value="24">24 June</Option>
-                      <Option value="25">25 June</Option>
-                      <Option value="26">26 June</Option>
-                      <Option value="27">27 June</Option>
+                  {/* Check Out */}
+                  <Form.Item name="checkOut" label="Check Out" className="form-group">
+                    <Select
+                      placeholder="20 June"
+                      size="large"
+                      defaultValue="20 June"
+                      suffixIcon={<i className="fa fa-angle-down" />}
+                    >
+                      <Option value="20 June">20 June</Option>
+                      <Option value="21 June">21 June</Option>
+                      <Option value="22 June">22 June</Option>
+                      <Option value="23 June">23 June</Option>
+                      <Option value="24 June">24 June</Option>
+                      <Option value="25 June">25 June</Option>
+                      <Option value="26 June">26 June</Option>
+                      <Option value="27 June">27 June</Option>
                     </Select>
                   </Form.Item>
 
-                  <Form.Item name="adults" label="Adults" style={{ flex: 1 }}>
-                    <Select placeholder="02" size="large">
+                  {/* Adults */}
+                  <Form.Item name="adults" label="Adults" className="form-group">
+                    <Select
+                      placeholder="02"
+                      size="large"
+                      defaultValue="02"
+                      suffixIcon={<i className="fa fa-angle-down" />}
+                    >
                       <Option value="02">02</Option>
                       <Option value="03">03</Option>
                       <Option value="04">04</Option>
@@ -154,8 +172,14 @@ const Home: React.FC = () => {
                     </Select>
                   </Form.Item>
 
-                  <Form.Item name="children" label="Childrens" style={{ flex: 1 }}>
-                    <Select placeholder="01" size="large">
+                  {/* Childrens */}
+                  <Form.Item name="children" label="Childrens" className="form-group">
+                    <Select
+                      placeholder="01"
+                      size="large"
+                      defaultValue="01"
+                      suffixIcon={<i className="fa fa-angle-down" />}
+                    >
                       <Option value="01">01</Option>
                       <Option value="02">02</Option>
                       <Option value="03">03</Option>
@@ -164,11 +188,10 @@ const Home: React.FC = () => {
                     </Select>
                   </Form.Item>
 
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" size="large" className="book-now-btn">
-                      Book Now
-                    </Button>
-                  </Form.Item>
+                  {/* Button */}
+                  <button type="submit" className="form-submit">
+                    BOOK NOW
+                  </button>
                 </Form>
               </div>
             </Col>
@@ -287,8 +310,8 @@ const Home: React.FC = () => {
       {/* Contact Area */}
       <section className="contact-area d-flex flex-wrap align-items-center">
         <div className="home-map-area" data-aos="fade-right">
-          <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d22236.40558254599!2d-118.25292394686001!3d34.057682914027104!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80c2c75ddc27da13%3A0xe22fdf6f254608f4!2zTG9zIEFuZ2VsZXM!5e0!3m2!1sen!2sbd!4v1532328708137" 
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d22236.40558254599!2d-118.25292394686001!3d34.057682914027104!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80c2c75ddc27da13%3A0xe22fdf6f254608f4!2zTG9zIEFuZ2VsZXM!5e0!3m2!1sen!2sbd!4v1532328708137"
             allowFullScreen
             title="Map"
           ></iframe>
@@ -300,13 +323,13 @@ const Home: React.FC = () => {
               <h2>Contact Info</h2>
               <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus. Lorem ipsum dolor sit amet, consectetur adipiscing.</p>
             </div>
-            
+
             <h4 className="mt-50">Los Angeles 1481 Creekside Lane Avila Beach, CA 931</h4>
-            
+
             <h5 className="mt-30">+53 345 7953 32453</h5>
-            
+
             <h5>bookstay@homestay.com</h5>
-            
+
             <div className="social-info mt-50">
               <a href="#"><i className="fa-brands fa-pinterest" aria-hidden="true"></i></a>
               <a href="https://www.facebook.com/storeFW"><i className="fa-brands fa-facebook" aria-hidden="true"></i></a>
