@@ -2,7 +2,7 @@ import { RouteObject } from "react-router-dom";
 import AppLayout from "../components/Layout/AppLayout";
 
 // 🏠 Trang người dùng
-import HomePage from "../pages/Clients/Home/HomePage";
+import Home from "../pages/Clients/Home/Home";
 import AboutPage from "../pages/Clients/About/AboutPage";
 import LoginPage from "../pages/Clients/Auth/LoginPage";
 import RegisterPage from "../pages/Clients/Auth/RegisterPage";
@@ -21,7 +21,7 @@ export const clientRoutes: RouteObject[] = [
         path: "/",
         element: <AppLayout />,
         children: [
-            { index: true, element: <HomePage /> },
+            { index: true, element: <Home /> },
             { path: "about", element: <AboutPage /> },
             { path: "homestay", element: <HomestayListPage /> },
             { path: "promotion", element: <PromotionsPage /> },

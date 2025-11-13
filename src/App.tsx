@@ -7,11 +7,9 @@ import { AuthProvider } from "./context/AuthContext";
 
 // Import các trang (Pages)
 // SỬA LỖI ĐƯỜNG DẪN: Bỏ "../src/" và dùng "./" (hoặc chỉ "./pages/...")
-import HomePage from "./pages/Clients/Home/HomePage";
+import Home from "./pages/Clients/Home/Home";
 import LoginPage from "./pages/Clients/Auth/LoginPage";
 import RegisterPage from "./pages/Clients/Auth/RegisterPage";
-import RoomListPage from "./pages/Clients/Room/RoomListPage";
-import RoomDetailPage from "./pages/Clients/Room/RoomDetailPage";
 
 // Import CSS của Ant Design (Nếu chưa import ở index.tsx hoặc main.tsx)
 // import 'antd/dist/antd.css'; 
@@ -25,15 +23,11 @@ const App: React.FC = () => {
       <AuthProvider>
         <Routes>
           {/* Trang chủ */}
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Home />} />
 
           {/* Các trang xác thực */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
-          {/* Trang phòng */}
-          <Route path="/rooms" element={<RoomListPage />} />
-          <Route path="/room/:id" element={<RoomDetailPage />} />
 
           {/* Bạn có thể thêm các route khác của mình ở đây */}
           {/* Ví dụ: <Route path="/about" element={<AboutPage />} /> */}

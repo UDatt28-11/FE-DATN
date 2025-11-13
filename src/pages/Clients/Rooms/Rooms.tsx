@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Row, Col } from 'antd';
-import BookingFilter from '@/components/booking/BookingFilter';
+import BookingFilter from '@/components/Booking/BookingFilter';
 import './Rooms.css';
 
 const Rooms: React.FC = () => {
