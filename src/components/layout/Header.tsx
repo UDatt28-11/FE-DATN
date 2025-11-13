@@ -112,38 +112,21 @@ const Header: React.FC = () => {
                             toggleDropdown('pages');
                           }}
                         >
-                          Pages
+                          Phòng
                         </a>
                         <ul className="dropdown">
-                          <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                          <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                          <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                          <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                          <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                          <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
+                          <li><Link to="/rooms" onClick={closeMenu}> Tất cả phòng</Link></li>
+                          <li><Link to="/rooms?category=deluxe" onClick={closeMenu}>Phòng Deluxe</Link></li>
+                          <li><Link to="/rooms?category=suite" onClick={closeMenu}>Phòng Suite</Link></li>
+                          <li><Link to="/rooms?category=single" onClick={closeMenu}>Phòng Đơn</Link></li>
                         </ul>
                       </li>
-                      <li className={`has-down ${activeDropdown === 'mega' ? 'dropdown-active' : ''}`}>
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleDropdown('mega');
-                          }}
-                        >
-                          Mega Menu
-                        </a>
-                        <ul className="dropdown">
-                          <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                          <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
-                          <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
-                          <li><Link to="/rooms" onClick={closeMenu}>Rooms</Link></li>
-                          <li><Link to="/blog" onClick={closeMenu}>News</Link></li>
-                          <li><Link to="/contact" onClick={closeMenu}>Contact</Link></li>
-                        </ul>
-                      </li>
+
                       <li className={isActive('/services')}>
                         <Link to="/services" onClick={closeMenu}>Services</Link>
+                      </li>
+                      <li className={isActive('/promotions')}>
+                        <Link to="/promotions" onClick={closeMenu}>Promotions</Link>
                       </li>
                       <li className={isActive('/contact')}>
                         <Link to="/contact" onClick={closeMenu}>Contact</Link>

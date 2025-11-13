@@ -5,11 +5,12 @@ import Footer from './components/Layout/Footer';
 import Home from './pages/Clients/Home';
 import About from './pages/About';
 import Services from './pages/Services';
-import Rooms from './pages/Clients/Rooms';
+import RoomList from './pages/Clients/Rooms/RoomList';
 import RoomDetailPage from './pages/Clients/Rooms/RoomDetailPage';
 import BookingInfoPage from './pages/Clients/Booking/BookingInfoPage';
 import PaymentPage from './pages/Clients/Booking/PaymentPage';
 import MyBookingsPage from './pages/Clients/Booking/MyBookingsPage';
+import Promotions from './pages/Clients/Promotions/Promotions';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
 import ScrollToTop from './components/shared/ScrollToTop';
@@ -49,11 +50,12 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Services />} />
-              <Route path="/rooms" element={<Rooms />} />
+              <Route path="/rooms" element={<RoomList />} />
               <Route path="/rooms/:id" element={<RoomDetailPage />} />
               <Route path="/booking/info" element={<BookingInfoPage />} />
               <Route path="/booking/payment" element={<PaymentPage />} />
               <Route path="/my-bookings" element={<MyBookingsPage />} />
+              <Route path="/promotions" element={<Promotions />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
