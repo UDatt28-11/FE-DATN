@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Row, Col } from 'antd';
+import { Link } from 'react-router-dom';
 import BookingFilter from '@/components/Booking/BookingFilter';
 import './Rooms.css';
 
@@ -76,7 +77,7 @@ const Rooms: React.FC = () => {
                     <p>{room.desc}</p>
                   </div>
                   {/* Book Room Button */}
-                  <a href="#" className="book-room-btn btn palatin-btn">Book Room</a>
+                  <Link to={`/rooms/${room.id}`} className="book-room-btn btn palatin-btn">Xem chi tiết</Link>
                 </div>
               </div>
             ))}

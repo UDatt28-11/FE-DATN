@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Carousel, Row, Col } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import BookRoomButton from '@/components/common/BookRoomButton';
-import BookingFilter from '@/components/Booking/BookingFilter';
+import BookingFilter from '@/components/booking/BookingFilter';
 import './Home.css';
 
 const Home: React.FC = () => {
