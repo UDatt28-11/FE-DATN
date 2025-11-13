@@ -1,41 +1,60 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ConfigProvider, Layout } from 'antd';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import Home from './pages/Home';
+import About from './pages/About';
+import Services from './pages/Services';
+import Rooms from './pages/Rooms';
+import Blog from './pages/Blog';
+import Contact from './pages/Contact';
+import ScrollToTop from './components/shared/ScrollToTop';
+import { useEffect } from 'react';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './App.css';
 
-// Import Context Provider
-// Đảm bảo đường dẫn này đúng: src/context/AuthContext.tsx
-import { AuthProvider } from "./context/AuthContext";
+const { Content } = Layout;
 
-// Import các trang (Pages)
-// SỬA LỖI ĐƯỜNG DẪN: Bỏ "../src/" và dùng "./" (hoặc chỉ "./pages/...")
-import Home from "./pages/Clients/Home/Home";
-import LoginPage from "./pages/Clients/Auth/LoginPage";
-import RegisterPage from "./pages/Clients/Auth/RegisterPage";
+function App() {
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: true
+    });
+  }, []);
 
-// Import CSS của Ant Design (Nếu chưa import ở index.tsx hoặc main.tsx)
-// import 'antd/dist/antd.css'; 
-
-const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      {/* AuthProvider phải bọc ngoài Routes 
-        để cung cấp context cho toàn bộ ứng dụng 
-      */}
-      <AuthProvider>
-        <Routes>
-          {/* Trang chủ */}
-          <Route path="/" element={<Home />} />
-
-          {/* Các trang xác thực */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-
-          {/* Bạn có thể thêm các route khác của mình ở đây */}
-          {/* Ví dụ: <Route path="/about" element={<AboutPage />} /> */}
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#cb8670',
+          colorLink: '#cb8670',
+          colorLinkHover: '#a96d5a',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        },
+      }}
+    >
+      <Router>
+        <ScrollToTop />
+        <Layout style={{ minHeight: '100vh' }}>
+          <Header />
+          <Content style={{ marginTop: '0' }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/rooms" element={<Rooms />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/contact" element={<Contact />} />
+            </Routes>
+          </Content>
+          <Footer />
+        </Layout>
+      </Router>
+    </ConfigProvider>
   );
-};
+}
 
 export default App;
-

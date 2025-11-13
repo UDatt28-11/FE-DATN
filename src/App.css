@@ -1,0 +1,32 @@
+/* Common styles */
+.container {
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 1200px;
+}
+
+.section-padding {
+  padding: 100px 0;
+}
+
+/* Override Ant Design styles for custom primary color */
+.ant-btn-primary {
+  background-color: #cb8670 !important;
+  border-color: #cb8670 !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #a96d5a !important;
+  border-color: #a96d5a !important;
+}
+
+.ant-menu-item-selected {
+  color: #cb8670 !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item-selected a {
+  color: #cb8670 !important;
+}

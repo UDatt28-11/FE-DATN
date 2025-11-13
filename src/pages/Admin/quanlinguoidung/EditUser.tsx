@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Form, Input, Select, DatePicker, message } from "antd";
 import dayjs from "dayjs";
-import { User } from "../../../types/user/user";
-import userService from "../../../service/userService";
+import type { User } from "@/types/user/user";
+import userService from "@/service/userService";
 interface Props {
   visible: boolean;
   user: User;

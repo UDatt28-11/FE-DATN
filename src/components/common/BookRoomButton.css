@@ -1,15 +1,18 @@
+/* Book Room Button Styles */
 .book-room-btn {
   display: inline-block;
-  min-width: 150px;
-  height: 50px;
-  line-height: 50px;
+  position: relative;
+  z-index: 50;
+  min-width: 160px;
+  height: 54px;
+  line-height: 54px;
   padding: 0 30px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 600;
   text-transform: uppercase;
-  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
   background-color: #cb8670;
+  color: #ffffff;
   border: 2px solid #cb8670;
   border-radius: 0;
   transition: all 0.3s ease;
@@ -17,35 +20,19 @@
   text-decoration: none;
 }
 
-.book-room-btn:hover {
-  background-color: transparent;
-  color: #cb8670;
-  border-color: #cb8670;
-}
-
+.book-room-btn:hover,
 .book-room-btn:focus {
-  outline: none;
-}
-
-.btn.palatin-btn {
-  display: inline-block;
-  min-width: 150px;
-  height: 50px;
-  line-height: 50px;
-  padding: 0 30px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #ffffff;
-  background-color: #cb8670;
-  border: 2px solid #cb8670;
-  border-radius: 0;
-  transition: all 0.3s ease;
-}
-
-.btn.palatin-btn:hover {
-  background-color: transparent;
-  color: #cb8670;
+  background-color: #363636;
   border-color: #cb8670;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+/* Position for room cards */
+.single-rooms-area .book-room-btn {
+  position: absolute;
+  bottom: -488px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100 !important;
 }
