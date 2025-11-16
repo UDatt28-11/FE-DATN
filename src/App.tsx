@@ -57,48 +57,48 @@ function App() {
                 <Route path="/services" element={<Services />} />
                 <Route path="/rooms" element={<RoomList />} />
                 <Route path="/rooms/:id" element={<RoomDetailPage />} />
-                <Route 
-                  path="/booking/info" 
+                <Route
+                  path="/booking/info"
                   element={
                     <ProtectedRoute>
                       <BookingInfoPage />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/booking/payment" 
+                <Route
+                  path="/booking/payment"
                   element={
                     <ProtectedRoute>
                       <PaymentPage />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/my-bookings" 
+                <Route
+                  path="/my-bookings"
                   element={
                     <ProtectedRoute>
                       <MyBookingsPage />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
                 <Route path="/promotions" element={<Promotions />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route 
-                  path="/profile" 
+                <Route
+                  path="/profile"
                   element={
                     <ProtectedRoute>
                       <Profile />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/settings" 
+                <Route
+                  path="/settings"
                   element={
                     <ProtectedRoute>
                       <Settings />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
               </Routes>
             </Content>

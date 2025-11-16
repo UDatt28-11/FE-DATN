@@ -1,200 +1,201 @@
 /* Settings Container */
 .settings-container {
-  min-height: 100vh;
-  padding: 80px 20px 40px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding: 80px 20px 40px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 .settings-header {
-  text-align: center;
-  margin-bottom: 40px;
+    text-align: center;
+    margin-bottom: 40px;
 }
 
 .settings-header h2 {
-  color: #333;
-  margin-bottom: 8px;
-  font-size: 32px;
-  font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 32px;
+    font-weight: 600;
 }
 
 /* Settings Content */
 .settings-content {
-  max-width: 900px;
-  margin: 0 auto;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 /* Settings Card */
 .settings-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  animation: fadeIn 0.6s ease-out;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    animation: fadeIn 0.6s ease-out;
 }
 
 .settings-card .ant-card-head {
-  border-bottom: 2px solid #f0f0f0;
-  padding: 20px 24px;
+    border-bottom: 2px solid #f0f0f0;
+    padding: 20px 24px;
 }
 
 .settings-card .ant-card-head-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
 }
 
 .settings-card .ant-card-body {
-  padding: 24px;
+    padding: 24px;
 }
 
 /* Setting Item */
 .setting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
 }
 
 .setting-info {
-  flex: 1;
-  margin-right: 20px;
+    flex: 1;
+    margin-right: 20px;
 }
 
 .setting-info strong {
-  font-size: 15px;
-  color: #333;
-  display: block;
-  margin-bottom: 4px;
+    font-size: 15px;
+    color: #333;
+    display: block;
+    margin-bottom: 4px;
 }
 
 .setting-info .ant-typography {
-  font-size: 13px;
-  color: #666;
-  margin: 0;
+    font-size: 13px;
+    color: #666;
+    margin: 0;
 }
 
 /* Switch customization */
 .setting-item .ant-switch-checked {
-  background-color: #d89070;
+    background-color: #d89070;
 }
 
 /* Select customization */
 .setting-item .ant-select-selector {
-  border-radius: 6px;
-  border-color: #d9d9d9;
+    border-radius: 6px;
+    border-color: #d9d9d9;
 }
 
 .setting-item .ant-select-focused .ant-select-selector {
-  border-color: #d89070;
-  box-shadow: 0 0 0 2px rgba(216, 144, 112, 0.2);
+    border-color: #d89070;
+    box-shadow: 0 0 0 2px rgba(216, 144, 112, 0.2);
 }
 
 /* Divider */
 .settings-card .ant-divider {
-  margin: 0;
+    margin: 0;
 }
 
 /* Settings Actions */
 .settings-actions {
-  text-align: center;
-  padding: 20px 0;
+    text-align: center;
+    padding: 20px 0;
 }
 
 .settings-actions .ant-btn-primary {
-  background-color: #d89070;
-  border-color: #d89070;
-  border-radius: 8px;
-  height: 48px;
-  padding: 0 40px;
-  font-size: 16px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(216, 144, 112, 0.35);
+    background-color: #d89070;
+    border-color: #d89070;
+    border-radius: 8px;
+    height: 48px;
+    padding: 0 40px;
+    font-size: 16px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(216, 144, 112, 0.35);
 }
 
 .settings-actions .ant-btn-primary:hover {
-  background-color: #c67d5f;
-  border-color: #c67d5f;
+    background-color: #c67d5f;
+    border-color: #c67d5f;
 }
 
 /* Responsive */
 @media only screen and (max-width: 767px) {
-  .settings-container {
-    padding: 60px 15px 30px;
-  }
+    .settings-container {
+        padding: 60px 15px 30px;
+    }
 
-  .settings-header h2 {
-    font-size: 24px;
-  }
+    .settings-header h2 {
+        font-size: 24px;
+    }
 
-  .settings-card .ant-card-head {
-    padding: 16px 20px;
-  }
+    .settings-card .ant-card-head {
+        padding: 16px 20px;
+    }
 
-  .settings-card .ant-card-head-title {
-    font-size: 16px;
-  }
+    .settings-card .ant-card-head-title {
+        font-size: 16px;
+    }
 
-  .settings-card .ant-card-body {
-    padding: 20px;
-  }
+    .settings-card .ant-card-body {
+        padding: 20px;
+    }
 
-  .setting-item {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 12px 0;
-  }
+    .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 0;
+    }
 
-  .setting-info {
-    margin-right: 0;
-    margin-bottom: 12px;
-  }
+    .setting-info {
+        margin-right: 0;
+        margin-bottom: 12px;
+    }
 
-  .setting-item .ant-select,
-  .setting-item .ant-switch {
-    width: 100%;
-  }
+    .setting-item .ant-select,
+    .setting-item .ant-switch {
+        width: 100%;
+    }
 
-  .settings-actions .ant-btn-primary {
-    width: 100%;
-    height: 44px;
-    font-size: 15px;
-  }
+    .settings-actions .ant-btn-primary {
+        width: 100%;
+        height: 44px;
+        font-size: 15px;
+    }
 }
 
 @media only screen and (max-width: 575px) {
-  .settings-card .ant-card-body {
-    padding: 16px;
-  }
+    .settings-card .ant-card-body {
+        padding: 16px;
+    }
 
-  .setting-item {
-    padding: 10px 0;
-  }
+    .setting-item {
+        padding: 10px 0;
+    }
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .settings-card:nth-child(1) {
-  animation-delay: 0.1s;
+    animation-delay: 0.1s;
 }
 
 .settings-card:nth-child(2) {
-  animation-delay: 0.2s;
+    animation-delay: 0.2s;
 }
 
 .settings-card:nth-child(3) {
-  animation-delay: 0.3s;
+    animation-delay: 0.3s;
 }
 
 /* Icon styling */
 .settings-card .ant-card-head-title .anticon {
-  color: #d89070;
-  font-size: 20px;
+    color: #d89070;
+    font-size: 20px;
 }

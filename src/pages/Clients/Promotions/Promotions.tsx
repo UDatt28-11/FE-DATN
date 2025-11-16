@@ -405,10 +405,10 @@ const Promotions: React.FC = () => {
                                         <div>Hạn sử dụng: <strong>{promo.validUntil}</strong></div>
                                         <div>Đơn tối thiểu: <strong>{promo.minOrder}</strong></div>
                                         {!isLoggedIn && (
-                                            <div style={{ 
-                                                marginTop: '10px', 
-                                                padding: '8px 12px', 
-                                                background: '#fff3e0', 
+                                            <div style={{
+                                                marginTop: '10px',
+                                                padding: '8px 12px',
+                                                background: '#fff3e0',
                                                 borderRadius: '6px',
                                                 border: '1px solid #ffa726',
                                                 fontSize: '13px',

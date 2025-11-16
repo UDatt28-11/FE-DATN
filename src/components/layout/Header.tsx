@@ -234,14 +234,14 @@ const Header: React.FC = () => {
                     {/* Button or User Menu - Using Ant Design */}
                     <div className="menu-btn">
                       {isLoggedIn ? (
-                        <Dropdown 
-                          menu={{ items: userMenuItems }} 
+                        <Dropdown
+                          menu={{ items: userMenuItems }}
                           placement="bottomRight"
                           trigger={['click']}
                         >
                           <div className="user-menu-avatar">
-                            <Avatar 
-                              size={40} 
+                            <Avatar
+                              size={40}
                               icon={<UserOutlined />}
                               style={{ backgroundColor: '#d89070' }}
                             />

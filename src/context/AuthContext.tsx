@@ -28,12 +28,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         const token = authService.getToken();
         const userData = authService.getCurrentUser();
-        
+
         if (token && userData) {
             setIsLoggedIn(true);
             setUser(userData);
         }
-        
+
         setLoading(false);
     }, []);
 
