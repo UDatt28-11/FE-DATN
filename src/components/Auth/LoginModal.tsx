@@ -14,11 +14,11 @@ interface LoginModalProps {
     onSwitchToForgotPassword?: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ 
-    visible, 
-    onClose, 
+const LoginModal: React.FC<LoginModalProps> = ({
+    visible,
+    onClose,
     onSwitchToRegister,
-    onSwitchToForgotPassword 
+    onSwitchToForgotPassword
 }) => {
     const navigate = useNavigate();
     const { login } = useAuth();

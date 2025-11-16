@@ -133,7 +133,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                         <Title level={3} style={{ marginBottom: 10 }}>
                             Kiểm Tra Email Của Bạn
                         </Title>
-                        
+
                         <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
                             Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến email của bạn.
                             Vui lòng kiểm tra hộp thư và làm theo hướng dẫn.

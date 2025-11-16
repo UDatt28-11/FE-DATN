@@ -17,6 +17,8 @@ import {
     List,
     Affix,
     message,
+    Checkbox,
+    InputNumber,
 } from "antd";
 import {
     HomeOutlined,
@@ -29,6 +31,10 @@ import {
     SafetyOutlined,
     ThunderboltOutlined,
     ArrowLeftOutlined,
+    CoffeeOutlined as CoffeeIcon,
+    CarOutlined,
+    ScissorOutlined,
+    ToolOutlined,
 } from "@ant-design/icons";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { RangePickerProps } from "antd/es/date-picker";
@@ -41,6 +47,42 @@ const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+// --- Danh sách dịch vụ có thể chọn thêm ---
+const availableServices = [
+    {
+        id: 1,
+        name: "Bữa sáng buffet",
+        icon: <CoffeeIcon style={{ fontSize: 18, color: '#cb8670' }} />,
+        price: 150000,
+        unit: "người/ngày",
+        description: "Buffet sáng với đa dạng món Á - Âu"
+    },
+    {
+        id: 2,
+        name: "Đưa đón sân bay",
+        icon: <CarOutlined style={{ fontSize: 18, color: '#cb8670' }} />,
+        price: 300000,
+        unit: "lượt",
+        description: "Dịch vụ đưa đón bằng xe riêng"
+    },
+    {
+        id: 3,
+        name: "Massage & Spa",
+        icon: <ScissorOutlined style={{ fontSize: 18, color: '#cb8670' }} />,
+        price: 500000,
+        unit: "người/lần",
+        description: "Massage toàn thân 60 phút"
+    },
+    {
+        id: 4,
+        name: "Giặt là",
+        icon: <ToolOutlined style={{ fontSize: 18, color: '#cb8670' }} />,
+        price: 50000,
+        unit: "kg",
+        description: "Dịch vụ giặt là nhanh trong ngày"
+    },
+];
 
 // --- Dữ liệu giả lập phòng ---
 const allRooms = [
@@ -229,6 +271,11 @@ const RoomDetailPage: React.FC = () => {
     const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
     const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
 
+    // State cho dịch vụ
+    const [selectedServices, setSelectedServices] = useState<{
+        [key: number]: { selected: boolean; quantity: number };
+    }>({});
+
     // Tìm phòng theo ID
     const currentRoom = useMemo(() => {
         return allRooms.find((room) => room.id === Number(id)) || allRooms[0];
@@ -241,15 +288,50 @@ const RoomDetailPage: React.FC = () => {
             .slice(0, 3); // Lấy 3 phòng
     }, [currentRoom.id]);
 
+    // Tính tổng tiền dịch vụ
+    const servicesTotal = useMemo(() => {
+        return Object.entries(selectedServices).reduce((total, [serviceId, data]) => {
+            if (data.selected) {
+                const service = availableServices.find(s => s.id === Number(serviceId));
+                if (service) {
+                    return total + (service.price * data.quantity);
+                }
+            }
+            return total;
+        }, 0);
+    }, [selectedServices]);
+
     // Tính tổng tiền (giả lập)
     const totalPrice = useMemo(() => {
-        if (!dateRange || !dateRange[0] || !dateRange[1]) return currentRoom.price;
+        if (!dateRange || !dateRange[0] || !dateRange[1]) return currentRoom.price + servicesTotal;
         const nights = dateRange[1].diff(dateRange[0], 'day');
-        return currentRoom.price * nights;
-    }, [dateRange, currentRoom.price]);
+        return (currentRoom.price * nights) + servicesTotal;
+    }, [dateRange, currentRoom.price, servicesTotal]);
 
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
         setDateRange(dates as [Dayjs | null, Dayjs | null] | null);
+    };
+
+    // Xử lý chọn/bỏ chọn dịch vụ
+    const handleServiceToggle = (serviceId: number, checked: boolean) => {
+        setSelectedServices(prev => ({
+            ...prev,
+            [serviceId]: {
+                selected: checked,
+                quantity: checked ? 1 : 0
+            }
+        }));
+    };
+
+    // Xử lý thay đổi số lượng dịch vụ
+    const handleServiceQuantityChange = (serviceId: number, quantity: number) => {
+        setSelectedServices(prev => ({
+            ...prev,
+            [serviceId]: {
+                ...prev[serviceId],
+                quantity: quantity || 1
+            }
+        }));
     };
 
     const handleBooking = () => {
@@ -277,6 +359,20 @@ const RoomDetailPage: React.FC = () => {
                 adults,
                 children,
                 totalPrice,
+                selectedServices: Object.entries(selectedServices)
+                    .filter(([_, data]) => data.selected)
+                    .map(([serviceId, data]) => {
+                        const service = availableServices.find(s => s.id === Number(serviceId));
+                        return {
+                            id: service?.id,
+                            name: service?.name,
+                            price: service?.price,
+                            unit: service?.unit,
+                            description: service?.description,
+                            quantity: data.quantity
+                        };
+                    }),
+                servicesTotal,
             }
         });
     };
@@ -407,6 +503,112 @@ const RoomDetailPage: React.FC = () => {
                                     </Row>
                                 </Card>
 
+                                {/* Dịch vụ bổ sung */}
+                                <Card
+                                    title={
+                                        <Space>
+                                            <Text strong style={{ fontSize: 16 }}>Dịch vụ bổ sung</Text>
+                                            <Text type="secondary" style={{ fontSize: 14, fontWeight: 'normal' }}>
+                                                (Tùy chọn)
+                                            </Text>
+                                        </Space>
+                                    }
+                                    bordered={false}
+                                >
+                                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                                        {availableServices.map((service) => (
+                                            <Card
+                                                key={service.id}
+                                                size="small"
+                                                style={{
+                                                    background: selectedServices[service.id]?.selected ? '#fff7f0' : '#fafafa',
+                                                    border: selectedServices[service.id]?.selected ? '1px solid #cb8670' : '1px solid #f0f0f0',
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]} align="middle">
+                                                    <Col flex="none">
+                                                        <Checkbox
+                                                            checked={selectedServices[service.id]?.selected || false}
+                                                            onChange={(e) => handleServiceToggle(service.id, e.target.checked)}
+                                                        />
+                                                    </Col>
+                                                    <Col flex="none">
+                                                        {service.icon}
+                                                    </Col>
+                                                    <Col flex="auto">
+                                                        <Space direction="vertical" size={0}>
+                                                            <Text strong>{service.name}</Text>
+                                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                {service.description}
+                                                            </Text>
+                                                        </Space>
+                                                    </Col>
+                                                    <Col flex="none">
+                                                        <Space>
+                                                            {selectedServices[service.id]?.selected && (
+                                                                <InputNumber
+                                                                    min={1}
+                                                                    max={10}
+                                                                    value={selectedServices[service.id]?.quantity || 1}
+                                                                    onChange={(value) => handleServiceQuantityChange(service.id, value || 1)}
+                                                                    style={{ width: 70 }}
+                                                                    size="small"
+                                                                />
+                                                            )}
+                                                            <div style={{ textAlign: 'right', minWidth: 120 }}>
+                                                                <Text strong style={{ color: '#cb8670', fontSize: 16 }}>
+                                                                    {service.price.toLocaleString('vi-VN')} VNĐ
+                                                                </Text>
+                                                                <br />
+                                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                    /{service.unit}
+                                                                </Text>
+                                                            </div>
+                                                        </Space>
+                                                    </Col>
+                                                </Row>
+                                                {selectedServices[service.id]?.selected && (
+                                                    <div style={{
+                                                        marginTop: 12,
+                                                        paddingTop: 12,
+                                                        borderTop: '1px dashed #e0e0e0',
+                                                        textAlign: 'right'
+                                                    }}>
+                                                        <Text type="secondary">Tổng: </Text>
+                                                        <Text strong style={{ color: '#cb8670', fontSize: 15 }}>
+                                                            {(service.price * (selectedServices[service.id]?.quantity || 1)).toLocaleString('vi-VN')} VNĐ
+                                                        </Text>
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        ))}
+
+                                        {Object.values(selectedServices).some(s => s.selected) && (
+                                            <div style={{
+                                                marginTop: 16,
+                                                padding: '16px',
+                                                background: 'linear-gradient(135deg, #fff7f0 0%, #ffe8d6 100%)',
+                                                borderRadius: 8,
+                                                border: '1px solid #cb8670'
+                                            }}>
+                                                <Row justify="space-between" align="middle">
+                                                    <Col>
+                                                        <Text strong style={{ fontSize: 16 }}>
+                                                            Tổng tiền dịch vụ:
+                                                        </Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text strong style={{ fontSize: 20, color: '#cb8670' }}>
+                                                            {servicesTotal.toLocaleString('vi-VN')} VNĐ
+                                                        </Text>
+                                                    </Col>
+                                                </Row>
+                                            </div>
+                                        )}
+                                    </Space>
+                                </Card>
+
                                 {/* Đánh giá */}
                                 <Card title={`Đánh giá (${currentRoom.reviews.length})`} bordered={false}>
                                     <List
@@ -499,9 +701,38 @@ const RoomDetailPage: React.FC = () => {
 
                                         {/* Tổng tiền */}
                                         <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: 8 }}>
+                                            {dateRange && dateRange[0] && dateRange[1] && (
+                                                <>
+                                                    <Row justify="space-between" style={{ marginBottom: 8 }}>
+                                                        <Col>
+                                                            <Text type="secondary">
+                                                                {dateRange[1].diff(dateRange[0], 'day')} đêm × {currentRoom.price.toLocaleString('vi-VN')} VNĐ
+                                                            </Text>
+                                                        </Col>
+                                                        <Col>
+                                                            <Text>
+                                                                {(currentRoom.price * dateRange[1].diff(dateRange[0], 'day')).toLocaleString('vi-VN')} VNĐ
+                                                            </Text>
+                                                        </Col>
+                                                    </Row>
+                                                </>
+                                            )}
+                                            {servicesTotal > 0 && (
+                                                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                                                    <Col>
+                                                        <Text type="secondary">Dịch vụ bổ sung</Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text style={{ color: '#cb8670' }}>
+                                                            +{servicesTotal.toLocaleString('vi-VN')} VNĐ
+                                                        </Text>
+                                                    </Col>
+                                                </Row>
+                                            )}
+                                            <Divider style={{ margin: '8px 0' }} />
                                             <Row justify="space-between" align="middle">
                                                 <Col>
-                                                    <Text strong>Tổng cộng:</Text>
+                                                    <Text strong style={{ fontSize: 16 }}>Tổng cộng:</Text>
                                                 </Col>
                                                 <Col>
                                                     <Text style={{ fontSize: 24, color: '#cb8670', fontWeight: 'bold' }}>
@@ -509,11 +740,6 @@ const RoomDetailPage: React.FC = () => {
                                                     </Text>
                                                 </Col>
                                             </Row>
-                                            {dateRange && dateRange[0] && dateRange[1] && (
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    {dateRange[1].diff(dateRange[0], 'day')} đêm × {currentRoom.price.toLocaleString('vi-VN')} VNĐ
-                                                </Text>
-                                            )}
                                         </div>
 
                                         {/* Nút đặt phòng */}

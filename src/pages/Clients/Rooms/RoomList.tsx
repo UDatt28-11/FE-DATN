@@ -472,8 +472,10 @@ const RoomList: React.FC = () => {
                                                             style={{
                                                                 height: 220,
                                                                 overflow: 'hidden',
-                                                                position: 'relative'
+                                                                position: 'relative',
+                                                                cursor: 'pointer'
                                                             }}
+                                                            onClick={() => navigate(`/rooms/${room.id}`)}
                                                         >
                                                             <Image
                                                                 alt={room.name}
@@ -482,8 +484,10 @@ const RoomList: React.FC = () => {
                                                                 style={{
                                                                     width: '100%',
                                                                     height: '100%',
-                                                                    objectFit: 'cover'
+                                                                    objectFit: 'cover',
+                                                                    transition: 'transform 0.3s ease'
                                                                 }}
+                                                                className="room-image-hover"
                                                             />
                                                             {/* Tag loại phòng */}
                                                             <div
@@ -510,7 +514,16 @@ const RoomList: React.FC = () => {
                                                     <Col xs={24} sm={14}>
                                                         <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
                                                             <Space direction="vertical" size="small" style={{ width: '100%', flex: 1 }}>
-                                                                <Title level={5} style={{ marginBottom: 0 }}>
+                                                                <Title
+                                                                    level={5}
+                                                                    style={{
+                                                                        marginBottom: 0,
+                                                                        cursor: 'pointer',
+                                                                        transition: 'color 0.3s ease'
+                                                                    }}
+                                                                    onClick={() => navigate(`/rooms/${room.id}`)}
+                                                                    className="room-title-hover"
+                                                                >
                                                                     {room.name}
                                                                 </Title>
 
