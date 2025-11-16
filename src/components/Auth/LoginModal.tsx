@@ -11,9 +11,15 @@ interface LoginModalProps {
     visible: boolean;
     onClose: () => void;
     onSwitchToRegister: () => void;
+    onSwitchToForgotPassword?: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onSwitchToRegister }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ 
+    visible, 
+    onClose, 
+    onSwitchToRegister,
+    onSwitchToForgotPassword 
+}) => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [form] = Form.useForm();
@@ -136,17 +142,36 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onSwitchToReg
                     marginBottom: 24,
                     marginTop: -10
                 }}>
-                    <Link
-                        to="/forgot-password"
-                        onClick={handleCancel}
-                        style={{
-                            color: '#cb8670',
-                            fontSize: 14,
-                            fontWeight: 500
-                        }}
-                    >
-                        Quên mật khẩu?
-                    </Link>
+                    {onSwitchToForgotPassword ? (
+                        <Button
+                            type="link"
+                            onClick={() => {
+                                onClose();
+                                onSwitchToForgotPassword();
+                            }}
+                            style={{
+                                color: '#cb8670',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                padding: 0,
+                                height: 'auto'
+                            }}
+                        >
+                            Quên mật khẩu?
+                        </Button>
+                    ) : (
+                        <Link
+                            to="/forgot-password"
+                            onClick={handleCancel}
+                            style={{
+                                color: '#cb8670',
+                                fontSize: 14,
+                                fontWeight: 500
+                            }}
+                        >
+                            Quên mật khẩu?
+                        </Link>
+                    )}
                 </div>
 
                 <Button

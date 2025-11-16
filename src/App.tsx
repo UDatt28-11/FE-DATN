@@ -17,6 +17,7 @@ import Blog from './pages/Blog';
 import Contact from './pages/Clients/Contact/Contact';
 import Profile from './pages/Clients/Profile';
 import Settings from './pages/Clients/Settings';
+import ResetPasswordPage from './pages/Clients/Auth/ResetPasswordPage';
 import ScrollToTop from './components/shared/ScrollToTop';
 import { useEffect } from 'react';
 import AOS from 'aos';
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/promotions" element={<Promotions />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route
                   path="/profile"
                   element={

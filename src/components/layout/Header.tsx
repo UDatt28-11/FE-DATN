@@ -5,6 +5,7 @@ import { UserOutlined, LogoutOutlined, SettingOutlined, DashboardOutlined } from
 import type { MenuProps } from 'antd';
 import LoginModal from '../Auth/LoginModal';
 import RegisterModal from '../Auth/RegisterModal';
+import ForgotPasswordModal from '../Auth/ForgotPasswordModal';
 import { useAuth } from '../../context/AuthContext';
 import './Header.css';
 
@@ -17,6 +18,7 @@ const Header: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
+  const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -64,9 +66,22 @@ const Header: React.FC = () => {
     setIsLoginModalVisible(false);
     setIsRegisterModalVisible(true);
   };
-
   const handleSwitchToLogin = () => {
     setIsRegisterModalVisible(false);
+    setIsLoginModalVisible(true);
+  };
+
+  const handleSwitchToForgotPassword = () => {
+    setIsLoginModalVisible(false);
+    setIsForgotPasswordModalVisible(true);
+  };
+
+  const handleCloseForgotPasswordModal = () => {
+    setIsForgotPasswordModalVisible(false);
+  };
+
+  const handleBackToLoginFromForgotPassword = () => {
+    setIsForgotPasswordModalVisible(false);
     setIsLoginModalVisible(true);
   };
 
@@ -129,6 +144,7 @@ const Header: React.FC = () => {
         visible={isLoginModalVisible}
         onClose={handleCloseLoginModal}
         onSwitchToRegister={handleSwitchToRegister}
+        onSwitchToForgotPassword={handleSwitchToForgotPassword}
       />
 
       {/* Register Modal */}
@@ -136,6 +152,13 @@ const Header: React.FC = () => {
         visible={isRegisterModalVisible}
         onClose={handleCloseRegisterModal}
         onSwitchToLogin={handleSwitchToLogin}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        visible={isForgotPasswordModalVisible}
+        onClose={handleCloseForgotPasswordModal}
+        onBackToLogin={handleBackToLoginFromForgotPassword}
       />
 
       {/* Menu overlay for mobile - using div with custom CSS */}
