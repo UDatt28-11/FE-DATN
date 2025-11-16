@@ -83,6 +83,12 @@ const AdminLayout: React.FC = () => {
       path: "/admin/accommodations",
     },
     {
+      key: "checkedInGuests",
+      icon: <TeamOutlined />,
+      label: "Quản lý khách lưu trú",
+      path: "/admin/checked-in-guests",
+    },
+    {
       key: "booking",
       icon: <CalendarOutlined />,
       label: "Quản lí đặt phòng ",

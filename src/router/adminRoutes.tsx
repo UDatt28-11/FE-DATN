@@ -26,6 +26,10 @@ import AddAccommodation from "../pages/Admin/quanliluutru/addaccommodation";
 import EditAccommodation from "../pages/Admin/quanliluutru/editaccommodation";
 import ViewAccommodation from "../pages/Admin/quanliluutru/viewaccommodation";
 
+// Quản lý khách lưu trú (Checked-in Guests)
+import CheckedInGuestsList from "../pages/Admin/quanlyluutru/CheckedInGuestsList";
+import CheckedInGuestsByBookingDetail from "../pages/Admin/quanlyluutru/CheckedInGuestsByBookingDetail";
+
 // Các module khác
 
 import ListBooking from "../pages/Admin/quanlidatphong/listbooking";
@@ -96,6 +100,10 @@ export const adminRoutes: RouteObject[] = [
 
       // Quản lý bình luận
       { path: "message", element: <ListMessage /> },
+
+      // Quản lý khách lưu trú
+      { path: "checked-in-guests", element: <CheckedInGuestsList /> },
+      { path: "booking-details/:bookingDetailId/guests", element: <CheckedInGuestsByBookingDetail /> },
     ],
   },
 ];

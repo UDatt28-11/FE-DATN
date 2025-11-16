@@ -12,6 +12,7 @@ import {
   HomeOutlined,
   UserOutlined,
   MailOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { getBooking } from "../../../api/booking";
@@ -134,6 +135,20 @@ const ViewBooking: React.FC = () => {
                 const config = statusMap[status] || { color: 'default', text: status };
                 return <Tag color={config.color}>{config.text}</Tag>;
             },
+        },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            render: (_: any, record: BookingDetail) => (
+                <Button
+                    type="primary"
+                    icon={<TeamOutlined />}
+                    size="small"
+                    onClick={() => navigate(`/admin/booking-details/${record.id}/guests`)}
+                >
+                    Quản lý khách
+                </Button>
+            ),
         },
     ];
 

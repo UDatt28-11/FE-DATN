@@ -26,6 +26,8 @@ const EditBooking: React.FC = () => {
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
     const [originalTotalAmount, setOriginalTotalAmount] = useState<number>(0);
     const [priceDifference, setPriceDifference] = useState<number>(0);
+    const [originalRoomTypeId, setOriginalRoomTypeId] = useState<number | null>(null);
+    const [canUpgrade, setCanUpgrade] = useState<boolean>(false);
 
     // Load dữ liệu booking và room types khi component mount
     useEffect(() => {
@@ -60,6 +62,30 @@ const EditBooking: React.FC = () => {
     };
 
     const handleRoomTypeChange = (roomTypeId: number) => {
+        // Kiểm tra xem có phải đổi lên 1 hạng không
+        if (originalRoomTypeId !== null) {
+            const originalIndex = roomTypes.findIndex(rt => rt.id === originalRoomTypeId);
+            const newIndex = roomTypes.findIndex(rt => rt.id === roomTypeId);
+            
+            // Chỉ cho phép giữ nguyên hoặc lên 1 hạng
+            if (newIndex > originalIndex + 1) {
+                message.warning('Chỉ được phép nâng cấp lên 1 hạng phòng! Vui lòng chọn lại.');
+                form.setFieldsValue({ roomTypeId: originalRoomTypeId });
+                return;
+            }
+            
+            if (newIndex === originalIndex + 1) {
+                setCanUpgrade(true);
+                message.info('Đang nâng cấp lên hạng phòng cao hơn');
+            } else if (newIndex === originalIndex) {
+                setCanUpgrade(false);
+            } else {
+                message.warning('Không được hạ hạng phòng!');
+                form.setFieldsValue({ roomTypeId: originalRoomTypeId });
+                return;
+            }
+        }
+        
         setSelectedRoomType(roomTypeId);
         setSelectedRoom(null);
         form.setFieldsValue({ roomId: undefined });
@@ -102,7 +128,7 @@ const EditBooking: React.FC = () => {
             const data = await getBooking(bookingId, "details,details.room,details.room.roomType");
             setBooking(data);
             
-            // Lưu tổng tiền ban đầu để so sánh
+            // Lưu tổng tiền ban đầu và loại phòng ban đầu để so sánh
             setOriginalTotalAmount(data.total_amount);
             
             // Điền dữ liệu vào form
@@ -110,6 +136,7 @@ const EditBooking: React.FC = () => {
             if (firstDetail) {
                 const roomTypeId = firstDetail.room?.room_type_id;
                 if (roomTypeId) {
+                    setOriginalRoomTypeId(roomTypeId); // Lưu loại phòng ban đầu
                     setSelectedRoomType(roomTypeId);
                     fetchRoomsByType(roomTypeId);
                 }
@@ -316,19 +343,32 @@ const EditBooking: React.FC = () => {
 
                     {/* Thông tin phòng */}
                     <h3 style={{ marginTop: 24, marginBottom: 16, color: '#1890ff' }}>
-                        🏠 Thông tin phòng
+                        🏠 Thông tin phòng (không bắt buộc)
                     </h3>
+
+                    <div style={{
+                        padding: 16,
+                        marginBottom: 16,
+                        borderRadius: 8,
+                        background: '#e6f7ff',
+                        border: '1px solid #91d5ff'
+                    }}>
+                        <p style={{ margin: 0, fontSize: 14, color: '#0958d9' }}>
+                            💡 <strong>Lưu ý:</strong> Chỉ được phép nâng cấp lên <strong>1 hạng phòng</strong> cao hơn. 
+                            Không thể hạ hạng hoặc nhảy nhiều hạng cùng lúc.
+                        </p>
+                    </div>
 
                     <Form.Item 
                         label="Loại phòng" 
-                        name="roomTypeId" 
-                        rules={[{ required: true, message: 'Vui lòng chọn loại phòng' }]}
+                        name="roomTypeId"
                     >
                         <Select 
-                            placeholder="Chọn loại phòng" 
+                            placeholder="Chọn loại phòng (không bắt buộc)" 
                             loading={loadingRoomTypes}
                             onChange={handleRoomTypeChange}
                             size="large"
+                            allowClear
                         >
                             {roomTypes.map(roomType => (
                                 <Option key={roomType.id} value={roomType.id}>
@@ -341,15 +381,15 @@ const EditBooking: React.FC = () => {
 
                     <Form.Item 
                         label="Phòng" 
-                        name="roomId" 
-                        rules={[{ required: true, message: 'Vui lòng chọn phòng' }]}
+                        name="roomId"
                     >
                         <Select 
-                            placeholder={selectedRoomType ? "Chọn phòng" : "Vui lòng chọn loại phòng trước"} 
+                            placeholder={selectedRoomType ? "Chọn phòng (không bắt buộc)" : "Vui lòng chọn loại phòng trước"} 
                             loading={loadingRooms}
                             disabled={!selectedRoomType}
                             onChange={handleRoomChange}
                             size="large"
+                            allowClear
                         >
                             {rooms.map(room => (
                                 <Option key={room.id} value={room.id}>
@@ -362,13 +402,12 @@ const EditBooking: React.FC = () => {
 
                     <Form.Item 
                         label="Check-in & Check-out" 
-                        name="dates" 
-                        rules={[{ required: true, message: 'Vui lòng chọn ngày check-in và check-out' }]}
+                        name="dates"
                     >
                         <RangePicker 
                             style={{ width: '100%' }}
                             format="DD/MM/YYYY"
-                            placeholder={['Ngày check-in', 'Ngày check-out']}
+                            placeholder={['Ngày check-in (không bắt buộc)', 'Ngày check-out (không bắt buộc)']}
                             onChange={handleDateChange}
                             size="large"
                         />
@@ -377,8 +416,7 @@ const EditBooking: React.FC = () => {
                     <Space style={{ width: '100%' }} size="large">
                         <Form.Item 
                             label="Số người lớn" 
-                            name="numAdults" 
-                            rules={[{ required: true, message: 'Vui lòng nhập số người lớn' }]}
+                            name="numAdults"
                             style={{ marginBottom: 0 }}
                         >
                             <InputNumber min={1} placeholder="Số người lớn" style={{ width: 150 }} size="large" />
