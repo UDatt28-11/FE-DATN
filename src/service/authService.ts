@@ -1,127 +1,293 @@
-import api from "../ApiFromBE/axios";
+import axiosInstance from "./axiosConfig";
 
-/**
- * 🔐 Auth Service - Xác thực người dùng
- * Gọi API tới Laravel backend: /api/...
- */
-
-export interface LoginCredentials {
+// Types
+export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface RegisterData {
-  name: string;
+export interface RegisterRequest {
+  full_name: string;
   email: string;
   password: string;
   password_confirmation: string;
-  phone?: string;
-  role?: 'guest' | 'host' | 'admin';
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  email_verified_at?: string;
-  created_at: string;
-  updated_at: string;
+  phone_number?: string;
 }
 
 export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-  user: User;
+  message: string;
+  user?: {
+    id: number;
+    full_name: string;
+    email: string;
+    phone_number?: string;
+    role: string;
+    email_verified_at?: string;
+    created_at: string;
+    updated_at: string;
+  };
+  token?: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface UpdateProfileRequest {
+  full_name: string;
+  phone_number?: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}
+
+export interface UploadAvatarResponse {
+  message: string;
+  avatar_url: string;
+}
+
+// Auth Service
 const authService = {
   /**
-   * POST /register
    * Đăng ký tài khoản mới
    */
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const res = await api.post("/register", data);
-    
-    // Lưu token vào localStorage
-    if (res.data.access_token) {
-      localStorage.setItem("accessToken", res.data.access_token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    try {
+      const response = await axiosInstance.post<AuthResponse>(
+        "/user/register",
+        data
+      );
+      return response.data;
+    } catch (error: any) {
+      // Xử lý lỗi validation từ Laravel
+      if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat().join(", ");
+        throw new Error(errorMessages);
+      }
+      throw new Error(error.response?.data?.message || "Đăng ký thất bại");
     }
-    
-    return res.data;
   },
 
   /**
-   * POST /login
    * Đăng nhập
    */
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const res = await api.post("/login", credentials);
-    
-    // Lưu token vào localStorage
-    if (res.data.access_token) {
-      localStorage.setItem("accessToken", res.data.access_token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    try {
+      const response = await axiosInstance.post<AuthResponse>(
+        "/user/login",
+        data
+      );
+
+      // Lưu token và user data vào localStorage
+      if (response.data.token) {
+        localStorage.setItem("auth_token", response.data.token);
+      }
+      if (response.data.user) {
+        localStorage.setItem("user_data", JSON.stringify(response.data.user));
+      }
+
+      return response.data;
+    } catch (error: any) {
+      // Xử lý lỗi validation từ Laravel
+      if (error.response?.status === 422 || error.response?.status === 401) {
+        const errors = error.response.data.errors;
+        if (errors) {
+          const errorMessages = Object.values(errors).flat().join(", ");
+          throw new Error(errorMessages);
+        }
+      }
+      throw new Error(error.response?.data?.message || "Đăng nhập thất bại");
     }
-    
-    return res.data;
   },
 
   /**
-   * POST /logout
    * Đăng xuất
    */
   async logout(): Promise<void> {
     try {
-      await api.post("/logout");
+      await axiosInstance.post("/user/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
     } finally {
-      // Xóa token khỏi localStorage
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
+      // Xóa token và user data
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_data");
     }
   },
 
   /**
-   * GET /me
-   * Lấy thông tin user hiện tại
+   * Quên mật khẩu - Gửi email reset
    */
-  async me(): Promise<User> {
-    const res = await api.get("/me");
-    return res.data.user || res.data;
+  async forgotPassword(
+    data: ForgotPasswordRequest
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.post("/user/forgot-password", data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat().join(", ");
+        throw new Error(errorMessages);
+      }
+      throw new Error(error.response?.data?.message || "Gửi email thất bại");
+    }
+  },
+
+  /**
+   * Đặt lại mật khẩu
+   */
+  async resetPassword(
+    data: ResetPasswordRequest
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.post("/user/reset-password", data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 422 || error.response?.status === 400) {
+        const errors = error.response.data.errors;
+        if (errors) {
+          const errorMessages = Object.values(errors).flat().join(", ");
+          throw new Error(errorMessages);
+        }
+      }
+      throw new Error(
+        error.response?.data?.message || "Đặt lại mật khẩu thất bại"
+      );
+    }
+  },
+
+  /**
+   * Lấy thông tin user hiện tại từ localStorage
+   */
+  getCurrentUser() {
+    const userData = localStorage.getItem("user_data");
+    return userData ? JSON.parse(userData) : null;
   },
 
   /**
    * Kiểm tra user đã đăng nhập chưa
    */
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("accessToken");
+    return !!localStorage.getItem("auth_token");
   },
 
   /**
-   * Lấy user từ localStorage
+   * Lấy token
    */
-  getCurrentUser(): User | null {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    
+  getToken(): string | null {
+    return localStorage.getItem("auth_token");
+  },
+
+  /**
+   * Đăng nhập bằng Google
+   */
+  getGoogleLoginUrl(): string {
+    return `${
+      import.meta.env.VITE_API_URL || "http://localhost:8000/api"
+    }/user/google/redirect`;
+  },
+
+  /**
+   * Cập nhật thông tin cá nhân
+   */
+  async updateProfile(data: UpdateProfileRequest): Promise<AuthResponse> {
     try {
-      return JSON.parse(userStr);
-    } catch {
-      return null;
+      const response = await axiosInstance.put<AuthResponse>(
+        "/user/profile",
+        data
+      );
+
+      // Cập nhật user data trong localStorage
+      if (response.data.user) {
+        localStorage.setItem("user_data", JSON.stringify(response.data.user));
+      }
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat().join(", ");
+        throw new Error(errorMessages);
+      }
+      throw new Error(
+        error.response?.data?.message || "Cập nhật thông tin thất bại"
+      );
     }
   },
 
   /**
-   * Lấy token từ localStorage
+   * Đổi mật khẩu
    */
-  getToken(): string | null {
-    return localStorage.getItem("accessToken");
+  async changePassword(
+    data: ChangePasswordRequest
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.post("/user/change-password", data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 422 || error.response?.status === 400) {
+        const errors = error.response.data.errors;
+        if (errors) {
+          const errorMessages = Object.values(errors).flat().join(", ");
+          throw new Error(errorMessages);
+        }
+      }
+      throw new Error(error.response?.data?.message || "Đổi mật khẩu thất bại");
+    }
+  },
+
+  /**
+   * Upload avatar
+   */
+  async uploadAvatar(file: File): Promise<UploadAvatarResponse> {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await axiosInstance.post<UploadAvatarResponse>(
+        "/user/avatar",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Cập nhật user data với avatar mới
+      const currentUser = this.getCurrentUser();
+      if (currentUser && response.data.avatar_url) {
+        const updatedUser = {
+          ...currentUser,
+          avatar: response.data.avatar_url,
+        };
+        localStorage.setItem("user_data", JSON.stringify(updatedUser));
+      }
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat().join(", ");
+        throw new Error(errorMessages);
+      }
+      throw new Error(
+        error.response?.data?.message || "Upload avatar thất bại"
+      );
+    }
   },
 };
 
 export default authService;
-
-
-

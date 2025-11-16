@@ -1,19 +1,14 @@
 import { createBrowserRouter } from "react-router-dom";
-import { adminRoutes } from "./adminRoutes";
-import AppLayout from "../components/Layout/AppLayout";
-import HomePage from "../pages/Client/Home/HomePage";
-import AboutPage from "../pages/Client/About/AboutPage";
+import { clientRoutes } from "./clientRoutes"; // Import client routes
+import { adminRoutes } from "./adminRoutes"; // Import admin routes
 
-
+// Kết hợp cả hai mảng routes lại
 const router = createBrowserRouter([
-    {
-        element: <AppLayout />,
-        children: [
-            { path: "/", element: <HomePage /> },
-            { path: "/about", element: <AboutPage /> },
-        ],
-    },
-    adminRoutes,
+  ...clientRoutes,
+  ...adminRoutes,
+
+  // Bạn cũng có thể thêm một route 404 ở đây
+  // { path: "*", element: <NotFoundPage /> }
 ]);
 
 export default router;

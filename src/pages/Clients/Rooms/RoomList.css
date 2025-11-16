@@ -1,0 +1,114 @@
+.room-list-page {
+    min-height: 100vh;
+    background: #fff;
+}
+
+.room-list-page .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+.room-list-page .breadcrumb-wrapper {
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Card phòng */
+.room-card {
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.room-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(203, 134, 112, 0.15) !important;
+    border-color: #cb8670;
+}
+
+.room-card img {
+    transition: transform 0.5s ease;
+}
+
+.room-card:hover img {
+    transform: scale(1.1);
+}
+
+/* Hover effects for clickable elements */
+.room-image-hover:hover {
+    transform: scale(1.1);
+}
+
+.room-title-hover:hover {
+    color: #cb8670 !important;
+}
+
+
+/* Bộ lọc */
+.ant-card-head-title {
+    font-weight: 600;
+}
+
+.ant-slider-track {
+    background-color: #cb8670 !important;
+}
+
+.ant-slider-handle {
+    border-color: #cb8670 !important;
+}
+
+.ant-slider-handle:hover,
+.ant-slider-handle:focus {
+    border-color: #a86d5a !important;
+    box-shadow: 0 0 0 4px rgba(203, 134, 112, 0.12) !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #cb8670 !important;
+    border-color: #cb8670 !important;
+}
+
+.ant-checkbox-wrapper:hover .ant-checkbox-inner,
+.ant-checkbox:hover .ant-checkbox-inner {
+    border-color: #cb8670 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .room-card .ant-row {
+        flex-direction: column;
+    }
+
+    .room-card .ant-col {
+        width: 100% !important;
+    }
+
+    .room-list-page .ant-card {
+        margin-bottom: 16px;
+    }
+}
+
+/* Animation cho empty state */
+.ant-empty {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sticky filter */
+@media (min-width: 992px) {
+    .room-list-page .ant-card {
+        position: sticky;
+        top: 20px;
+    }
+}
