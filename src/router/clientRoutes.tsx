@@ -12,11 +12,14 @@ import HomestayListPage from "../pages/Clients/Homestay/HomestayListPage";
 // --- Import trang chi tiết (từ Canvas) ---
 import HomestayDetailPage from "../pages/Clients/Homestay/HomestayDetailPage";
 import PromotionsPage from "../pages/Clients/Promotions/PromotionsPage";
-import ContactPage from "../pages/Clients/Contact/ContactPage";
+import Contact from "../pages/Clients/Contact/Contact";
 
 // --- Import trang phòng ---
 import Rooms from "../pages/Clients/Rooms/Rooms";
 import RoomDetailPage from "../pages/Clients/Rooms/RoomDetailPage";
+
+// --- Import trang Profile ---
+import Profile from "../pages/Clients/Profile";
 
 
 // 🧭 Router Client
@@ -29,11 +32,14 @@ export const clientRoutes: RouteObject[] = [
             { path: "about", element: <AboutPage /> },
             { path: "homestay", element: <HomestayListPage /> },
             { path: "promotion", element: <PromotionsPage /> },
-            { path: "contact", element: <ContactPage /> },
+            { path: "contact", element: <Contact /> },
 
             // --- Route cho phòng ---
             { path: "rooms", element: <Rooms /> },
             { path: "rooms/:id", element: <RoomDetailPage /> },
+
+            // --- Route cho Profile ---
+            { path: "profile", element: <Profile /> },
 
             // --- THÊM MỚI: Route cho trang chi tiết ---
             // Nó sử dụng :id để lấy tham số từ URL

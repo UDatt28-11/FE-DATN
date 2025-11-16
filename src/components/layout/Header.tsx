@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from 'antd';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button, Dropdown, Avatar, message } from 'antd';
+import { UserOutlined, LogoutOutlined, SettingOutlined, DashboardOutlined } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 import LoginModal from '../Auth/LoginModal';
 import RegisterModal from '../Auth/RegisterModal';
+import { useAuth } from '../../context/AuthContext';
 import './Header.css';
 
 const Header: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isLoggedIn, user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -51,11 +56,6 @@ const Header: React.FC = () => {
     setIsLoginModalVisible(false);
   };
 
-  const handleRegisterClick = () => {
-    setIsRegisterModalVisible(true);
-    closeMenu();
-  };
-
   const handleCloseRegisterModal = () => {
     setIsRegisterModalVisible(false);
   };
@@ -69,6 +69,58 @@ const Header: React.FC = () => {
     setIsRegisterModalVisible(false);
     setIsLoginModalVisible(true);
   };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      message.success('Đăng xuất thành công!');
+      navigate('/');
+      closeMenu();
+    } catch (error) {
+      message.error('Đăng xuất thất bại!');
+    }
+  };
+
+  // User menu items
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Thông tin cá nhân',
+      onClick: () => {
+        navigate('/profile');
+        closeMenu();
+      }
+    },
+    {
+      key: 'bookings',
+      icon: <DashboardOutlined />,
+      label: 'Đơn đặt phòng',
+      onClick: () => {
+        navigate('/my-bookings');
+        closeMenu();
+      }
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: 'Cài đặt',
+      onClick: () => {
+        navigate('/settings');
+        closeMenu();
+      }
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Đăng xuất',
+      danger: true,
+      onClick: handleLogout
+    }
+  ];
 
   return (
     <>
@@ -179,15 +231,34 @@ const Header: React.FC = () => {
                       </li>
                     </ul>
 
-                    {/* Button - Using Ant Design Button */}
+                    {/* Button or User Menu - Using Ant Design */}
                     <div className="menu-btn">
-                      <Button
-                        type="primary"
-                        className="palatin-btn"
-                        onClick={handleLoginClick}
-                      >
-                        Đăng Nhập
-                      </Button>
+                      {isLoggedIn ? (
+                        <Dropdown 
+                          menu={{ items: userMenuItems }} 
+                          placement="bottomRight"
+                          trigger={['click']}
+                        >
+                          <div className="user-menu-avatar">
+                            <Avatar 
+                              size={40} 
+                              icon={<UserOutlined />}
+                              style={{ backgroundColor: '#d89070' }}
+                            />
+                            <span className="user-menu-name">
+                              {user?.full_name || 'User'}
+                            </span>
+                          </div>
+                        </Dropdown>
+                      ) : (
+                        <Button
+                          type="primary"
+                          className="palatin-btn"
+                          onClick={handleLoginClick}
+                        >
+                          Đăng Nhập
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {/* Nav End */}

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ConfigProvider, Layout } from 'antd';
 import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/Auth';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Home from './pages/Clients/Home';
@@ -14,6 +15,8 @@ import MyBookingsPage from './pages/Clients/Booking/MyBookingsPage';
 import Promotions from './pages/Clients/Promotions/Promotions';
 import Blog from './pages/Blog';
 import Contact from './pages/Clients/Contact/Contact';
+import Profile from './pages/Clients/Profile';
+import Settings from './pages/Clients/Settings';
 import ScrollToTop from './components/shared/ScrollToTop';
 import { useEffect } from 'react';
 import AOS from 'aos';
@@ -54,12 +57,49 @@ function App() {
                 <Route path="/services" element={<Services />} />
                 <Route path="/rooms" element={<RoomList />} />
                 <Route path="/rooms/:id" element={<RoomDetailPage />} />
-                <Route path="/booking/info" element={<BookingInfoPage />} />
-                <Route path="/booking/payment" element={<PaymentPage />} />
-                <Route path="/my-bookings" element={<MyBookingsPage />} />
+                <Route 
+                  path="/booking/info" 
+                  element={
+                    <ProtectedRoute>
+                      <BookingInfoPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/booking/payment" 
+                  element={
+                    <ProtectedRoute>
+                      <PaymentPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/my-bookings" 
+                  element={
+                    <ProtectedRoute>
+                      <MyBookingsPage />
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route path="/promotions" element={<Promotions />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  } 
+                />
               </Routes>
             </Content>
             <Footer />

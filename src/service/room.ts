@@ -1,4 +1,4 @@
-import { Listing } from "../types/room/room";
+import type { Listing } from "../types/room/room";
 
 
 let listings: Listing[] = [

@@ -16,6 +16,7 @@ import {
     Avatar,
     List,
     Affix,
+    message,
 } from "antd";
 import {
     HomeOutlined,
@@ -32,6 +33,8 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { RangePickerProps } from "antd/es/date-picker";
 import type { Dayjs } from "dayjs";
+import { useAuth } from "../../../context/AuthContext";
+import { LoginModal, RegisterModal } from "../../../components/Auth";
 import "./RoomDetail.css";
 
 const { Content } = Layout;
@@ -219,9 +222,12 @@ const allRooms = [
 const RoomDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { isLoggedIn } = useAuth();
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
     const [adults, setAdults] = useState<number>(2);
     const [children, setChildren] = useState<number>(0);
+    const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+    const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
 
     // Tìm phòng theo ID
     const currentRoom = useMemo(() => {
@@ -248,7 +254,14 @@ const RoomDetailPage: React.FC = () => {
 
     const handleBooking = () => {
         if (!dateRange || !dateRange[0] || !dateRange[1]) {
-            alert('Vui lòng chọn ngày nhận và trả phòng!');
+            message.warning('Vui lòng chọn ngày nhận và trả phòng!');
+            return;
+        }
+
+        // Kiểm tra đăng nhập
+        if (!isLoggedIn) {
+            message.warning('Vui lòng đăng nhập để đặt phòng!');
+            setIsLoginModalVisible(true);
             return;
         }
 
@@ -622,6 +635,24 @@ const RoomDetailPage: React.FC = () => {
                     </div>
                 </div>
             </Content>
+
+            {/* Modal đăng nhập/đăng ký */}
+            <LoginModal
+                visible={isLoginModalVisible}
+                onClose={() => setIsLoginModalVisible(false)}
+                onSwitchToRegister={() => {
+                    setIsLoginModalVisible(false);
+                    setIsRegisterModalVisible(true);
+                }}
+            />
+            <RegisterModal
+                visible={isRegisterModalVisible}
+                onClose={() => setIsRegisterModalVisible(false)}
+                onSwitchToLogin={() => {
+                    setIsRegisterModalVisible(false);
+                    setIsLoginModalVisible(true);
+                }}
+            />
         </div>
     );
 };

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Row, Col, Card, Tag, Button, Input, Modal, message, Breadcrumb } from 'antd';
 import { GiftOutlined, CopyOutlined, CheckCircleOutlined, HomeOutlined, PercentageOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import { LoginModal, RegisterModal } from '../../../components/Auth';
 import './Promotions.css';
 
 const { Search } = Input;
@@ -22,9 +24,12 @@ interface Promotion {
 }
 
 const Promotions: React.FC = () => {
+    const { isLoggedIn } = useAuth();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+    const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     const promotions: Promotion[] = [
@@ -151,6 +156,13 @@ const Promotions: React.FC = () => {
     ];
 
     const handleCopyCode = (code: string) => {
+        // Kiểm tra đăng nhập trước khi sao chép mã
+        if (!isLoggedIn) {
+            message.warning('Vui lòng đăng nhập để sử dụng mã giảm giá!');
+            setIsLoginModalVisible(true);
+            return;
+        }
+
         navigator.clipboard.writeText(code);
         setCopiedCode(code);
         message.success('Đã sao chép mã giảm giá!');
@@ -158,6 +170,13 @@ const Promotions: React.FC = () => {
     };
 
     const showPromotionDetails = (promotion: Promotion) => {
+        // Kiểm tra đăng nhập trước khi xem chi tiết
+        if (!isLoggedIn) {
+            message.warning('Vui lòng đăng nhập để xem chi tiết mã giảm giá!');
+            setIsLoginModalVisible(true);
+            return;
+        }
+
         setSelectedPromotion(promotion);
         setIsModalVisible(true);
     };
@@ -379,12 +398,26 @@ const Promotions: React.FC = () => {
                                                 borderColor: copiedCode === promo.code ? '#52c41a' : undefined,
                                             }}
                                         >
-                                            {copiedCode === promo.code ? 'Đã sao chép' : 'Sao chép'}
+                                            {copiedCode === promo.code ? 'Đã sao chép' : (isLoggedIn ? 'Sao chép' : 'Đăng nhập')}
                                         </Button>
                                     </div>
                                     <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
                                         <div>Hạn sử dụng: <strong>{promo.validUntil}</strong></div>
                                         <div>Đơn tối thiểu: <strong>{promo.minOrder}</strong></div>
+                                        {!isLoggedIn && (
+                                            <div style={{ 
+                                                marginTop: '10px', 
+                                                padding: '8px 12px', 
+                                                background: '#fff3e0', 
+                                                borderRadius: '6px',
+                                                border: '1px solid #ffa726',
+                                                fontSize: '13px',
+                                                color: '#e65100',
+                                                textAlign: 'center'
+                                            }}>
+                                                🔒 Đăng nhập để sử dụng mã này
+                                            </div>
+                                        )}
                                     </div>
                                     <Button
                                         type="primary"
@@ -506,6 +539,24 @@ const Promotions: React.FC = () => {
                     </div>
                 )}
             </Modal>
+
+            {/* Modal đăng nhập/đăng ký */}
+            <LoginModal
+                visible={isLoginModalVisible}
+                onClose={() => setIsLoginModalVisible(false)}
+                onSwitchToRegister={() => {
+                    setIsLoginModalVisible(false);
+                    setIsRegisterModalVisible(true);
+                }}
+            />
+            <RegisterModal
+                visible={isRegisterModalVisible}
+                onClose={() => setIsRegisterModalVisible(false)}
+                onSwitchToLogin={() => {
+                    setIsRegisterModalVisible(false);
+                    setIsLoginModalVisible(true);
+                }}
+            />
         </div>
     );
 };

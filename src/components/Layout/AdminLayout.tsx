@@ -28,7 +28,6 @@ import {
   MenuUnfoldOutlined,
   StarOutlined,
   DollarOutlined,
-  TeamOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;

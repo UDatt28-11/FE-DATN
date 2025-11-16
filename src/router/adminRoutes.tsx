@@ -1,5 +1,5 @@
-import { RouteObject } from "react-router-dom";
-import AdminLayout from "../layouts/AdminLayout";
+import type { RouteObject } from "react-router-dom";
+import AdminLayout from "../components/Layout/AdminLayout";
 
 // Dashboard
 import Dashboard from "../pages/Admin/Dashboard";
