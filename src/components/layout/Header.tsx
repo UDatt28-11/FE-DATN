@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from 'antd';
+import LoginModal from '../Auth/LoginModal';
+import RegisterModal from '../Auth/RegisterModal';
 import './Header.css';
 
 const Header: React.FC = () => {
@@ -8,6 +10,8 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,8 +42,50 @@ const Header: React.FC = () => {
     return location.pathname === path ? 'active' : '';
   };
 
+  const handleLoginClick = () => {
+    setIsLoginModalVisible(true);
+    closeMenu();
+  };
+
+  const handleCloseLoginModal = () => {
+    setIsLoginModalVisible(false);
+  };
+
+  const handleRegisterClick = () => {
+    setIsRegisterModalVisible(true);
+    closeMenu();
+  };
+
+  const handleCloseRegisterModal = () => {
+    setIsRegisterModalVisible(false);
+  };
+
+  const handleSwitchToRegister = () => {
+    setIsLoginModalVisible(false);
+    setIsRegisterModalVisible(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsRegisterModalVisible(false);
+    setIsLoginModalVisible(true);
+  };
+
   return (
     <>
+      {/* Login Modal */}
+      <LoginModal
+        visible={isLoginModalVisible}
+        onClose={handleCloseLoginModal}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
+
+      {/* Register Modal */}
+      <RegisterModal
+        visible={isRegisterModalVisible}
+        onClose={handleCloseRegisterModal}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
+
       {/* Menu overlay for mobile - using div with custom CSS */}
       <div className={`menu-overlay ${isMenuOpen ? 'active' : ''}`} onClick={closeMenu}></div>
 
@@ -138,11 +184,9 @@ const Header: React.FC = () => {
                       <Button
                         type="primary"
                         className="palatin-btn"
-                        onClick={closeMenu}
+                        onClick={handleLoginClick}
                       >
-                        <Link to="/booking" style={{ color: 'inherit', textDecoration: 'none' }}>
-                          Make a Reservation
-                        </Link>
+                        Đăng Nhập
                       </Button>
                     </div>
                   </div>

@@ -142,8 +142,42 @@ const Home: React.FC = () => {
                 </div>
                 <p>Chào mừng đến với khách sạn của chúng tôi - nơi kết hợp hoàn hảo giữa sự sang trọng và ấm cúng. Với đội ngũ nhân viên chuyên nghiệp, tiện nghi hiện đại và dịch vụ tận tâm, chúng tôi cam kết mang đến cho bạn những trải nghiệm lưu trú tuyệt vời nhất. Mỗi chi tiết đều được chăm chút kỹ lưỡng để tạo nên không gian nghỉ dưỡng hoàn hảo.</p>
                 <div className="about-key-text">
-                  <h6><CheckOutlined /> Vị trí đắc địa, giao thông thuận tiện</h6>
-                  <h6><CheckOutlined /> Dịch vụ chăm sóc khách hàng 24/7</h6>
+                  <h6 style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#cb8670',
+                      color: '#fff',
+                      marginRight: '15px',
+                      fontSize: '18px',
+                      flexShrink: 0
+                    }}>
+                      <CheckOutlined />
+                    </span>
+                    <span>Vị trí đắc địa, giao thông thuận tiện</span>
+                  </h6>
+                  <h6 style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#cb8670',
+                      color: '#fff',
+                      marginRight: '15px',
+                      fontSize: '18px',
+                      flexShrink: 0
+                    }}>
+                      <CheckOutlined />
+                    </span>
+                    <span>Dịch vụ chăm sóc khách hàng 24/7</span>
+                  </h6>
                 </div>
                 <button onClick={() => navigate('/services')} className="btn palatin-btn mt-50">Xem Thêm</button>
               </div>
