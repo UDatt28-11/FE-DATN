@@ -1,0 +1,255 @@
+/* Redesigned rooms styles - matching reference design */
+:root {
+  --accent: #c97f71;
+  --tan-badge: #d4af8a;
+}
+
+.rooms-page-new .container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px
+}
+
+.rooms-page-new .hero {
+  padding: 60px 0 30px;
+  text-align: center
+}
+
+.hero-title {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 48px;
+  color: #333;
+  margin: 0 0 10px;
+  font-weight: 300;
+  letter-spacing: 0.5px
+}
+
+.hero-sub {
+  color: #999;
+  max-width: 760px;
+  margin: 0 auto;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #a8a8a8
+}
+
+.booking-wrap {
+  margin-top: 20px;
+  margin-bottom: 50px
+}
+
+.booking-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  background: #fff;
+  padding: 18px 24px;
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  justify-content: center
+}
+
+.booking-card .input {
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  min-width: 200px;
+  font-size: 14px;
+  font-family: inherit
+}
+
+.booking-card .select {
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  padding: 11px 24px;
+  border-radius: 2px;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all .2s
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent)
+}
+
+.btn:hover {
+  background: var(--accent);
+  color: #fff
+}
+
+.rooms-list {
+  padding-bottom: 60px
+}
+
+.section-title {
+  text-align: center;
+  font-size: 36px;
+  margin: 20px 0 6px;
+  color: #333;
+  font-weight: 300;
+  letter-spacing: 0.3px
+}
+
+.section-lead {
+  text-align: center;
+  color: #999;
+  max-width: 720px;
+  margin: 0 auto 50px;
+  font-size: 14px;
+  line-height: 1.7
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  height: 520px;
+  border-radius: 0
+}
+
+.card .media {
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  transition: filter .35s cubic-bezier(0.4, 0, 0.2, 1)
+}
+
+.card:hover .media {
+  filter: brightness(0.50)
+}
+
+.price {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #222;
+  color: #fff;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 11px;
+  text-align: center;
+  z-index: 3;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px
+}
+
+.price::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-left: 24px solid transparent;
+  border-top: 36px solid var(--tan-badge);
+  border-bottom: 0 solid transparent
+}
+
+.card-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(28, 28, 28, 0.96);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48%;
+  z-index: 2;
+  text-align: center
+}
+
+.card-title {
+  margin: 0 0 16px;
+  font-size: 26px;
+  color: #fff;
+  font-weight: 400;
+  letter-spacing: 0.3px
+}
+
+.card-desc {
+  color: #a8a8a8;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 22px
+}
+
+.card-actions {
+  width: 100%
+}
+
+.card-actions .btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 11px 36px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px
+}
+
+.card-actions .btn:hover {
+  background: #b8714d;
+  transform: translateY(-1px)
+}
+
+/* Responsive */
+@media(max-width:1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px
+  }
+
+  .card {
+    height: 480px
+  }
+}
+
+@media(max-width:768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 20px
+  }
+
+  .card {
+    height: 420px
+  }
+
+  .booking-card {
+    flex-direction: column
+  }
+
+  .booking-card .input,
+  .booking-card .select {
+    width: 100%
+  }
+
+  .section-lead {
+    font-size: 13px
+  }
+}

@@ -1,0 +1,87 @@
+.promotions-page {
+    min-height: 100vh;
+    background-color: #fff;
+}
+
+.promotion-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e8e8e8;
+}
+
+.promotion-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 24px rgba(203, 134, 112, 0.2);
+    border-color: #cb8670;
+}
+
+.promotion-card .ant-card-cover img {
+    transition: transform 0.5s ease;
+}
+
+.promotion-card:hover .ant-card-cover img {
+    transform: scale(1.1);
+}
+
+.breadcrumb-area {
+    position: relative;
+}
+
+/* Search Input Styling */
+.promotions-page .ant-input-search {
+    border-radius: 8px;
+}
+
+.promotions-page .ant-input-search .ant-input {
+    border-radius: 8px 0 0 8px;
+    height: 50px;
+    font-size: 16px;
+}
+
+.promotions-page .ant-input-search .ant-btn {
+    height: 50px;
+    background-color: #cb8670;
+    border-color: #cb8670;
+    border-radius: 0 8px 8px 0;
+}
+
+.promotions-page .ant-input-search .ant-btn:hover {
+    background-color: #b87660;
+    border-color: #b87660;
+}
+
+/* Modal Styling */
+.ant-modal-header {
+    border-bottom: 2px solid #cb8670;
+}
+
+.ant-modal-footer {
+    border-top: 1px solid #e8e8e8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .breadcrumb-area h1 {
+        font-size: 2rem !important;
+    }
+
+    .promotion-card .ant-card-cover {
+        height: 180px;
+    }
+}
+
+/* Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.promotion-card {
+    animation: fadeInUp 0.6s ease-out;
+}
