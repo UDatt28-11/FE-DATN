@@ -14,16 +14,26 @@ import {
   Table,
   Typography,
   Spin,
-  Alert,
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined, ShoppingOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  SaveOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  ShoppingOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import invoiceService from "../../../service/invoiceService";
-import { listBookings, getBooking, type BookingOrder } from "../../../service/bookingService";
+import {
+  listBookings,
+  getBooking,
+  type BookingOrder,
+} from "../../../service/bookingService";
 import type { CreateInvoiceData } from "../../../types/invoice/invoice";
 
 const { Title, Text } = Typography;
@@ -45,8 +55,12 @@ const AddInvoice: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingBookings, setFetchingBookings] = useState(false);
   const [bookings, setBookings] = useState<BookingOrder[]>([]);
-  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
-  const [selectedBooking, setSelectedBooking] = useState<BookingOrder | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(
+    null
+  );
+  const [selectedBooking, setSelectedBooking] = useState<BookingOrder | null>(
+    null
+  );
   const [items, setItems] = useState<InvoiceItemForm[]>([
     {
       key: "1",
@@ -114,26 +128,34 @@ const AddInvoice: React.FC = () => {
 
       // Auto-fill invoice items from booking details
       if (booking.details && booking.details.length > 0) {
-        const bookingItems: InvoiceItemForm[] = booking.details.map((detail, index) => {
-          const checkIn = dayjs(detail.check_in_date);
-          const checkOut = dayjs(detail.check_out_date);
-          const nights = Math.max(1, checkOut.diff(checkIn, "day"));
-          const roomName = detail.room?.name || detail.room_name || `Phòng ${detail.room_id}`;
-          
-          // sub_total là tổng giá cho cả đợt đặt phòng (đã bao gồm số đêm)
-          // Tính unit_price (giá mỗi đêm) = sub_total / nights
-          // Giả định sub_total là giá chưa bao gồm thuế (giá gốc)
-          const unitPrice = nights > 0 ? detail.sub_total / nights : detail.sub_total;
+        const bookingItems: InvoiceItemForm[] = booking.details.map(
+          (detail, index) => {
+            const checkIn = dayjs(detail.check_in_date);
+            const checkOut = dayjs(detail.check_out_date);
+            const nights = Math.max(1, checkOut.diff(checkIn, "day"));
+            const roomName =
+              detail.room?.name ||
+              detail.room_name ||
+              `Phòng ${detail.room_id}`;
 
-          return {
-            key: `booking-${detail.id}-${index}`,
-            item_type: "room_charge",
-            description: `${roomName} - ${nights} đêm (${checkIn.format("DD/MM/YYYY")} - ${checkOut.format("DD/MM/YYYY")})`,
-            quantity: nights,
-            unit_price: Math.round(unitPrice * 100) / 100, // Làm tròn 2 chữ số thập phân
-            tax_rate: 10,
-          };
-        });
+            // sub_total là tổng giá cho cả đợt đặt phòng (đã bao gồm số đêm)
+            // Tính unit_price (giá mỗi đêm) = sub_total / nights
+            // Giả định sub_total là giá chưa bao gồm thuế (giá gốc)
+            const unitPrice =
+              nights > 0 ? detail.sub_total / nights : detail.sub_total;
+
+            return {
+              key: `booking-${detail.id}-${index}`,
+              item_type: "room_charge",
+              description: `${roomName} - ${nights} đêm (${checkIn.format(
+                "DD/MM/YYYY"
+              )} - ${checkOut.format("DD/MM/YYYY")})`,
+              quantity: nights,
+              unit_price: Math.round(unitPrice * 100) / 100, // Làm tròn 2 chữ số thập phân
+              tax_rate: 10,
+            };
+          }
+        );
 
         setItems(bookingItems.length > 0 ? bookingItems : items);
       } else if (booking.total_amount > 0) {
@@ -199,24 +221,24 @@ const AddInvoice: React.FC = () => {
   const calculateTotals = () => {
     // Tính tổng phụ (chưa bao gồm thuế) cho tất cả items
     const subtotal = items.reduce((sum, item) => {
-      return sum + (item.quantity * item.unit_price);
+      return sum + item.quantity * item.unit_price;
     }, 0);
-    
+
     // Tính tổng thuế cho tất cả items
     const taxAmount = items.reduce((sum, item) => {
       const itemSubtotal = item.quantity * item.unit_price;
       const itemTax = (itemSubtotal * item.tax_rate) / 100;
       return sum + itemTax;
     }, 0);
-    
+
     // Tổng cộng = tổng phụ + tổng thuế
     const total = subtotal + taxAmount;
-    
+
     // Làm tròn để tránh lỗi số thập phân
-    return { 
-      subtotal: Math.round(subtotal * 100) / 100, 
-      taxAmount: Math.round(taxAmount * 100) / 100, 
-      total: Math.round(total * 100) / 100 
+    return {
+      subtotal: Math.round(subtotal * 100) / 100,
+      taxAmount: Math.round(taxAmount * 100) / 100,
+      total: Math.round(total * 100) / 100,
     };
   };
 
@@ -230,9 +252,12 @@ const AddInvoice: React.FC = () => {
     try {
       // If booking is selected, use createFromBooking API
       if (selectedBookingId) {
-        const response: any = await invoiceService.createFromBooking(selectedBookingId);
+        const response: any = await invoiceService.createFromBooking(
+          selectedBookingId
+        );
         toast.success("Tạo hóa đơn từ đặt phòng thành công!");
-        const newInvoiceId = response?.id || response?.data?.id || response?.data?.data?.id;
+        const newInvoiceId =
+          response?.id || response?.data?.id || response?.data?.data?.id;
         if (newInvoiceId) {
           navigate(`/admin/invoice/view/${newInvoiceId}`);
         } else {
@@ -266,7 +291,8 @@ const AddInvoice: React.FC = () => {
       const response: any = await invoiceService.create(invoiceData);
       toast.success("Tạo hóa đơn thành công!");
       // Tự động chuyển đến trang xem chi tiết hóa đơn vừa tạo
-      const newInvoiceId = response?.id || response?.data?.id || response?.data?.data?.id;
+      const newInvoiceId =
+        response?.id || response?.data?.id || response?.data?.data?.id;
       if (newInvoiceId) {
         navigate(`/admin/invoice/view/${newInvoiceId}`);
       } else {
@@ -335,7 +361,9 @@ const AddInvoice: React.FC = () => {
       width: 120,
       align: "right",
       render: (_, record) => (
-        <Text strong>{calculateItemTotal(record).toLocaleString("vi-VN")}₫</Text>
+        <Text strong>
+          {calculateItemTotal(record).toLocaleString("vi-VN")}₫
+        </Text>
       ),
     },
     {
@@ -359,7 +387,10 @@ const AddInvoice: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/admin/invoice")}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/admin/invoice")}
+        >
           Quay lại
         </Button>
       </Space>
@@ -370,7 +401,9 @@ const AddInvoice: React.FC = () => {
             {/* Select Booking Order */}
             <Col span={24}>
               <Divider orientation="left" style={{ marginTop: 8 }}>
-                <Text strong style={{ fontSize: 16 }}>🔍 Chọn đặt phòng (tùy chọn)</Text>
+                <Text strong style={{ fontSize: 16 }}>
+                  🔍 Chọn đặt phòng (tùy chọn)
+                </Text>
               </Divider>
               <Form.Item
                 label={
@@ -380,7 +413,8 @@ const AddInvoice: React.FC = () => {
                 }
                 help={
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Chọn một đặt phòng để tự động điền thông tin khách hàng và chi tiết hóa đơn
+                    Chọn một đặt phòng để tự động điền thông tin khách hàng và
+                    chi tiết hóa đơn
                   </Text>
                 }
               >
@@ -398,13 +432,24 @@ const AddInvoice: React.FC = () => {
                     const label = option?.label || "";
                     return label.toLowerCase().includes(input.toLowerCase());
                   }}
-                  notFoundContent={fetchingBookings ? <Spin size="small" /> : "Không tìm thấy đặt phòng"}
+                  notFoundContent={
+                    fetchingBookings ? (
+                      <Spin size="small" />
+                    ) : (
+                      "Không tìm thấy đặt phòng"
+                    )
+                  }
                   optionLabelProp="label"
                   dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
                 >
                   {bookings.map((booking) => {
-                    const displayLabel = `${booking.code || `#${booking.id}`} - ${booking.customer_name || "N/A"}`;
-                    const shortLabel = displayLabel.length > 50 ? displayLabel.substring(0, 50) + "..." : displayLabel;
+                    const displayLabel = `${
+                      booking.code || `#${booking.id}`
+                    } - ${booking.customer_name || "N/A"}`;
+                    const shortLabel =
+                      displayLabel.length > 50
+                        ? displayLabel.substring(0, 50) + "..."
+                        : displayLabel;
                     return (
                       <Select.Option
                         key={booking.id}
@@ -412,13 +457,30 @@ const AddInvoice: React.FC = () => {
                         label={shortLabel}
                       >
                         <div style={{ padding: "4px 0", minHeight: 50 }}>
-                          <div style={{ fontWeight: 500, marginBottom: 4, fontSize: 14 }}>
-                            {booking.code || `#${booking.id}`} - {booking.customer_name || "N/A"}
+                          <div
+                            style={{
+                              fontWeight: 500,
+                              marginBottom: 4,
+                              fontSize: 14,
+                            }}
+                          >
+                            {booking.code || `#${booking.id}`} -{" "}
+                            {booking.customer_name || "N/A"}
                           </div>
-                          <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>
-                            {booking.customer_phone && `${booking.customer_phone} | `}
-                            Tổng: {(booking.total_amount || 0).toLocaleString("vi-VN")}₫
-                            {booking.status && ` | ${booking.status}`}
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#888",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {booking.customer_phone &&
+                              `${booking.customer_phone} | `}
+                            Tổng:{" "}
+                            {(booking.total_amount || 0).toLocaleString(
+                              "vi-VN"
+                            )}
+                            ₫{booking.status && ` | ${booking.status}`}
                           </div>
                         </div>
                       </Select.Option>
@@ -430,13 +492,16 @@ const AddInvoice: React.FC = () => {
                 <Card
                   style={{
                     marginBottom: 24,
-                    background: "linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 100%)",
+                    background:
+                      "linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 100%)",
                     border: "1px solid #91caff",
                     borderRadius: 8,
                     boxShadow: "0 2px 8px rgba(24, 144, 255, 0.1)",
                   }}
                   title={
-                    <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                    <Space
+                      style={{ width: "100%", justifyContent: "space-between" }}
+                    >
                       <Space>
                         <Text strong style={{ color: "#1890ff", fontSize: 16 }}>
                           📋 Thông tin đặt phòng đã chọn
@@ -475,7 +540,10 @@ const AddInvoice: React.FC = () => {
                     <Col span={24}>
                       <Space size="large" wrap>
                         <div>
-                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
                             Mã đặt phòng
                           </Text>
                           <Text strong style={{ fontSize: 16 }}>
@@ -483,62 +551,101 @@ const AddInvoice: React.FC = () => {
                           </Text>
                         </div>
                         <div>
-                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
                             Tổng tiền
                           </Text>
-                          <Text strong style={{ color: "#1890ff", fontSize: 18 }}>
-                            {(selectedBooking.total_amount || 0).toLocaleString("vi-VN")}₫
+                          <Text
+                            strong
+                            style={{ color: "#1890ff", fontSize: 18 }}
+                          >
+                            {(selectedBooking.total_amount || 0).toLocaleString(
+                              "vi-VN"
+                            )}
+                            ₫
                           </Text>
                         </div>
-                        {selectedBooking.checkin_date && selectedBooking.checkout_date && (
-                          <div>
-                            <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-                              Thời gian lưu trú
-                            </Text>
-                            <Text>
-                              {dayjs(selectedBooking.checkin_date).format("DD/MM/YYYY")} -{" "}
-                              {dayjs(selectedBooking.checkout_date).format("DD/MM/YYYY")}
-                            </Text>
-                          </div>
-                        )}
+                        {selectedBooking.checkin_date &&
+                          selectedBooking.checkout_date && (
+                            <div>
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 12, display: "block" }}
+                              >
+                                Thời gian lưu trú
+                              </Text>
+                              <Text>
+                                {dayjs(selectedBooking.checkin_date).format(
+                                  "DD/MM/YYYY"
+                                )}{" "}
+                                -{" "}
+                                {dayjs(selectedBooking.checkout_date).format(
+                                  "DD/MM/YYYY"
+                                )}
+                              </Text>
+                            </div>
+                          )}
                       </Space>
                     </Col>
 
                     <Col span={24}>
                       <Divider style={{ margin: "12px 0" }} />
-                      <Text strong style={{ fontSize: 14, display: "block", marginBottom: 12 }}>
+                      <Text
+                        strong
+                        style={{
+                          fontSize: 14,
+                          display: "block",
+                          marginBottom: 12,
+                        }}
+                      >
                         👤 Thông tin khách hàng
                       </Text>
                       <Row gutter={[16, 12]}>
                         <Col span={8}>
-                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
                             Tên khách hàng
                           </Text>
                           <Text>{selectedBooking.customer_name || "N/A"}</Text>
                         </Col>
                         <Col span={8}>
-                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
                             Điện thoại
                           </Text>
                           <Text>{selectedBooking.customer_phone || "N/A"}</Text>
                         </Col>
                         <Col span={8}>
-                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: 12, display: "block" }}
+                          >
                             Email
                           </Text>
                           <Text>{selectedBooking.customer_email || "N/A"}</Text>
                         </Col>
                         {selectedBooking.payment_method && (
                           <Col span={8}>
-                            <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 12, display: "block" }}
+                            >
                               Phương thức thanh toán
                             </Text>
                             <Text>
                               {selectedBooking.payment_method === "cash"
                                 ? "Tiền mặt"
-                                : selectedBooking.payment_method === "bank_transfer"
+                                : selectedBooking.payment_method ===
+                                  "bank_transfer"
                                 ? "Chuyển khoản"
-                                : selectedBooking.payment_method === "credit_card"
+                                : selectedBooking.payment_method ===
+                                  "credit_card"
                                 ? "Thẻ tín dụng"
                                 : selectedBooking.payment_method === "e_wallet"
                                 ? "Ví điện tử"
@@ -549,80 +656,123 @@ const AddInvoice: React.FC = () => {
                       </Row>
                     </Col>
 
-                    {selectedBooking.details && selectedBooking.details.length > 0 && (
-                      <Col span={24}>
-                        <Divider style={{ margin: "12px 0" }} />
-                        <Text strong style={{ fontSize: 14, display: "block", marginBottom: 12 }}>
-                          🏠 Chi tiết phòng ({selectedBooking.details.length})
-                        </Text>
-                        <Row gutter={[12, 12]}>
-                          {selectedBooking.details.map((detail, index) => {
-                            const checkIn = dayjs(detail.check_in_date);
-                            const checkOut = dayjs(detail.check_out_date);
-                            const nights = Math.max(1, checkOut.diff(checkIn, "day"));
+                    {selectedBooking.details &&
+                      selectedBooking.details.length > 0 && (
+                        <Col span={24}>
+                          <Divider style={{ margin: "12px 0" }} />
+                          <Text
+                            strong
+                            style={{
+                              fontSize: 14,
+                              display: "block",
+                              marginBottom: 12,
+                            }}
+                          >
+                            🏠 Chi tiết phòng ({selectedBooking.details.length})
+                          </Text>
+                          <Row gutter={[12, 12]}>
+                            {selectedBooking.details.map((detail, index) => {
+                              const checkIn = dayjs(detail.check_in_date);
+                              const checkOut = dayjs(detail.check_out_date);
+                              const nights = Math.max(
+                                1,
+                                checkOut.diff(checkIn, "day")
+                              );
 
-                            return (
-                              <Col span={24} key={detail.id || index}>
-                                <Card
-                                  size="small"
-                                  style={{
-                                    background: "#fff",
-                                    border: "1px solid #d9d9d9",
-                                    borderRadius: 6,
-                                  }}
-                                >
-                                  <Row gutter={16} align="middle">
-                                    <Col flex="auto">
-                                      <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                                        <div>
-                                          <Text strong style={{ fontSize: 15 }}>
-                                            {detail.room?.name ||
-                                              detail.room_name ||
-                                              `Phòng ${detail.room_id}`}
+                              return (
+                                <Col span={24} key={detail.id || index}>
+                                  <Card
+                                    size="small"
+                                    style={{
+                                      background: "#fff",
+                                      border: "1px solid #d9d9d9",
+                                      borderRadius: 6,
+                                    }}
+                                  >
+                                    <Row gutter={16} align="middle">
+                                      <Col flex="auto">
+                                        <Space
+                                          direction="vertical"
+                                          size={6}
+                                          style={{ width: "100%" }}
+                                        >
+                                          <div>
+                                            <Text
+                                              strong
+                                              style={{ fontSize: 15 }}
+                                            >
+                                              {detail.room?.name ||
+                                                detail.room_name ||
+                                                `Phòng ${detail.room_id}`}
+                                            </Text>
+                                          </div>
+                                          <Space size="middle" wrap>
+                                            <Text
+                                              type="secondary"
+                                              style={{ fontSize: 12 }}
+                                            >
+                                              📅 {checkIn.format("DD/MM/YYYY")}{" "}
+                                              → {checkOut.format("DD/MM/YYYY")}
+                                            </Text>
+                                            <Text
+                                              type="secondary"
+                                              style={{ fontSize: 12 }}
+                                            >
+                                              🌙 {nights} đêm
+                                            </Text>
+                                            <Text
+                                              type="secondary"
+                                              style={{ fontSize: 12 }}
+                                            >
+                                              👥 {detail.num_adults} người lớn
+                                              {detail.num_children > 0 &&
+                                                `, ${detail.num_children} trẻ em`}
+                                            </Text>
+                                          </Space>
+                                        </Space>
+                                      </Col>
+                                      <Col>
+                                        <div style={{ textAlign: "right" }}>
+                                          <Text
+                                            strong
+                                            style={{
+                                              color: "#1890ff",
+                                              fontSize: 16,
+                                              whiteSpace: "nowrap",
+                                            }}
+                                          >
+                                            {Number(
+                                              detail.sub_total || 0
+                                            ).toLocaleString("vi-VN")}{" "}
+                                            ₫
                                           </Text>
                                         </div>
-                                        <Space size="middle" wrap>
-                                          <Text type="secondary" style={{ fontSize: 12 }}>
-                                            📅 {checkIn.format("DD/MM/YYYY")} →{" "}
-                                            {checkOut.format("DD/MM/YYYY")}
-                                          </Text>
-                                          <Text type="secondary" style={{ fontSize: 12 }}>
-                                            🌙 {nights} đêm
-                                          </Text>
-                                          <Text type="secondary" style={{ fontSize: 12 }}>
-                                            👥 {detail.num_adults} người lớn
-                                            {detail.num_children > 0 &&
-                                              `, ${detail.num_children} trẻ em`}
-                                          </Text>
-                                        </Space>
-                                      </Space>
-                                    </Col>
-                                    <Col>
-                                      <div style={{ textAlign: "right" }}>
-                                        <Text
-                                          strong
-                                          style={{ color: "#1890ff", fontSize: 16, whiteSpace: "nowrap" }}
-                                        >
-                                          {Number(detail.sub_total || 0).toLocaleString("vi-VN")} ₫
-                                        </Text>
-                                      </div>
-                                    </Col>
-                                  </Row>
-                                </Card>
-                              </Col>
-                            );
-                          })}
-                        </Row>
-                      </Col>
-                    )}
+                                      </Col>
+                                    </Row>
+                                  </Card>
+                                </Col>
+                              );
+                            })}
+                          </Row>
+                        </Col>
+                      )}
 
                     {selectedBooking.notes && (
                       <Col span={24}>
                         <Divider style={{ margin: "12px 0" }} />
-                        <Text strong style={{ fontSize: 14, display: "block", marginBottom: 8 }}>
+                        <Text
+                          strong
+                          style={{
+                            fontSize: 14,
+                            display: "block",
+                            marginBottom: 8,
+                          }}
+                        >
                           📝 Ghi chú
                         </Text>
-                        <Text style={{ color: "#595959" }}>{selectedBooking.notes}</Text>
+                        <Text style={{ color: "#595959" }}>
+                          {selectedBooking.notes}
+                        </Text>
                       </Col>
                     )}
                   </Row>
@@ -633,7 +783,9 @@ const AddInvoice: React.FC = () => {
             {/* Customer Information */}
             <Col span={24}>
               <Divider orientation="left" style={{ marginTop: 8 }}>
-                <Text strong style={{ fontSize: 16 }}>👤 Thông tin khách hàng</Text>
+                <Text strong style={{ fontSize: 16 }}>
+                  👤 Thông tin khách hàng
+                </Text>
               </Divider>
             </Col>
             <Col span={12}>
@@ -646,7 +798,11 @@ const AddInvoice: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="customer_email" label="Email" rules={[{ type: "email" }]}>
+              <Form.Item
+                name="customer_email"
+                label="Email"
+                rules={[{ type: "email" }]}
+              >
                 <Input placeholder="email@example.com" />
               </Form.Item>
             </Col>
@@ -664,7 +820,9 @@ const AddInvoice: React.FC = () => {
             {/* Invoice Details */}
             <Col span={24}>
               <Divider orientation="left" style={{ marginTop: 8 }}>
-                <Text strong style={{ fontSize: 16 }}>📄 Thông tin hóa đơn</Text>
+                <Text strong style={{ fontSize: 16 }}>
+                  📄 Thông tin hóa đơn
+                </Text>
               </Divider>
             </Col>
             <Col span={8}>
@@ -701,7 +859,9 @@ const AddInvoice: React.FC = () => {
             {/* Invoice Items */}
             <Col span={24}>
               <Divider orientation="left" style={{ marginTop: 8 }}>
-                <Text strong style={{ fontSize: 16 }}>💰 Chi tiết hóa đơn</Text>
+                <Text strong style={{ fontSize: 16 }}>
+                  💰 Chi tiết hóa đơn
+                </Text>
               </Divider>
               <Table
                 columns={itemColumns}
@@ -711,7 +871,11 @@ const AddInvoice: React.FC = () => {
                 style={{ marginBottom: 16, marginTop: 16 }}
                 bordered
               />
-              <Space direction="vertical" style={{ width: "100%", marginTop: 8 }} size="middle">
+              <Space
+                direction="vertical"
+                style={{ width: "100%", marginTop: 8 }}
+                size="middle"
+              >
                 <Button
                   type="dashed"
                   onClick={handleAddService}
@@ -738,12 +902,17 @@ const AddInvoice: React.FC = () => {
                   <Card
                     size="small"
                     style={{
-                      background: "linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%)",
+                      background:
+                        "linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%)",
                       border: "1px solid #d9d9d9",
                       borderRadius: 8,
                     }}
                   >
-                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                    <Space
+                      direction="vertical"
+                      style={{ width: "100%" }}
+                      size="middle"
+                    >
                       <div
                         style={{
                           display: "flex",
@@ -752,7 +921,9 @@ const AddInvoice: React.FC = () => {
                         }}
                       >
                         <Text type="secondary">Tổng phụ:</Text>
-                        <Text strong>{totals.subtotal.toLocaleString("vi-VN")}₫</Text>
+                        <Text strong>
+                          {totals.subtotal.toLocaleString("vi-VN")}₫
+                        </Text>
                       </div>
                       <div
                         style={{
@@ -762,7 +933,9 @@ const AddInvoice: React.FC = () => {
                         }}
                       >
                         <Text type="secondary">Thuế:</Text>
-                        <Text strong>{totals.taxAmount.toLocaleString("vi-VN")}₫</Text>
+                        <Text strong>
+                          {totals.taxAmount.toLocaleString("vi-VN")}₫
+                        </Text>
                       </div>
                       <Divider style={{ margin: "4px 0" }} />
                       <div
@@ -804,7 +977,12 @@ const AddInvoice: React.FC = () => {
               <Divider />
               <Space>
                 <Button onClick={() => navigate("/admin/invoice")}>Hủy</Button>
-                <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<SaveOutlined />}
+                  loading={loading}
+                >
                   Tạo hóa đơn
                 </Button>
               </Space>
@@ -817,6 +995,3 @@ const AddInvoice: React.FC = () => {
 };
 
 export default AddInvoice;
-
-
-

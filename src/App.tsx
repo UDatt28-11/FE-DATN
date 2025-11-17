@@ -36,83 +36,83 @@ function App() {
   }, []);
 
   return (
-    // <AuthProvider>
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "#cb8670",
-          colorLink: "#cb8670",
-          colorLinkHover: "#a96d5a",
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        },
-      }}
-    >
-      <Router>
-        <ScrollToTop />
-        <Layout style={{ minHeight: "100vh" }}>
-          <Header />
-          <Content style={{ marginTop: "0" }}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/rooms" element={<RoomList />} />
-              <Route path="/rooms/:id" element={<RoomDetailPage />} />
-              <Route
-                path="/booking/info"
-                element={
-                  <ProtectedRoute>
-                    <BookingInfoPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/booking/payment"
-                element={
-                  <ProtectedRoute>
-                    <PaymentPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/my-bookings"
-                element={
-                  <ProtectedRoute>
-                    <MyBookingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/promotions" element={<Promotions />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route
-                path="/reset-password/:token"
-                element={<ResetPasswordPage />}
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Content>
-          <Footer />
-        </Layout>
-      </Router>
-    </ConfigProvider>
-    // </AuthProvider>
+    <AuthProvider>
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: "#cb8670",
+            colorLink: "#cb8670",
+            colorLinkHover: "#a96d5a",
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          },
+        }}
+      >
+        <Router>
+          <ScrollToTop />
+          <Layout style={{ minHeight: "100vh" }}>
+            <Header />
+            <Content style={{ marginTop: "0" }}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/rooms" element={<RoomList />} />
+                <Route path="/rooms/:id" element={<RoomDetailPage />} />
+                <Route
+                  path="/booking/info"
+                  element={
+                    <ProtectedRoute>
+                      <BookingInfoPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/booking/payment"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/my-bookings"
+                  element={
+                    <ProtectedRoute>
+                      <MyBookingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/promotions" element={<Promotions />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route
+                  path="/reset-password/:token"
+                  element={<ResetPasswordPage />}
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </Content>
+            <Footer />
+          </Layout>
+        </Router>
+      </ConfigProvider>
+    </AuthProvider>
   );
 }
 

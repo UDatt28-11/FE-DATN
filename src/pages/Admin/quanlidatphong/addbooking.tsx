@@ -14,9 +14,9 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import type { Room } from "../../../types/room/room";
 
-import type {
+import {
   createBooking,
-  CreateBookingData,
+  type CreateBookingData,
 } from "../../../service/bookingService";
 import { listRooms } from "../../../service/room";
 

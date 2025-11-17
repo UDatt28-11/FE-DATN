@@ -20,21 +20,19 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 
-import { Listing } from "../../../types/room/room";
+import type { Listing } from "../../../types/room/room";
 
 import AddRoom from "./addroom";
 import EditRoom from "./editroom";
 
 const ListRoom: React.FC = () => {
   // State quản lý danh sách phòng
- 
 
   const [searchText, setSearchText] = useState("");
   const [pageSize, setPageSize] = useState<number>(15);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [isModalVisible, setIsModalVisible] = useState(false);
-
 
   // Cấu hình phân trang
   const pagination: TablePaginationConfig = {
@@ -77,11 +75,7 @@ const ListRoom: React.FC = () => {
       dataIndex: "status",
       key: "status",
       render: (_, record) => (
-        <Switch
-        
-          checkedChildren="Còn"
-          unCheckedChildren="Hết"
-        />
+        <Switch checkedChildren="Còn" unCheckedChildren="Hết" />
       ),
     },
     {
@@ -106,7 +100,6 @@ const ListRoom: React.FC = () => {
                 Modal.confirm({
                   title: "Xóa phòng",
                   content: `Bạn có chắc muốn xóa "${record.name}"?`,
-                 
                 });
               }}
               icon={<DeleteOutlined />}
@@ -146,7 +139,6 @@ const ListRoom: React.FC = () => {
     >
       <Table
         columns={columns}
-     
         pagination={pagination}
         rowKey="key"
         scroll={{ x: 1000 }}
@@ -158,7 +150,6 @@ const ListRoom: React.FC = () => {
           visible={isModalVisible}
           onClose={() => {
             setIsModalVisible(false);
-           
           }}
         />
       )}
@@ -168,7 +159,6 @@ const ListRoom: React.FC = () => {
           listing={selectedListing}
           onClose={() => {
             setIsModalVisible(false);
-          
           }}
         />
       )}

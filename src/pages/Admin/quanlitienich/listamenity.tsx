@@ -17,7 +17,7 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { Amenity } from "../../../types/amenity/amenity";
+import type { Amenity } from "../../../types/amenity/amenity";
 import AddAmenity from "./addamenity";
 import EditAmenity from "./editamenity";
 import VariantAmenity from "./variantamenity";
@@ -101,7 +101,9 @@ const ListAmenity: React.FC = () => {
       title: "Biểu tượng",
       dataIndex: "icon",
       width: 100,
-      render: (icon: Amenity["icon"]) => <span style={{ fontSize: 20 }}>{icon}</span>,
+      render: (icon: Amenity["icon"]) => (
+        <span style={{ fontSize: 20 }}>{icon}</span>
+      ),
     },
     {
       title: "Loại",
@@ -125,7 +127,8 @@ const ListAmenity: React.FC = () => {
     {
       title: "Ngày cập nhật",
       dataIndex: "updatedAt",
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      sorter: (a, b) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
     },
     {
       title: "Thao tác",
@@ -198,7 +201,11 @@ const ListAmenity: React.FC = () => {
         rowKey="id"
         columns={columns}
         dataSource={filteredData}
-        pagination={{ pageSize: 15, showSizeChanger: true, pageSizeOptions: [15, 30, 45] }}
+        pagination={{
+          pageSize: 15,
+          showSizeChanger: true,
+          pageSizeOptions: [15, 30, 45],
+        }}
         bordered
       />
 

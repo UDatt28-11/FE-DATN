@@ -19,17 +19,11 @@ import { toast } from "react-toastify";
 import {
   EyeOutlined,
   EditOutlined,
-  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
-  DollarOutlined,
   PhoneOutlined,
-  HomeOutlined,
-  UserOutlined,
-  TeamOutlined,
-  FilterOutlined,
   PlusOutlined,
   SyncOutlined,
   FileExcelOutlined,
@@ -40,10 +34,12 @@ import dayjs, { Dayjs } from "dayjs";
 
 import type { BookingOrder } from "../../../types/booking/booking";
 import { useNavigate } from "react-router-dom";
-import { listBookings, updateBookingStatus } from "../../../service/bookingService";
+import {
+  listBookings,
+  updateBookingStatus,
+} from "../../../service/bookingService";
 import invoiceService from "../../../service/invoiceService";
 import { Popconfirm } from "antd";
-
 
 const { Search } = Input;
 const { Option } = Select;
@@ -57,12 +53,18 @@ const ListBooking: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [loading, setLoading] = useState(false);
-  
+
   // State cho modal đổi trạng thái
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [bookingToUpdate, setBookingToUpdate] = useState<BookingOrder | null>(null);
-  const [newStatus, setNewStatus] = useState<'confirmed' | 'completed' | 'cancelled'>('confirmed');
-  const [creatingInvoiceId, setCreatingInvoiceId] = useState<number | null>(null);
+  const [bookingToUpdate, setBookingToUpdate] = useState<BookingOrder | null>(
+    null
+  );
+  const [newStatus, setNewStatus] = useState<
+    "confirmed" | "completed" | "cancelled"
+  >("confirmed");
+  const [creatingInvoiceId, setCreatingInvoiceId] = useState<number | null>(
+    null
+  );
 
   async function fetchData() {
     setLoading(true);
@@ -72,15 +74,15 @@ const ListBooking: React.FC = () => {
       setRows(data);
       applyFilters(searchText, statusFilter, dateRange, data);
     } catch (e) {
-      toast.error('Không thể tải dữ liệu');
+      toast.error("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
     }
   }
 
   // Load data khi component mount
-  useEffect(() => { 
-    fetchData(); 
+  useEffect(() => {
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,10 +92,10 @@ const ListBooking: React.FC = () => {
       fetchData();
     };
 
-    window.addEventListener('focus', handleFocus);
-    
+    window.addEventListener("focus", handleFocus);
+
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -105,25 +107,25 @@ const ListBooking: React.FC = () => {
     dataSource?: BookingOrder[]
   ) => {
     const sourceData = dataSource || rows;
-    
+
     let filtered = sourceData;
-    
+
     // Filter by search text
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(
         (b) =>
           b.code.toLowerCase().includes(searchLower) ||
-          (b.customer_name || '').toLowerCase().includes(searchLower) ||
-          (b.customer_phone || '').includes(search)
+          (b.customer_name || "").toLowerCase().includes(searchLower) ||
+          (b.customer_phone || "").includes(search)
       );
     }
-    
+
     // Filter by status
     if (status !== "all") {
       filtered = filtered.filter((b) => b.status === status);
     }
-    
+
     // Filter by date range
     if (dates) {
       filtered = filtered.filter((b) => {
@@ -131,7 +133,7 @@ const ListBooking: React.FC = () => {
         return checkIn.isAfter(dates[0]) && checkIn.isBefore(dates[1]);
       });
     }
-    
+
     setFilteredRows(filtered);
   };
 
@@ -139,12 +141,12 @@ const ListBooking: React.FC = () => {
     setSearchText(value);
     applyFilters(value, statusFilter, dateRange);
   };
-  
+
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     applyFilters(searchText, value, dateRange);
   };
-  
+
   const handleDateRangeChange = (dates: any) => {
     setDateRange(dates);
     applyFilters(searchText, statusFilter, dates);
@@ -152,55 +154,56 @@ const ListBooking: React.FC = () => {
   // ============================================
   // HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI BOOKING
   // ============================================
-  
+
   /**
    * Mở modal để chọn trạng thái mới cho booking
    * @param record - Booking order cần cập nhật
    */
   const handleChangeStatus = (record: BookingOrder) => {
     setBookingToUpdate(record);
-    
+
     // Set trạng thái mặc định dựa vào trạng thái hiện tại
-    if (record.status === 'pending') {
-      setNewStatus('confirmed');
-    } else if (record.status === 'confirmed') {
-      setNewStatus('completed');
+    if (record.status === "pending") {
+      setNewStatus("confirmed");
+    } else if (record.status === "confirmed") {
+      setNewStatus("completed");
     }
-    
+
     setIsStatusModalOpen(true);
   };
-  
+
   /**
    * Xử lý xác nhận cập nhật trạng thái
    */
   const handleConfirmStatusChange = async () => {
     if (!bookingToUpdate) return;
-    
+
     const previousStatus = bookingToUpdate.status;
-    
+
     try {
       // Bước 1: Đóng modal
       setIsStatusModalOpen(false);
-      
+
       // Bước 2: Cập nhật UI ngay (Optimistic Update)
       setRows((currentRows) =>
         currentRows.map((r) =>
           r.id === bookingToUpdate.id ? { ...r, status: newStatus } : r
         )
       );
-      
+
       setFilteredRows((currentFiltered) =>
         currentFiltered.map((r) =>
           r.id === bookingToUpdate.id ? { ...r, status: newStatus } : r
         )
       );
-      
+
       // Bước 3: Gọi API
       await updateBookingStatus(bookingToUpdate.id, newStatus);
-      
+
       // Bước 4: Thông báo thành công
-      toast.success(`✅ Đã cập nhật trạng thái thành "${newStatus}" thành công!`);
-      
+      toast.success(
+        `✅ Đã cập nhật trạng thái thành "${newStatus}" thành công!`
+      );
     } catch (error: any) {
       // Rollback nếu lỗi
       setRows((currentRows) =>
@@ -208,14 +211,16 @@ const ListBooking: React.FC = () => {
           r.id === bookingToUpdate.id ? { ...r, status: previousStatus } : r
         )
       );
-      
+
       setFilteredRows((currentFiltered) =>
         currentFiltered.map((r) =>
           r.id === bookingToUpdate.id ? { ...r, status: previousStatus } : r
         )
       );
-      
-      toast.error(`❌ Không thể cập nhật: ${error.message || 'Lỗi không xác định'}`);
+
+      toast.error(
+        `❌ Không thể cập nhật: ${error.message || "Lỗi không xác định"}`
+      );
     } finally {
       setBookingToUpdate(null);
     }
@@ -224,30 +229,30 @@ const ListBooking: React.FC = () => {
   // ============================================
   // HÀM XUẤT FILE EXCEL VÀ PDF
   // ============================================
-  
+
   /**
    * Xuất dữ liệu booking ra file Excel
    */
   const handleExportExcel = () => {
-    toast.info('🔄 Đang chuẩn bị xuất file Excel...');
-    
+    toast.info("🔄 Đang chuẩn bị xuất file Excel...");
+
     // TODO: Implement Excel export logic
     // Có thể sử dụng thư viện như xlsx hoặc exceljs
     setTimeout(() => {
-      toast.success('✅ Xuất file Excel thành công!');
+      toast.success("✅ Xuất file Excel thành công!");
     }, 1000);
   };
-  
+
   /**
    * Xuất dữ liệu booking ra file PDF
    */
   const handleExportPDF = () => {
-    toast.info('🔄 Đang chuẩn bị xuất file PDF...');
-    
+    toast.info("🔄 Đang chuẩn bị xuất file PDF...");
+
     // TODO: Implement PDF export logic
     // Có thể sử dụng thư viện như jspdf hoặc pdfmake
     setTimeout(() => {
-      toast.success('✅ Xuất file PDF thành công!');
+      toast.success("✅ Xuất file PDF thành công!");
     }, 1000);
   };
 
@@ -258,7 +263,7 @@ const ListBooking: React.FC = () => {
     setCreatingInvoiceId(bookingId);
     try {
       const response: any = await invoiceService.createFromBooking(bookingId);
-      
+
       // Xử lý response có thể có nhiều dạng
       let newInvoiceId: number | null = null;
       if (response?.id) {
@@ -268,7 +273,7 @@ const ListBooking: React.FC = () => {
       } else if (response?.data?.data?.id) {
         newInvoiceId = response.data.data.id;
       }
-      
+
       if (newInvoiceId) {
         toast.success("Tạo hóa đơn tạm tính thành công!");
         // Tự động chuyển đến trang xem hóa đơn
@@ -289,7 +294,7 @@ const ListBooking: React.FC = () => {
   // ============================================
   // HÀM LẤY CẤU HÌNH HIỂN THỊ TRẠNG THÁI
   // ============================================
-  
+
   /**
    * Trả về cấu hình màu sắc, icon và label cho mỗi trạng thái
    * @param status - Trạng thái booking (pending, confirmed, completed, cancelled)
@@ -339,7 +344,7 @@ const ListBooking: React.FC = () => {
   // ============================================
   // CẤU HÌNH CÁC CỘT CHO BẢNG DANH SÁCH BOOKING
   // ============================================
-  
+
   const columns = [
     // Cột 1: Mã đặt phòng
     {
@@ -350,7 +355,7 @@ const ListBooking: React.FC = () => {
         <span style={{ fontWeight: 600, color: "#1890ff" }}>{code}</span>
       ),
     },
-    
+
     // Cột 2: Thông tin khách hàng (tên + số điện thoại)
     {
       title: "Khách hàng",
@@ -358,13 +363,13 @@ const ListBooking: React.FC = () => {
       render: (_: any, record: BookingOrder) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.customer_name}</div>
-          <div style={{ fontSize: 12, color: '#666' }}>
+          <div style={{ fontSize: 12, color: "#666" }}>
             <PhoneOutlined /> {record.customer_phone}
           </div>
         </div>
       ),
     },
-    
+
     // Cột 3: Ngày check-in (có sắp xếp theo thời gian)
     {
       title: "Check-in",
@@ -372,20 +377,20 @@ const ListBooking: React.FC = () => {
       key: "checkin_date",
       // Cho phép sắp xếp theo ngày check-in
       sorter: (a: BookingOrder, b: BookingOrder) =>
-        dayjs(a.checkin_date || '').unix() - dayjs(b.checkin_date || '').unix(),
-      render: (date?: string | null) => 
+        dayjs(a.checkin_date || "").unix() - dayjs(b.checkin_date || "").unix(),
+      render: (date?: string | null) =>
         date ? dayjs(date).format("DD/MM/YYYY") : "-",
     },
-    
+
     // Cột 4: Ngày check-out
     {
       title: "Check-out",
       dataIndex: "checkout_date",
       key: "checkout_date",
-      render: (date?: string | null) => 
+      render: (date?: string | null) =>
         date ? dayjs(date).format("DD/MM/YYYY") : "-",
     },
-    
+
     // Cột 5: Trạng thái booking với màu sắc và icon
     {
       title: "Trạng thái",
@@ -400,7 +405,7 @@ const ListBooking: React.FC = () => {
         );
       },
     },
-    
+
     // Cột 6: Tổng tiền (căn phải, format VNĐ)
     {
       title: "Tổng tiền",
@@ -409,24 +414,30 @@ const ListBooking: React.FC = () => {
       align: "right" as const,
       render: (v: number) => `${(v || 0).toLocaleString("vi-VN")} đ`,
     },
-    
+
     // Cột 7: Hóa đơn
     {
       title: "Hóa đơn",
       key: "invoice",
       width: 100,
       render: (_: any, record: BookingOrder) => {
-        const hasInvoice = (record as any).invoice && 
-          ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
-           (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
-        
+        const hasInvoice =
+          (record as any).invoice &&
+          ((Array.isArray((record as any).invoice) &&
+            (record as any).invoice.length > 0) ||
+            (typeof (record as any).invoice === "object" &&
+              (record as any).invoice.id));
+
         if (hasInvoice) {
-          const invoiceId = Array.isArray((record as any).invoice) 
-            ? (record as any).invoice[0].id 
+          const invoiceId = Array.isArray((record as any).invoice)
+            ? (record as any).invoice[0].id
             : (record as any).invoice.id;
           return (
             <Tag color="success" icon={<FileTextOutlined />}>
-              <a onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)} style={{ cursor: "pointer" }}>
+              <a
+                onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
+                style={{ cursor: "pointer" }}
+              >
                 Đã có
               </a>
             </Tag>
@@ -435,7 +446,7 @@ const ListBooking: React.FC = () => {
         return <Tag color="default">Chưa có</Tag>;
       },
     },
-    
+
     // Cột 8: Các nút hành động
     {
       title: "Hành động",
@@ -458,7 +469,7 @@ const ListBooking: React.FC = () => {
               onClick={() => navigate(`/admin/booking/edit/${record.id}`)}
             />
           </Tooltip>
-          
+
           {/* 
             Nút đổi trạng thái
             CHỈ HIỂN THỊ KHI: 
@@ -466,7 +477,7 @@ const ListBooking: React.FC = () => {
             - Trạng thái chưa "cancelled" (đã hủy)
             Vì 2 trạng thái này là trạng thái cuối, không thể thay đổi
           */}
-          {record.status !== 'completed' && record.status !== 'cancelled' && (
+          {record.status !== "completed" && record.status !== "cancelled" && (
             <Tooltip title="Cập nhật trạng thái đặt phòng">
               <Button
                 type="default"
@@ -477,49 +488,57 @@ const ListBooking: React.FC = () => {
           )}
 
           {/* Nút tạo hóa đơn tạm tính hoặc xem hóa đơn */}
-          {record.status !== 'cancelled' && (() => {
-            const hasInvoice = (record as any).invoice && 
-              ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
-               (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
-            const invoiceId = hasInvoice 
-              ? (Array.isArray((record as any).invoice) 
-                  ? (record as any).invoice[0].id 
-                  : (record as any).invoice.id)
-              : null;
+          {record.status !== "cancelled" &&
+            (() => {
+              const hasInvoice =
+                (record as any).invoice &&
+                ((Array.isArray((record as any).invoice) &&
+                  (record as any).invoice.length > 0) ||
+                  (typeof (record as any).invoice === "object" &&
+                    (record as any).invoice.id));
+              const invoiceId = hasInvoice
+                ? Array.isArray((record as any).invoice)
+                  ? (record as any).invoice[0].id
+                  : (record as any).invoice.id
+                : null;
 
-            if (invoiceId) {
+              if (invoiceId) {
+                return (
+                  <Tooltip title="Xem hóa đơn">
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<FileTextOutlined />}
+                      onClick={() =>
+                        navigate(`/admin/invoice/view/${invoiceId}`)
+                      }
+                    />
+                  </Tooltip>
+                );
+              }
+
               return (
-                <Tooltip title="Xem hóa đơn">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<FileTextOutlined />}
-                    onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
-                  />
-                </Tooltip>
+                <Popconfirm
+                  title="Tạo hóa đơn tạm tính"
+                  description={`Tạo hóa đơn tạm tính cho đặt phòng ${
+                    record.code || record.id
+                  }?`}
+                  onConfirm={() => handleCreateInvoice(record.id)}
+                  okText="Tạo"
+                  cancelText="Hủy"
+                  okType="primary"
+                >
+                  <Tooltip title="Tạo hóa đơn tạm tính">
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<FileTextOutlined />}
+                      loading={creatingInvoiceId === record.id}
+                    />
+                  </Tooltip>
+                </Popconfirm>
               );
-            }
-
-            return (
-              <Popconfirm
-                title="Tạo hóa đơn tạm tính"
-                description={`Tạo hóa đơn tạm tính cho đặt phòng ${record.code || record.id}?`}
-                onConfirm={() => handleCreateInvoice(record.id)}
-                okText="Tạo"
-                cancelText="Hủy"
-                okType="primary"
-              >
-                <Tooltip title="Tạo hóa đơn tạm tính">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<FileTextOutlined />}
-                    loading={creatingInvoiceId === record.id}
-                  />
-                </Tooltip>
-              </Popconfirm>
-            );
-          })()}
+            })()}
         </Space>
       ),
     },
@@ -528,11 +547,17 @@ const ListBooking: React.FC = () => {
   // ============================================
   // RENDER GIAO DIỆN CHÍNH
   // ============================================
-  
+
   return (
     <div style={{ padding: 24 }}>
       {/* PHẦN FILTERS - Thanh công cụ lọc và tìm kiếm */}
-      <Space style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+      <Space
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <Space>
           {/* Ô tìm kiếm theo mã booking, tên khách hàng, SĐT */}
           <Search
@@ -542,7 +567,7 @@ const ListBooking: React.FC = () => {
             onChange={(e) => handleSearch(e.target.value)}
             style={{ width: 300 }}
           />
-          
+
           {/* Dropdown lọc theo trạng thái */}
           <Select
             value={statusFilter}
@@ -558,76 +583,76 @@ const ListBooking: React.FC = () => {
             <Option value="confirmed">
               <Badge status="processing" text="Đã xác nhận" />
             </Option>
-          <Option value="completed">
-            <Badge status="success" text="Hoàn thành" />
-          </Option>
-          <Option value="cancelled">
-            <Badge status="error" text="Đã hủy" />
-          </Option>
-        </Select>
-        
-        {/* Chọn khoảng thời gian check-in */}
-        <RangePicker 
-          onChange={handleDateRangeChange}
-          placeholder={['Từ ngày', 'Đến ngày']}
-          format="DD/MM/YYYY"
-        />
+            <Option value="completed">
+              <Badge status="success" text="Hoàn thành" />
+            </Option>
+            <Option value="cancelled">
+              <Badge status="error" text="Đã hủy" />
+            </Option>
+          </Select>
+
+          {/* Chọn khoảng thời gian check-in */}
+          <RangePicker
+            onChange={handleDateRangeChange}
+            placeholder={["Từ ngày", "Đến ngày"]}
+            format="DD/MM/YYYY"
+          />
         </Space>
 
         {/* Nhóm nút Actions: Export + Thêm mới */}
         <Space>
           {/* Nút xuất Excel */}
           <Tooltip title="Xuất file Excel">
-            <Button 
-              icon={<FileExcelOutlined />} 
+            <Button
+              icon={<FileExcelOutlined />}
               onClick={handleExportExcel}
               style={{
-                height: '40px',
-                borderColor: '#52c41a',
-                color: '#52c41a'
+                height: "40px",
+                borderColor: "#52c41a",
+                color: "#52c41a",
               }}
             >
               Excel
             </Button>
           </Tooltip>
-          
+
           {/* Nút xuất PDF */}
           <Tooltip title="Xuất file PDF">
-            <Button 
-              icon={<FilePdfOutlined />} 
+            <Button
+              icon={<FilePdfOutlined />}
               onClick={handleExportPDF}
               danger
               style={{
-                height: '40px'
+                height: "40px",
               }}
             >
               PDF
             </Button>
           </Tooltip>
-          
+
           {/* Nút thêm mới booking */}
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => navigate('/admin/booking/add')}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/admin/booking/add")}
             size="large"
           >
             Thêm đặt phòng
           </Button>
         </Space>
       </Space>
-      
+
       {/* BẢNG DANH SÁCH BOOKING */}
-      <Table 
-        loading={loading} 
-        columns={columns as any} 
-        dataSource={filteredRows} 
+      <Table
+        loading={loading}
+        columns={columns as any}
+        dataSource={filteredRows}
         rowKey="id"
         pagination={{
           pageSize: 10,
           showTotal: (total) => `Tổng cộng ${total} đặt phòng`,
           showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50', '100'],
+          pageSizeOptions: ["10", "20", "50", "100"],
         }}
       />
 
@@ -645,16 +670,28 @@ const ListBooking: React.FC = () => {
         title="🔄 Cập nhật trạng thái đặt phòng"
       >
         {bookingToUpdate && (
-          <div style={{ padding: '16px 0' }}>
+          <div style={{ padding: "16px 0" }}>
             {/* Thông tin booking */}
-            <div style={{ marginBottom: 20, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+            <div
+              style={{
+                marginBottom: 20,
+                padding: 16,
+                background: "#f5f5f5",
+                borderRadius: 8,
+              }}
+            >
               <p style={{ marginBottom: 8 }}>
-                <strong>Mã đặt phòng:</strong> 
-                <span style={{ color: '#1890ff', marginLeft: 8 }}>{bookingToUpdate.code}</span>
+                <strong>Mã đặt phòng:</strong>
+                <span style={{ color: "#1890ff", marginLeft: 8 }}>
+                  {bookingToUpdate.code}
+                </span>
               </p>
               <p style={{ marginBottom: 0 }}>
-                <strong>Trạng thái hiện tại:</strong>{' '}
-                <Tag color={getStatusConfig(bookingToUpdate.status).color} style={{ marginLeft: 8 }}>
+                <strong>Trạng thái hiện tại:</strong>{" "}
+                <Tag
+                  color={getStatusConfig(bookingToUpdate.status).color}
+                  style={{ marginLeft: 8 }}
+                >
                   {getStatusConfig(bookingToUpdate.status).label}
                 </Tag>
               </p>
@@ -668,7 +705,7 @@ const ListBooking: React.FC = () => {
               <Select
                 value={newStatus}
                 onChange={(value) => setNewStatus(value)}
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
                 size="large"
                 placeholder="Chọn trạng thái"
               >
@@ -701,9 +738,18 @@ const ListBooking: React.FC = () => {
             </div>
 
             {/* Cảnh báo */}
-            <div style={{ marginTop: 16, padding: 12, background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 6 }}>
-              <p style={{ margin: 0, fontSize: 13, color: '#d46b08' }}>
-                ⚠️ <strong>Lưu ý:</strong> Không thể hoàn tác sau khi cập nhật trạng thái
+            <div
+              style={{
+                marginTop: 16,
+                padding: 12,
+                background: "#fff7e6",
+                border: "1px solid #ffd591",
+                borderRadius: 6,
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 13, color: "#d46b08" }}>
+                ⚠️ <strong>Lưu ý:</strong> Không thể hoàn tác sau khi cập nhật
+                trạng thái
               </p>
             </div>
           </div>

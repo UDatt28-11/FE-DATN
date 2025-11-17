@@ -1,4 +1,5 @@
-import type { Listing } from "../types/room/room";
+import api from "../api/axios";
+import type { Listing, Room } from "../types/room/room";
 
 let listings: Listing[] = [
   {
@@ -56,3 +57,9 @@ export const updateListing = (updated: Listing) => {
 export const deleteListing = (key: string) => {
   listings = listings.filter((l) => l.key !== key);
 };
+
+// API function to fetch rooms from backend
+export async function listRooms(): Promise<Room[]> {
+  const { data } = await api.get("/admin/rooms");
+  return data.data as Room[];
+}

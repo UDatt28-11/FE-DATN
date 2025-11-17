@@ -1,8 +1,7 @@
 import React, { useEffect } from "react";
 import { Modal, Form, Input, Select } from "antd";
 import { toast } from "react-toastify";
-import { User } from "../../../types/user/user";
-
+import type { User } from "../../../types/user/user";
 
 interface Props {
   visible: boolean;
@@ -19,7 +18,7 @@ const EditUser: React.FC<Props> = ({ visible, user, onClose, onUpdate }) => {
   }, [user]);
 
   const handleOk = () => {
-    form.validateFields().then(values => {
+    form.validateFields().then((values) => {
       onUpdate({ ...user, ...values });
       toast.success("Cập nhật người dùng thành công!");
       onClose();
@@ -27,15 +26,28 @@ const EditUser: React.FC<Props> = ({ visible, user, onClose, onUpdate }) => {
   };
 
   return (
-    <Modal title="Chỉnh sửa người dùng" visible={visible} onOk={handleOk} onCancel={onClose}>
+    <Modal
+      title="Chỉnh sửa người dùng"
+      visible={visible}
+      onOk={handleOk}
+      onCancel={onClose}
+    >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label="Họ và tên" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[{ required: true, type: "email" }]}
+        >
           <Input />
         </Form.Item>
-        <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true }]}>
+        <Form.Item
+          name="phone"
+          label="Số điện thoại"
+          rules={[{ required: true }]}
+        >
           <Input />
         </Form.Item>
         <Form.Item name="role" label="Vai trò" rules={[{ required: true }]}>
@@ -45,7 +57,11 @@ const EditUser: React.FC<Props> = ({ visible, user, onClose, onUpdate }) => {
             <Select.Option value="guest">Khách hàng</Select.Option>
           </Select>
         </Form.Item>
-        <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
+        <Form.Item
+          name="status"
+          label="Trạng thái"
+          rules={[{ required: true }]}
+        >
           <Select>
             <Select.Option value="active">Hoạt động</Select.Option>
             <Select.Option value="inactive">Không hoạt động</Select.Option>
