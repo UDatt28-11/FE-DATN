@@ -1,5 +1,3 @@
-
-
 export interface MessageReply {
   id: string;
   sender: "user" | "admin";

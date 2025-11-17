@@ -1,6 +1,7 @@
 import React from "react";
-import { Modal, Form, Input, Select, Button, message } from "antd";
-import { User } from "../../../types/user/user";
+import { Modal, Form, Input, Select } from "antd";
+import { toast } from "react-toastify";
+import type { User } from "../../../types/user/user";
 
 
 interface Props {
@@ -25,7 +26,7 @@ const AddUser: React.FC<Props> = ({ visible, onClose, onAdd }) => {
         ...values,
       };
       onAdd(newUser);
-      message.success("Thêm người dùng thành công!");
+      toast.success("Thêm người dùng thành công!");
       form.resetFields();
       onClose();
     });

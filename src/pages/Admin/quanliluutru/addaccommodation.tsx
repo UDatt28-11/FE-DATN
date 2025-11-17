@@ -1,5 +1,6 @@
 import React from "react";
-import { Modal, Form, Input, Select, message, Row, Col } from "antd";
+import { Modal, Form, Input, Select, Row, Col } from "antd";
+import { toast } from "react-toastify";
 import { Accommodation } from "../../../types/accommodation/accommodation";
 
 
@@ -23,7 +24,7 @@ const AddAccommodation: React.FC<Props> = ({ visible, onCancel, onAdd }) => {
         };
         onAdd(newAccommodation);
         form.resetFields();
-        message.success("Thêm phòng mới thành công!");
+        toast.success("Thêm phòng mới thành công!");
         onCancel();
     };
 

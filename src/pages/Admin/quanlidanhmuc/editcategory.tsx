@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Checkbox, Row, Col, Space, Switch } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Upload,
+  Checkbox,
+  Row,
+  Col,
+  Space,
+  Switch,
+} from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import { Amenity, Category } from "../../../types/category/category";
+import type { Amenity, Category } from "../../../types/category/category";
 
 interface EditCategoryProps {
   visible: boolean;

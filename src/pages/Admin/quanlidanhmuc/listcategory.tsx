@@ -6,12 +6,12 @@ import {
   Button,
   Space,
   Tag,
-  message,
   Tooltip,
   Tabs,
   Image,
   Modal, // 🟢 THÊM MỚI
 } from "antd";
+import { toast } from "react-toastify";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -29,73 +29,78 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import AddCategory from "./addcategory";
 import EditCategory from "./editcategory";
 import DetailCategory from "./detailcategory";
-import { Amenity, Category } from "../../../types/category/category";
+import type { Amenity, Category } from "../../../types/category/category";
 
 const { confirm } = Modal; // 🟢 THÊM MỚI
 
 const ListCategory: React.FC = () => {
- const [categories, setCategories] = useState<Category[]>([
-        {
-            key: "1",
-            id: 1,
-            name: "Nhà gỗ",
-            description: "Homestay kiểu nhà gỗ truyền thống, gần gũi với thiên nhiên, phù hợp cho du khách yêu thích sự yên tĩnh.",
-            image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233",
-            status: "active",
-            amenityCount: 12,
-            homestayCount: 45,
-            createdAt: "2023-01-15",
-            updatedAt: "2024-10-20",
-        },
-        {
-            key: "2",
-            id: 2,
-            name: "Căn hộ",
-            description: "Căn hộ hiện đại, đầy đủ tiện nghi, nằm ở trung tâm thành phố, thuận tiện đi lại.",
-            image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-            status: "active",
-            amenityCount: 18,
-            homestayCount: 67,
-            createdAt: "2023-02-10",
-            updatedAt: "2024-10-25",
-        },
-        {
-            key: "3",
-            id: 3,
-            name: "Villa",
-            description: "Biệt thự sang trọng với hồ bơi riêng, phù hợp cho gia đình hoặc nhóm bạn.",
-            image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
-            status: "active",
-            amenityCount: 25,
-            homestayCount: 23,
-            createdAt: "2023-03-05",
-            updatedAt: "2024-10-28",
-        },
-        {
-            key: "4",
-            id: 4,
-            name: "Nhà vườn",
-            description: "Nhà vườn rộng rãi, không gian xanh mát, thích hợp nghỉ dưỡng cuối tuần.",
-            image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
-            status: "inactive",
-            amenityCount: 10,
-            homestayCount: 15,
-            createdAt: "2023-04-12",
-            updatedAt: "2024-09-30",
-        },
-        {
-            key: "5",
-            id: 5,
-            name: "Nhà container",
-            description: "Homestay độc đáo từ container, phong cách hiện đại, sáng tạo.",
-            image: "https://images.unsplash.com/photo-1449844908441-8829872d2607",
-            status: "active",
-            amenityCount: 8,
-            homestayCount: 12,
-            createdAt: "2023-05-20",
-            updatedAt: "2024-10-15",
-        },
-    ]);
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      key: "1",
+      id: 1,
+      name: "Nhà gỗ",
+      description:
+        "Homestay kiểu nhà gỗ truyền thống, gần gũi với thiên nhiên, phù hợp cho du khách yêu thích sự yên tĩnh.",
+      image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233",
+      status: "active",
+      amenityCount: 12,
+      homestayCount: 45,
+      createdAt: "2023-01-15",
+      updatedAt: "2024-10-20",
+    },
+    {
+      key: "2",
+      id: 2,
+      name: "Căn hộ",
+      description:
+        "Căn hộ hiện đại, đầy đủ tiện nghi, nằm ở trung tâm thành phố, thuận tiện đi lại.",
+      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+      status: "active",
+      amenityCount: 18,
+      homestayCount: 67,
+      createdAt: "2023-02-10",
+      updatedAt: "2024-10-25",
+    },
+    {
+      key: "3",
+      id: 3,
+      name: "Villa",
+      description:
+        "Biệt thự sang trọng với hồ bơi riêng, phù hợp cho gia đình hoặc nhóm bạn.",
+      image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
+      status: "active",
+      amenityCount: 25,
+      homestayCount: 23,
+      createdAt: "2023-03-05",
+      updatedAt: "2024-10-28",
+    },
+    {
+      key: "4",
+      id: 4,
+      name: "Nhà vườn",
+      description:
+        "Nhà vườn rộng rãi, không gian xanh mát, thích hợp nghỉ dưỡng cuối tuần.",
+      image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+      status: "inactive",
+      amenityCount: 10,
+      homestayCount: 15,
+      createdAt: "2023-04-12",
+      updatedAt: "2024-09-30",
+    },
+    {
+      key: "5",
+      id: 5,
+      name: "Nhà container",
+      description:
+        "Homestay độc đáo từ container, phong cách hiện đại, sáng tạo.",
+      image: "https://images.unsplash.com/photo-1449844908441-8829872d2607",
+      status: "active",
+      amenityCount: 8,
+      homestayCount: 12,
+      createdAt: "2023-05-20",
+      updatedAt: "2024-10-15",
+    },
+  ]);
 
   const [historyCategories, setHistoryCategories] = useState<Category[]>([]);
   const [searchText, setSearchText] = useState<string>("");
@@ -105,7 +110,9 @@ const ListCategory: React.FC = () => {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
 
   const allAmenities: Amenity[] = [
     { id: 1, name: "WiFi miễn phí", icon: "📶" },
@@ -125,7 +132,7 @@ const ListCategory: React.FC = () => {
       onOk() {
         setCategories((prev) => prev.filter((cat) => cat.id !== record.id));
         setHistoryCategories((prev) => [...prev, record]);
-        message.success(`Đã xóa danh mục "${record.name}"`);
+        toast.success(`Đã xóa danh mục "${record.name}"`);
       },
     });
   };
@@ -171,7 +178,12 @@ const ListCategory: React.FC = () => {
       ),
     },
     { title: "Tên danh mục", dataIndex: "name", key: "name" },
-    { title: "Trạng thái", dataIndex: "status", key: "status", render: getStatusTag },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: getStatusTag,
+    },
     {
       title: "Thao tác",
       key: "action",
@@ -302,7 +314,7 @@ const ListCategory: React.FC = () => {
     };
     setCategories([...categories, newCategory]);
     setAddModalVisible(false);
-    message.success("Đã thêm danh mục mới!");
+    toast.success("Đã thêm danh mục mới!");
   };
 
   return (

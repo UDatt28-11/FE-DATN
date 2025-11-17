@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Modal, Form, Input, Button, message, Upload, Switch, Row, Col } from "antd";
+import { Modal, Form, Input, Button, Upload, Switch, Row, Col } from "antd";
+import { toast } from "react-toastify";
 import { PlusOutlined } from "@ant-design/icons";
 
 
@@ -28,7 +29,7 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
                 ...values,
             };
             addListing(newListing);
-            message.success("Thêm phòng mới thành công!");
+            toast.success("Thêm phòng mới thành công!");
             form.resetFields();
             setFileList([]);
             onClose();

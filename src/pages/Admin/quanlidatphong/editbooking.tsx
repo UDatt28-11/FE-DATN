@@ -1,64 +1,250 @@
-import React from "react";
-import { Form, Input, Button, DatePicker, InputNumber, Select, message } from "antd";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Form, Input, Button, InputNumber, Card, Space, Spin, Select } from "antd";
+import { toast } from "react-toastify";
+import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
+import { BookingOrder, getBooking, updateBooking, UpdateBookingData } from "../../../service/bookingService";
 
-import dayjs from "dayjs";
-import { Booking } from "../../../types/booking/booking";
-
-const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-interface EditBookingProps {
-    booking: Booking;
-}
+;
 
-const EditBooking: React.FC<EditBookingProps> = ({ booking }) => {
+const EditBooking: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [booking, setBooking] = useState<BookingOrder | null>(null);
 
-    const handleEditBooking = (values: any) => {
-        console.log("Edited booking:", values);
-        message.success("Cập nhật đặt phòng thành công!");
+    // Load dữ liệu booking khi component mount
+    useEffect(() => {
+        if (id) {
+            fetchBookingDetail(parseInt(id));
+        }
+    }, [id]);
+
+    const fetchBookingDetail = async (bookingId: number) => {
+        try {
+            setLoading(true);
+            const data = await getBooking(bookingId);
+            setBooking(data);
+            
+            // Map payment method từ tiếng Anh sang tiếng Việt để hiển thị
+            const paymentMethodDisplayMap: Record<string, string> = {
+                'cash': 'Tiền mặt',
+                'bank_transfer': 'Chuyển khoản',
+                'credit_card': 'Thẻ tín dụng',
+                'e_wallet': 'Ví điện tử',
+            };
+
+            // Điền dữ liệu vào form
+            form.setFieldsValue({
+                customer_name: data.customer_name,
+                customer_phone: data.customer_phone,
+                customer_email: data.customer_email || '',
+                total_amount: data.total_amount,
+                payment_method: paymentMethodDisplayMap[data.payment_method || 'cash'] || 'Tiền mặt',
+                notes: data.notes || '',
+            });
+        } catch (error: any) {
+            toast.error("Không thể tải thông tin đặt phòng");
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleEditBooking = async (values: any) => {
+        if (!id) return;
+
+        try {
+            setSubmitting(true);
+
+            // Map payment method từ tiếng Việt sang tiếng Anh
+            const paymentMethodMap: Record<string, string> = {
+                'Tiền mặt': 'cash',
+                'Chuyển khoản': 'bank_transfer',
+                'Thẻ tín dụng': 'credit_card',
+                'Ví điện tử': 'e_wallet',
+            };
+
+            const updateData: UpdateBookingData = {
+                customer_name: values.customer_name,
+                customer_phone: values.customer_phone,
+                customer_email: values.customer_email,
+                total_amount: values.total_amount,
+                payment_method: paymentMethodMap[values.payment_method] || 'cash',
+                notes: values.notes,
+            };
+
+            await updateBooking(parseInt(id), updateData);
+            
+            toast.success("Cập nhật đặt phòng thành công!");
+            
+            // Chuyển về trang danh sách sau khi update thành công
+            setTimeout(() => {
+                navigate('/admin/booking');
+            }, 1000);
+
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể cập nhật đặt phòng. Vui lòng thử lại!");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div style={{ padding: 24, textAlign: 'center', minHeight: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Spin size="large" tip="Đang tải thông tin đặt phòng...">
+                    <div style={{ padding: '50px' }} />
+                </Spin>
+            </div>
+        );
+    }
+
+    if (!booking) {
+        return (
+            <div style={{ padding: 24, textAlign: 'center' }}>
+                <p>Không tìm thấy thông tin đặt phòng</p>
+                <Button onClick={() => navigate('/admin/booking')}>Quay lại danh sách</Button>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: 24 }}>
-            <h2>Sửa đặt phòng {booking.id}</h2>
-            <Form form={form} layout="vertical" onFinish={handleEditBooking} initialValues={{
-                customerName: booking.customerName,
-                customerPhone: booking.customerPhone,
-                customerEmail: booking.customerEmail,
-                homestayName: booking.homestayName,
-                dates: [dayjs(booking.checkIn), dayjs(booking.checkOut)],
-                nights: booking.nights,
-                guests: booking.guests,
-                totalPrice: booking.totalPrice,
-                paymentMethod: booking.paymentMethod,
-                notes: booking.notes,
-            }}>
-                <Form.Item label="Tên khách hàng" name="customerName" rules={[{ required: true }]}><Input /></Form.Item>
-                <Form.Item label="SĐT khách hàng" name="customerPhone" rules={[{ required: true }]}><Input /></Form.Item>
-                <Form.Item label="Email khách hàng" name="customerEmail"><Input /></Form.Item>
-                <Form.Item label="Homestay" name="homestayName" rules={[{ required: true }]}>
-                    <Select>
-                        <Option value="Homestay Đà Lạt">Homestay Đà Lạt</Option>
-                        <Option value="Villa Nha Trang">Villa Nha Trang</Option>
-                    </Select>
-                </Form.Item>
-                <Form.Item label="Check-in & Check-out" name="dates" rules={[{ required: true }]}><RangePicker /></Form.Item>
-                <Form.Item label="Số đêm" name="nights" rules={[{ required: true }]}><InputNumber min={1} /></Form.Item>
-                <Form.Item label="Số khách" name="guests" rules={[{ required: true }]}><InputNumber min={1} /></Form.Item>
-                <Form.Item label="Tổng tiền" name="totalPrice" rules={[{ required: true }]}><InputNumber min={0} /></Form.Item>
-                <Form.Item label="Phương thức thanh toán" name="paymentMethod" rules={[{ required: true }]}>
-                    <Select>
-                        <Option value="Tiền mặt">Tiền mặt</Option>
-                        <Option value="Chuyển khoản">Chuyển khoản</Option>
-                        <Option value="Thẻ tín dụng">Thẻ tín dụng</Option>
-                    </Select>
-                </Form.Item>
-                <Form.Item label="Ghi chú" name="notes"><Input.TextArea rows={3} /></Form.Item>
-                <Form.Item>
-                    <Button type="primary" htmlType="submit">Cập nhật</Button>
-                </Form.Item>
-            </Form>
+            {/* Nút quay lại */}
+            <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={() => navigate('/admin/booking')}
+                style={{ marginBottom: 16 }}
+            >
+                Quay lại danh sách
+            </Button>
+
+            {/* Card form chỉnh sửa */}
+            <Card title={`✏️ Sửa đặt phòng #${booking.code}`} bordered={false}>
+                <Form 
+                    form={form} 
+                    layout="vertical" 
+                    onFinish={handleEditBooking}
+                >
+                    {/* Thông tin khách hàng */}
+                    <h3 style={{ marginTop: 0, marginBottom: 16, color: '#1890ff' }}>
+                        👤 Thông tin khách hàng
+                    </h3>
+                    
+                    <Form.Item 
+                        label="Tên khách hàng" 
+                        name="customer_name" 
+                        rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}
+                    >
+                        <Input placeholder="Nhập tên khách hàng" size="large" />
+                    </Form.Item>
+
+                    <Form.Item 
+                        label="Số điện thoại" 
+                        name="customer_phone" 
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số điện thoại' },
+                            { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ (10-11 số)' }
+                        ]}
+                    >
+                        <Input placeholder="Nhập số điện thoại" size="large" />
+                    </Form.Item>
+
+                    <Form.Item 
+                        label="Email khách hàng" 
+                        name="customer_email"
+                        rules={[
+                            { type: 'email', message: 'Email không hợp lệ' }
+                        ]}
+                    >
+                        <Input placeholder="Nhập email (không bắt buộc)" size="large" />
+                    </Form.Item>
+
+                    {/* Thông tin thanh toán */}
+                    <h3 style={{ marginTop: 24, marginBottom: 16, color: '#1890ff' }}>
+                        💰 Thông tin thanh toán
+                    </h3>
+
+                    <Form.Item 
+                        label="Tổng tiền" 
+                        name="total_amount" 
+                        rules={[{ required: true, message: 'Vui lòng nhập tổng tiền' }]}
+                    >
+                        <InputNumber 
+                            min={0} 
+                            style={{ width: '100%' }}
+                            size="large"
+                            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={(value: any) => value.replace(/\$\s?|(,*)/g, '')}
+                            addonAfter="đ"
+                        />
+                    </Form.Item>
+
+                    <Form.Item 
+                        label="Phương thức thanh toán" 
+                        name="payment_method"
+                        initialValue="Tiền mặt"
+                    >
+                        <Select placeholder="Chọn phương thức thanh toán" size="large">
+                            <Option value="Tiền mặt">💵 Tiền mặt</Option>
+                            <Option value="Chuyển khoản">🏦 Chuyển khoản</Option>
+                            <Option value="Thẻ tín dụng">💳 Thẻ tín dụng</Option>
+                            <Option value="Ví điện tử">📱 Ví điện tử</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item label="Ghi chú" name="notes">
+                        <Input.TextArea 
+                            rows={3} 
+                            placeholder="Nhập ghi chú (không bắt buộc)"
+                        />
+                    </Form.Item>
+
+                    {/* Thông tin chỉ đọc */}
+                    <h3 style={{ marginTop: 24, marginBottom: 16, color: '#8c8c8c' }}>
+                        ℹ️ Thông tin đơn hàng (chỉ xem)
+                    </h3>
+                    
+                    <div style={{ 
+                        padding: 16, 
+                        background: '#f5f5f5', 
+                        borderRadius: 6,
+                        marginBottom: 24 
+                    }}>
+                        <p><strong>Mã đơn:</strong> {booking.code}</p>
+                        <p><strong>Trạng thái:</strong> {booking.status}</p>
+                        <p><strong>Ngày tạo:</strong> {new Date(booking.created_at).toLocaleString('vi-VN')}</p>
+                        <p style={{ margin: 0 }}><strong>Số phòng đặt:</strong> {booking.details_count} phòng</p>
+                        <p style={{ margin: '8px 0 0 0', fontSize: 12, color: '#8c8c8c' }}>
+                            💡 <em>Để sửa thông tin phòng, ngày check-in/out, vui lòng liên hệ quản trị viên</em>
+                        </p>
+                    </div>
+
+                    <Form.Item wrapperCol={{ span: 24 }}>
+                        <Space size="middle">
+                            <Button 
+                                type="primary" 
+                                htmlType="submit" 
+                                loading={submitting}
+                                icon={<SaveOutlined />}
+                                size="large"
+                            >
+                                Lưu thay đổi
+                            </Button>
+                            <Button 
+                                onClick={() => navigate('/admin/booking')}
+                                size="large"
+                            >
+                                Hủy
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Card>
         </div>
     );
 };

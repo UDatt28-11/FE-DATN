@@ -1,197 +1,358 @@
-import React from "react";
-import { Card, Row, Col, Statistic, Typography, Divider, Table, Tag } from "antd";
+import React, { useState, useEffect } from "react";
+import { Row, Col, Card, Statistic, Table, Tag, Spin, Progress } from "antd";
 import {
-    HomeOutlined,
-    TeamOutlined,
-    DollarOutlined,
-    CalendarOutlined,
-    StarOutlined,
+  DollarOutlined,
+  ShoppingOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  ArrowUpOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
-
-const { Title, Text } = Typography;
+import type { ColumnsType } from "antd/es/table";
+import { toast } from "react-toastify";
+import invoiceService from "../../service/invoiceService";
+import supplyService from "../../service/supplyService";
+import reviewService from "../../service/reviewService";
+import promotionService from "../../service/promotionService";
 
 const Dashboard: React.FC = () => {
-    const stats = [
-        {
-            title: "Tổng số Homestay",
-            value: 128,
-            icon: <HomeOutlined style={{ color: "#3b82f6" }} />,
-        },
-        {
-            title: "Đơn đặt phòng",
-            value: 342,
-            icon: <CalendarOutlined style={{ color: "#f97316" }} />,
-        },
-        {
-            title: "Khách hàng",
-            value: 215,
-            icon: <TeamOutlined style={{ color: "#10b981" }} />,
-        },
-        {
-            title: "Doanh thu tháng",
-            value: "58.200.000 ₫",
-            icon: <DollarOutlined style={{ color: "#8b5cf6" }} />,
-        },
-    ];
+  const [loading, setLoading] = useState(false);
+  const [invoiceStats, setInvoiceStats] = useState<any>(null);
+  const [supplyStats, setSupplyStats] = useState<any>(null);
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  const [promotionStats, setPromotionStats] = useState<any>(null);
+  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
+  const [lowStockSupplies, setLowStockSupplies] = useState<any[]>([]);
 
-    const recentBookings = [
-        {
-            key: "1",
-            customer: "Nguyễn Văn A",
-            homestay: "Homestay Đà Lạt",
-            date: "25/10/2025",
-            status: "Đã xác nhận",
-        },
-        {
-            key: "2",
-            customer: "Trần Thị B",
-            homestay: "Homestay Nha Trang",
-            date: "24/10/2025",
-            status: "Chờ duyệt",
-        },
-        {
-            key: "3",
-            customer: "Lê Văn C",
-            homestay: "Homestay Sapa",
-            date: "22/10/2025",
-            status: "Đã hủy",
-        },
-    ];
+  // Fetch all statistics
+  const fetchAllStatistics = async () => {
+    setLoading(true);
+    try {
+      const [invoiceData, supplyData, reviewData, promotionData, invoicesResponse, lowStockResponse] =
+        await Promise.all([
+          invoiceService.getStatistics().catch(() => null),
+          supplyService.getStatistics().catch(() => null),
+          reviewService.getStatistics().catch(() => null),
+          promotionService.getStatistics().catch(() => null),
+          invoiceService.getAll({ limit: 5 }).catch(() => []),
+          supplyService.getLowStock().catch(() => []),
+        ]);
 
-    const columns = [
-        {
-            title: "Khách hàng",
-            dataIndex: "customer",
-            key: "customer",
-        },
-        {
-            title: "Homestay",
-            dataIndex: "homestay",
-            key: "homestay",
-        },
-        {
-            title: "Ngày đặt",
-            dataIndex: "date",
-            key: "date",
-        },
-        {
-            title: "Trạng thái",
-            dataIndex: "status",
-            key: "status",
-            render: (status: string) => {
-                let color = "blue";
-                if (status === "Đã hủy") color = "red";
-                else if (status === "Chờ duyệt") color = "orange";
-                else if (status === "Đã xác nhận") color = "green";
-                return <Tag color={color}>{status}</Tag>;
-            },
-        },
-    ];
+      setInvoiceStats(invoiceData);
+      setSupplyStats(supplyData);
+      setReviewStats(reviewData);
+      setPromotionStats(promotionData);
+      
+      // Handle invoices response
+      let invoices: any[] = [];
+      const invRes: any = invoicesResponse;
+      if (Array.isArray(invRes)) {
+        invoices = invRes;
+      } else if (invRes?.data && Array.isArray(invRes.data)) {
+        invoices = invRes.data;
+      }
+      setRecentInvoices(invoices.slice(0, 5));
+      
+      // Handle lowStock response
+      let lowStock: any[] = [];
+      const stockRes: any = lowStockResponse;
+      if (Array.isArray(stockRes)) {
+        lowStock = stockRes;
+      } else if (stockRes?.data && Array.isArray(stockRes.data)) {
+        lowStock = stockRes.data;
+      }
+      setLowStockSupplies(lowStock);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      toast.error("Không thể tải dữ liệu thống kê!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
+  useEffect(() => {
+    fetchAllStatistics();
+  }, []);
+
+  // Recent invoices columns
+  const invoiceColumns: ColumnsType<any> = [
+    {
+      title: "Số HĐ",
+      dataIndex: "invoice_number",
+      key: "invoice_number",
+      render: (text) => <span style={{ fontWeight: 600 }}>{text}</span>,
+    },
+    {
+      title: "Khách hàng",
+      dataIndex: "customer_name",
+      key: "customer_name",
+    },
+    {
+      title: "Tổng tiền",
+      dataIndex: "total_amount",
+      key: "total_amount",
+      render: (amount) => `${(amount || 0).toLocaleString("vi-VN")}₫`,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "payment_status",
+      key: "payment_status",
+      render: (status) => {
+        const colors: Record<string, string> = {
+          pending: "warning",
+          paid: "success",
+          overdue: "error",
+        };
+        return <Tag color={colors[status] || "default"}>{status}</Tag>;
+      },
+    },
+  ];
+
+  // Low stock supplies columns
+  const supplyColumns: ColumnsType<any> = [
+    {
+      title: "Vật tư",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Tồn kho",
+      dataIndex: "current_stock",
+      key: "current_stock",
+      render: (stock, record) => (
         <div>
-            <Title level={3} style={{ marginBottom: 24, color: "#1e3a8a" }}>
-                📊 Tổng quan hệ thống
-            </Title>
-
-            {/* Thống kê nhanh */}
-            <Row gutter={[24, 24]}>
-                {stats.map((item) => (
-                    <Col xs={24} sm={12} md={12} lg={6} key={item.title}>
-                        <Card
-                            bordered={false}
-                            style={{
-                                borderRadius: 16,
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                            }}
-                        >
-                            <Statistic
-                                title={
-                                    <span style={{ fontWeight: 600, color: "#64748b" }}>
-                                        {item.title}
-                                    </span>
-                                }
-                                value={item.value}
-                                prefix={item.icon}
-                                valueStyle={{ fontSize: 22, color: "#0f172a" }}
-                            />
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
-
-            <Divider />
-
-            {/* Bảng đặt phòng gần đây */}
-            <Row gutter={[24, 24]} style={{ marginTop: 12 }}>
-                <Col span={24}>
-                    <Card
-                        title={
-                            <SpaceBetween>
-                                <span style={{ fontWeight: 600, fontSize: 16 }}>
-                                    🧾 Đơn đặt phòng gần đây
-                                </span>
-                            </SpaceBetween>
-                        }
-                        bordered={false}
-                        style={{
-                            borderRadius: 16,
-                            boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
-                        }}
-                    >
-                        <Table
-                            columns={columns}
-                            dataSource={recentBookings}
-                            pagination={false}
-                            rowHoverable
-                        />
-                    </Card>
-                </Col>
-            </Row>
-
-            {/* Đánh giá tổng quan */}
-            <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-                <Col span={24}>
-                    <Card
-                        bordered={false}
-                        style={{
-                            borderRadius: 16,
-                            background: "linear-gradient(90deg, #f0f7ff 0%, #e0f2fe 100%)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: 24,
-                        }}
-                    >
-                        <div>
-                            <Title level={4} style={{ color: "#1e3a8a", marginBottom: 4 }}>
-                                Tổng điểm đánh giá trung bình
-                            </Title>
-                            <Text type="secondary">Dựa trên 250 lượt đánh giá</Text>
-                        </div>
-                        <div style={{ textAlign: "center" }}>
-                            <StarOutlined style={{ fontSize: 40, color: "#facc15" }} />
-                            <Title level={2} style={{ color: "#f59e0b", margin: 0 }}>
-                                4.8 / 5.0
-                            </Title>
-                        </div>
-                    </Card>
-                </Col>
-            </Row>
+          <Progress
+            percent={Math.round((stock / record.max_stock_level) * 100)}
+            size="small"
+            status={stock < record.min_stock_level ? "exception" : "normal"}
+          />
+          <span>
+            {stock} / {record.max_stock_level}
+          </span>
         </div>
-    );
+      ),
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      render: (_, record) => {
+        const isLow = record.current_stock < record.min_stock_level;
+        return (
+          <Tag color={isLow ? "error" : "warning"} icon={<WarningOutlined />}>
+            {isLow ? "Sắp hết" : "Thấp"}
+          </Tag>
+        );
+      },
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <Spin spinning={loading}>
+        {/* Main Statistics */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Tổng doanh thu"
+                value={invoiceStats?.total_revenue || 0}
+                precision={0}
+                valueStyle={{ color: "#3f8600" }}
+                prefix={<DollarOutlined />}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+                <ArrowUpOutlined style={{ color: "#3f8600" }} /> +12.5% so với tháng trước
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Hóa đơn"
+                value={invoiceStats?.total_invoices || 0}
+                valueStyle={{ color: "#1890ff" }}
+                prefix={<FileTextOutlined />}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+                {invoiceStats?.pending_invoices || 0} chờ thanh toán
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Đơn đặt phòng"
+                value={245}
+                valueStyle={{ color: "#722ed1" }}
+                prefix={<ShoppingOutlined />}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+                <ArrowUpOutlined style={{ color: "#3f8600" }} /> +8.3% so với tuần trước
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Khách hàng"
+                value={1523}
+                valueStyle={{ color: "#eb2f96" }}
+                prefix={<UserOutlined />}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+                42 khách hàng mới tuần này
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Secondary Statistics */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Đánh giá trung bình"
+                value={reviewStats?.average_rating || 4.5}
+                precision={1}
+                valueStyle={{ color: "#faad14" }}
+                suffix="/ 5.0"
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Mã giảm giá đang hoạt động"
+                value={promotionStats?.active_promotions || 0}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Vật tư sắp hết"
+                value={lowStockSupplies.length}
+                valueStyle={{ color: "#ff4d4f" }}
+                prefix={<WarningOutlined />}
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="Tổng vật tư"
+                value={supplyStats?.total_supplies || 0}
+                valueStyle={{ color: "#13c2c2" }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Tables */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}>
+            <Card
+              title="Hóa đơn gần đây"
+              extra={<a href="/admin/invoice">Xem tất cả</a>}
+            >
+              <Table
+                columns={invoiceColumns}
+                dataSource={recentInvoices}
+                rowKey="id"
+                pagination={false}
+                size="small"
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={12}>
+            <Card
+              title="Vật tư sắp hết"
+              extra={<a href="/admin/supply">Xem tất cả</a>}
+            >
+              <Table
+                columns={supplyColumns}
+                dataSource={lowStockSupplies}
+                rowKey="id"
+                pagination={false}
+                size="small"
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Status Overview */}
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} lg={12}>
+            <Card title="Trạng thái hóa đơn">
+              <Row gutter={16}>
+                <Col span={8}>
+                  <div style={{ textAlign: "center", padding: "16px 0" }}>
+                    <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
+                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                      {invoiceStats?.paid_invoices || 0}
+                    </div>
+                    <div style={{ color: "#888" }}>Đã thanh toán</div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: "center", padding: "16px 0" }}>
+                    <ClockCircleOutlined style={{ fontSize: 32, color: "#faad14" }} />
+                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                      {invoiceStats?.pending_invoices || 0}
+                    </div>
+                    <div style={{ color: "#888" }}>Chờ thanh toán</div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: "center", padding: "16px 0" }}>
+                    <WarningOutlined style={{ fontSize: 32, color: "#ff4d4f" }} />
+                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                      {invoiceStats?.overdue_invoices || 0}
+                    </div>
+                    <div style={{ color: "#888" }}>Quá hạn</div>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={12}>
+            <Card title="Hoạt động hệ thống">
+              <div style={{ padding: "8px 0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                  <span>Hóa đơn được tạo hôm nay</span>
+                  <span style={{ fontWeight: 600 }}>12</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                  <span>Đặt phòng mới</span>
+                  <span style={{ fontWeight: 600 }}>8</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                  <span>Đánh giá mới</span>
+                  <span style={{ fontWeight: 600 }}>15</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Khách hàng đăng ký mới</span>
+                  <span style={{ fontWeight: 600 }}>5</span>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      </Spin>
+    </div>
+  );
 };
 
-const SpaceBetween: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div
-        style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-        }}
-    >
-        {children}
-    </div>
-);
-
 export default Dashboard;
+

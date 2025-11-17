@@ -18,20 +18,14 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, listing, onClose }) => {
     useEffect(() => {
         if (listing) {
             form.setFieldsValue(listing);
-            setFileList([{ uid: "-1", name: "image.png", status: "done", url: listing.image }]);
+            setFileList([{ uid: "-1", name: "image.png", status: "done" }]);
         }
     }, [listing]);
 
-    const handleOk = () => {
-        form.validateFields().then((values) => {
-            updateListing({ ...listing, ...values, image: fileList[0]?.url || listing.image, updatedAt: new Date().toISOString().split("T")[0] });
-            message.success("Cập nhật phòng thành công!");
-            onClose();
-        });
-    };
+
 
     return (
-        <Modal title="Chỉnh sửa phòng" open={visible} onCancel={onClose} onOk={handleOk}>
+        <Modal title="Chỉnh sửa phòng" open={visible} onCancel={onClose} >
             <Form form={form} layout="vertical">
                 <Form.Item name="name" label="Tên phòng" rules={[{ required: true }]}>
                     <Input />
