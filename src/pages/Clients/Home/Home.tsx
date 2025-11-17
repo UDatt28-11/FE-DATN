@@ -179,7 +179,7 @@ const Home: React.FC = () => {
                     <span>Dịch vụ chăm sóc khách hàng 24/7</span>
                   </h6>
                 </div>
-                <button onClick={() => navigate('/services')} className="btn palatin-btn mt-50">Xem Thêm</button>
+                <button onClick={() => navigate('/about')} className="btn palatin-btn mt-50">Xem Thêm</button>
               </div>
             </Col>
 

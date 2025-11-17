@@ -1,7 +1,7 @@
 import React from "react";
-import { Modal, Form, Input, Select, Button } from "antd";
+import { Modal, Form, Input, Select } from "antd";
 import { toast } from "react-toastify";
-import { User } from "../../../types/user/user";
+import type { User } from "../../../types/user/user";
 
 
 interface Props {

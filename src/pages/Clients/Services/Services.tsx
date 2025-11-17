@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Row, Col, Card, Typography, Breadcrumb, Button, Tag } from 'antd';
+import { Row, Col, Card, Typography, Breadcrumb, Button } from 'antd';
 import {
   HomeOutlined,
   CarOutlined,
@@ -9,84 +9,41 @@ import {
   SafetyOutlined,
   CustomerServiceOutlined,
   EnvironmentOutlined,
-  ThunderboltOutlined,
-  SkinOutlined,
-  GiftOutlined,
-  SmileOutlined,
 } from '@ant-design/icons';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const Services: React.FC = () => {
-  const freeServices = [
+  const services = [
     {
       icon: <WifiOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
       title: 'WiFi Miễn Phí',
       description: 'Kết nối internet tốc độ cao miễn phí trong toàn bộ khu vực khách sạn, phục vụ công việc và giải trí của quý khách.',
-      isFree: true,
     },
-    {
-      icon: <SafetyOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'An Ninh 24/7',
-      description: 'Hệ thống an ninh và camera giám sát hiện đại hoạt động liên tục đảm bảo an toàn tuyệt đối cho khách hàng.',
-      isFree: true,
-    },
-    {
-      icon: <CustomerServiceOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'Lễ Tân 24/7',
-      description: 'Đội ngũ lễ tân chuyên nghiệp, thân thiện luôn sẵn sàng hỗ trợ quý khách mọi lúc mọi nơi.',
-      isFree: true,
-    },
-    {
-      icon: <EnvironmentOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'Tư Vấn Du Lịch',
-      description: 'Tư vấn miễn phí về các địa điểm tham quan, di chuyển và lịch trình phù hợp cho chuyến đi của bạn.',
-      isFree: true,
-    },
-  ];
-
-  const paidServices = [
     {
       icon: <CoffeeOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
       title: 'Nhà Hàng & Bar',
       description: 'Thưởng thức ẩm thực đa dạng với các món ăn truyền thống và quốc tế do đầu bếp chuyên nghiệp chế biến.',
-      price: 'Từ 150.000đ',
-      isFree: false,
     },
     {
       icon: <CarOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
       title: 'Đưa Đón Sân Bay',
       description: 'Dịch vụ đưa đón sân bay 24/7 với xe sang trọng, thoải mái và đúng giờ cho mọi chuyến đi của bạn.',
-      price: '500.000đ - 800.000đ',
-      isFree: false,
     },
     {
-      icon: <ThunderboltOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
+      icon: <SafetyOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
+      title: 'An Ninh 24/7',
+      description: 'Hệ thống an ninh và camera giám sát hiện đại hoạt động liên tục đảm bảo an toàn tuyệt đối cho khách hàng.',
+    },
+    {
+      icon: <CustomerServiceOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
+      title: 'Lễ Tân 24/7',
+      description: 'Đội ngũ lễ tân chuyên nghiệp, thân thiện luôn sẵn sàng hỗ trợ quý khách mọi lúc mọi nơi.',
+    },
+    {
+      icon: <EnvironmentOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
       title: 'Tour Du Lịch',
-      description: 'Tổ chức các tour du lịch khám phá những địa điểm nổi tiếng và hấp dẫn nhất với hướng dẫn viên chuyên nghiệp.',
-      price: 'Từ 1.200.000đ/người',
-      isFree: false,
-    },
-    {
-      icon: <SkinOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'Spa & Massage',
-      description: 'Thư giãn cơ thể và tâm hồn với các liệu trình massage, chăm sóc da chuyên nghiệp bằng sản phẩm cao cấp.',
-      price: '300.000đ - 1.500.000đ',
-      isFree: false,
-    },
-    {
-      icon: <GiftOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'Dịch Vụ Giặt Ủi',
-      description: 'Giặt ủi quần áo chuyên nghiệp với công nghệ hiện đại, giao nhận tận phòng nhanh chóng.',
-      price: 'Từ 30.000đ/món',
-      isFree: false,
-    },
-    {
-      icon: <SmileOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
-      title: 'Tổ Chức Sự Kiện',
-      description: 'Phục vụ tổ chức tiệc cưới, hội nghị, sinh nhật với không gian sang trọng và đội ngũ chuyên nghiệp.',
-      price: 'Liên hệ để báo giá',
-      isFree: false,
+      description: 'Tư vấn và tổ chức các tour du lịch khám phá những địa điểm nổi tiếng và hấp dẫn nhất.',
     },
   ];
 
@@ -141,79 +98,8 @@ const Services: React.FC = () => {
         </div>
       </section>
 
-      {/* Free Services Section */}
-      <section style={{ padding: '100px 0 50px' }}>
-        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
-          {/* Section Title */}
-          <div style={{ textAlign: 'center', marginBottom: '60px' }} data-aos="fade-up">
-            <div style={{
-              width: '60px',
-              height: '3px',
-              background: '#52c41a',
-              margin: '0 auto 20px'
-            }}></div>
-            <Title level={2} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
-              Dịch Vụ Miễn Phí
-            </Title>
-            <Paragraph style={{ fontSize: '16px', color: '#6c757d', maxWidth: '700px', margin: '0 auto' }}>
-              Các tiện ích miễn phí dành cho tất cả khách hàng lưu trú tại khách sạn, mang đến trải nghiệm tốt nhất.
-            </Paragraph>
-          </div>
-
-          <Row gutter={[32, 32]}>
-            {freeServices.map((service, index) => (
-              <Col xs={24} md={12} lg={6} key={index} data-aos="fade-up" data-aos-delay={index * 100}>
-                <Card
-                  hoverable
-                  style={{
-                    textAlign: 'center',
-                    backgroundColor: '#fff',
-                    border: '2px solid #52c41a',
-                    borderRadius: '12px',
-                    height: '100%',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    position: 'relative',
-                    overflow: 'visible',
-                  }}
-                  bodyStyle={{ padding: '40px 20px' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-10px)';
-                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(82, 196, 26, 0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
-                  }}
-                >
-                  <Tag 
-                    color="success" 
-                    style={{ 
-                      position: 'absolute', 
-                      top: '15px', 
-                      right: '15px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    MIỄN PHÍ
-                  </Tag>
-                  <div style={{ marginBottom: '24px' }}>{service.icon}</div>
-                  <Title level={4} style={{ marginBottom: '16px', color: '#2a2a2a', fontSize: '18px' }}>
-                    {service.title}
-                  </Title>
-                  <Paragraph style={{ color: '#6c757d', margin: 0, fontSize: '14px', lineHeight: '1.8' }}>
-                    {service.description}
-                  </Paragraph>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      </section>
-
-      {/* Paid Services Section */}
-      <section style={{ padding: '50px 0 100px', backgroundColor: '#f8f9fa' }}>
+      {/* Services Grid Section */}
+      <section style={{ padding: '100px 0' }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
           {/* Section Title */}
           <div style={{ textAlign: 'center', marginBottom: '60px' }} data-aos="fade-up">
@@ -224,15 +110,15 @@ const Services: React.FC = () => {
               margin: '0 auto 20px'
             }}></div>
             <Title level={2} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
-              Dịch Vụ Cao Cấp
+              Dịch Vụ Tiện Ích
             </Title>
             <Paragraph style={{ fontSize: '16px', color: '#6c757d', maxWidth: '700px', margin: '0 auto' }}>
-              Các dịch vụ cao cấp với chất lượng tốt nhất, mang đến sự hài lòng và trải nghiệm đẳng cấp cho quý khách.
+              Chúng tôi cung cấp đầy đủ các tiện ích và dịch vụ chất lượng cao nhằm mang đến trải nghiệm lưu trú tuyệt vời nhất cho quý khách.
             </Paragraph>
           </div>
 
           <Row gutter={[32, 32]}>
-            {paidServices.map((service, index) => (
+            {services.map((service, index) => (
               <Col xs={24} md={12} lg={8} key={index} data-aos="fade-up" data-aos-delay={index * 100}>
                 <Card
                   hoverable
@@ -244,8 +130,6 @@ const Services: React.FC = () => {
                     height: '100%',
                     transition: 'all 0.3s ease',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    position: 'relative',
-                    overflow: 'visible',
                   }}
                   bodyStyle={{ padding: '40px 30px' }}
                   onMouseEnter={(e) => {
@@ -259,39 +143,13 @@ const Services: React.FC = () => {
                     e.currentTarget.style.borderColor = '#e8e8e8';
                   }}
                 >
-                  <Tag 
-                    color="gold" 
-                    style={{ 
-                      position: 'absolute', 
-                      top: '15px', 
-                      right: '15px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    TRẢ PHÍ
-                  </Tag>
                   <div style={{ marginBottom: '24px' }}>{service.icon}</div>
                   <Title level={4} style={{ marginBottom: '16px', color: '#2a2a2a', fontSize: '20px' }}>
                     {service.title}
                   </Title>
-                  <Paragraph style={{ color: '#6c757d', marginBottom: '16px', fontSize: '14px', lineHeight: '1.8' }}>
+                  <Paragraph style={{ color: '#6c757d', margin: 0, fontSize: '14px', lineHeight: '1.8' }}>
                     {service.description}
                   </Paragraph>
-                  <div style={{ 
-                    padding: '10px 20px', 
-                    backgroundColor: '#fff7e6', 
-                    borderRadius: '8px',
-                    border: '1px solid #ffd591',
-                  }}>
-                    <Text style={{ 
-                      color: '#cb8670', 
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                    }}>
-                      {service.price}
-                    </Text>
-                  </div>
                 </Card>
               </Col>
             ))}

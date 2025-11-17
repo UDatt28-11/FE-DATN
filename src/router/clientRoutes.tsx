@@ -6,6 +6,7 @@ import Home from "../pages/Clients/Home/Home";
 import AboutPage from "../pages/Clients/About/AboutPage";
 import LoginPage from "../pages/Clients/Auth/LoginPage";
 import RegisterPage from "../pages/Clients/Auth/RegisterPage";
+import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
 
 // --- Sửa đường dẫn cho nhất quán ---
 import HomestayListPage from "../pages/Clients/Homestay/HomestayListPage";
@@ -21,6 +22,17 @@ import RoomDetailPage from "../pages/Clients/Rooms/RoomDetailPage";
 // --- Import trang Profile ---
 import Profile from "../pages/Clients/Profile";
 
+// --- Import trang Services ---
+import Services from "../pages/Clients/Services";
+
+// --- Import trang Settings ---
+import Settings from "../pages/Clients/Settings";
+
+// --- Import trang Booking ---
+import BookingInfoPage from "../pages/Clients/Booking/BookingInfoPage";
+import PaymentPage from "../pages/Clients/Booking/PaymentPage";
+import MyBookingsPage from "../pages/Clients/Booking/MyBookingsPage";
+
 
 // 🧭 Router Client
 export const clientRoutes: RouteObject[] = [
@@ -32,7 +44,9 @@ export const clientRoutes: RouteObject[] = [
             { path: "about", element: <AboutPage /> },
             { path: "homestay", element: <HomestayListPage /> },
             { path: "promotion", element: <PromotionsPage /> },
+            { path: "promotions", element: <PromotionsPage /> },
             { path: "contact", element: <Contact /> },
+            { path: "services", element: <Services /> },
 
             // --- Route cho phòng ---
             { path: "rooms", element: <Rooms /> },
@@ -40,6 +54,14 @@ export const clientRoutes: RouteObject[] = [
 
             // --- Route cho Profile ---
             { path: "profile", element: <Profile /> },
+            
+            // --- Route cho Settings ---
+            { path: "settings", element: <Settings /> },
+            
+            // --- Route cho Booking ---
+            { path: "booking/info", element: <BookingInfoPage /> },
+            { path: "booking/payment", element: <PaymentPage /> },
+            { path: "my-bookings", element: <MyBookingsPage /> },
 
             // --- THÊM MỚI: Route cho trang chi tiết ---
             // Nó sử dụng :id để lấy tham số từ URL
@@ -53,5 +75,9 @@ export const clientRoutes: RouteObject[] = [
     {
         path: "/register",
         element: <RegisterPage />,
+    },
+    {
+        path: "/reset-password/:token",
+        element: <ResetPasswordPage />,
     },
 ];

@@ -53,13 +53,14 @@ import EditInvoice from "../pages/Admin/quanlihoadon/editInvoice";
 // Dashboard
 import Dashboard from "../pages/Admin/Dashboard";
 
-export const adminRoutes: RouteObject = {
-  path: "/admin",
-  element: <AdminLayout />,
-  children: [
-    // Dashboard
-    { path: "", element: <Dashboard /> },
-    { path: "dashboard", element: <Dashboard /> },
+export const adminRoutes: RouteObject[] = [
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      // Dashboard
+      { path: "", element: <Dashboard /> },
+      { path: "dashboard", element: <Dashboard /> },
     // Quản lý phòng
     { path: "listing", element: <ListRoom /> },
     { path: "listing/add", element: <AddRoom /> },
@@ -118,4 +119,5 @@ export const adminRoutes: RouteObject = {
     // Quản lý bình luận
     { path: "message", element: <ListMessage /> },
   ],
-};
+  },
+];
