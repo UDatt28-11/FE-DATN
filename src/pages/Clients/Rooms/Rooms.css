@@ -5,72 +5,72 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Utility Classes */
-.bg-img {
+/* Utility Classes - Scoped to rooms-page */
+.rooms-page .bg-img {
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
 }
 
-.d-flex {
+.rooms-page .d-flex {
   display: flex;
 }
 
-.align-items-center {
+.rooms-page .align-items-center {
   align-items: center;
 }
 
-.justify-content-center {
+.rooms-page .justify-content-center {
   justify-content: center;
 }
 
-.text-center {
+.rooms-page .text-center {
   text-align: center;
 }
 
-.row {
+.rooms-page .row {
   display: flex;
   flex-wrap: wrap;
   margin-left: -15px;
   margin-right: -15px;
 }
 
-.col-12 {
+.rooms-page .col-12 {
   flex: 0 0 100%;
   max-width: 100%;
   padding-left: 15px;
   padding-right: 15px;
 }
 
-.col-md-6 {
+.rooms-page .col-md-6 {
   flex: 0 0 50%;
   max-width: 50%;
   padding-left: 15px;
   padding-right: 15px;
 }
 
-.col-lg-4 {
+.rooms-page .col-lg-4 {
   flex: 0 0 33.333333%;
   max-width: 33.333333%;
   padding-left: 15px;
   padding-right: 15px;
 }
 
-.col-lg-6 {
+.rooms-page .col-lg-6 {
   flex: 0 0 50%;
   max-width: 50%;
   padding-left: 15px;
   padding-right: 15px;
 }
 
-.col-lg-10 {
+.rooms-page .col-lg-10 {
   flex: 0 0 83.333333%;
   max-width: 83.333333%;
   padding-left: 15px;
   padding-right: 15px;
 }
 
-.container {
+.rooms-page .container {
   max-width: 1170px;
   margin: 0 auto;
   padding-left: 15px;
@@ -82,8 +82,8 @@
   justify-content: center;
 }
 
-/* Section Padding */
-.section-padding-0-100 {
+/* Section Padding - Scoped to rooms-page */
+.rooms-page .section-padding-0-100 {
   padding-top: 0;
   padding-bottom: 100px;
 }

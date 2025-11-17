@@ -21,6 +21,9 @@ import RoomDetailPage from "../pages/Clients/Rooms/RoomDetailPage";
 // --- Import trang Profile ---
 import Profile from "../pages/Clients/Profile";
 
+// --- Import trang Services ---
+import Services from "../pages/Clients/Services";
+
 
 // 🧭 Router Client
 export const clientRoutes: RouteObject[] = [
@@ -31,7 +34,8 @@ export const clientRoutes: RouteObject[] = [
             { index: true, element: <Home /> },
             { path: "about", element: <AboutPage /> },
             { path: "homestay", element: <HomestayListPage /> },
-            { path: "promotion", element: <PromotionsPage /> },
+            { path: "promotions", element: <PromotionsPage /> },
+            { path: "services", element: <Services /> },
             { path: "contact", element: <Contact /> },
 
             // --- Route cho phòng ---
