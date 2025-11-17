@@ -11,7 +11,7 @@ import RegisterPage from "../pages/Clients/Auth/RegisterPage";
 import HomestayListPage from "../pages/Clients/Homestay/HomestayListPage";
 // --- Import trang chi tiết (từ Canvas) ---
 import HomestayDetailPage from "../pages/Clients/Homestay/HomestayDetailPage";
-import PromotionsPage from "../pages/Clients/Promotions/PromotionsPage";
+import Promotions from "../pages/Clients/Promotions/Promotions";
 import Contact from "../pages/Clients/Contact/Contact";
 
 // --- Import trang phòng ---
@@ -34,7 +34,7 @@ export const clientRoutes: RouteObject[] = [
             { index: true, element: <Home /> },
             { path: "about", element: <AboutPage /> },
             { path: "homestay", element: <HomestayListPage /> },
-            { path: "promotions", element: <PromotionsPage /> },
+            { path: "promotions", element: <Promotions /> },
             { path: "services", element: <Services /> },
             { path: "contact", element: <Contact /> },
 
