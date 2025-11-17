@@ -12,7 +12,32 @@ const supplyService = {
   // Lấy danh sách vật tư (public)
   async getAll(): Promise<Supply[]> {
     const res = await api.get("/supplies");
-    return res.data.data || res.data;
+    
+    // Laravel paginate trả về: {success: true, data: {data: [...], current_page: ..., total: ...}}
+    if (res.data?.success && res.data?.data) {
+      // Nếu là paginated response
+      if (res.data.data.data && Array.isArray(res.data.data.data)) {
+        return res.data.data.data;
+      }
+      // Nếu là array trực tiếp
+      if (Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+    }
+    
+    // Fallback
+    if (Array.isArray(res.data?.data?.data)) {
+      return res.data.data.data;
+    }
+    if (Array.isArray(res.data?.data)) {
+      return res.data.data;
+    }
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
+    
+    console.warn("Unexpected response structure in getAll():", res.data);
+    return [];
   },
 
   // Lấy chi tiết 1 vật tư
@@ -63,6 +88,37 @@ const supplyService = {
   async adjustStock(id: number | string, amount: number): Promise<Supply> {
     const res = await api.post(`/supplies/${id}/adjust-stock`, { amount });
     return res.data;
+  },
+
+  // Lấy danh sách vật tư theo room_id
+  async getByRoom(roomId: number | string): Promise<Supply[]> {
+    const res = await api.get("/supplies", { params: { room_id: roomId } });
+    
+    // Laravel paginate trả về: {success: true, data: {data: [...], current_page: ..., total: ...}}
+    if (res.data?.success && res.data?.data) {
+      // Nếu là paginated response
+      if (res.data.data.data && Array.isArray(res.data.data.data)) {
+        return res.data.data.data;
+      }
+      // Nếu là array trực tiếp
+      if (Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+    }
+    
+    // Fallback: thử các cấu trúc khác
+    if (Array.isArray(res.data?.data?.data)) {
+      return res.data.data.data;
+    }
+    if (Array.isArray(res.data?.data)) {
+      return res.data.data;
+    }
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
+    
+    console.warn("Unexpected response structure:", res.data);
+    return [];
   },
 };
 

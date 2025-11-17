@@ -57,10 +57,29 @@ const ViewInvoice: React.FC = () => {
       } else {
         throw new Error("Không nhận được dữ liệu từ server");
       }
+
+      // Xử lý items: backend có thể trả về `invoice_items`, `invoiceItems` hoặc `items`
+      if (!invoiceData.items) {
+        if ((invoiceData as any).invoice_items) {
+          invoiceData.items = (invoiceData as any).invoice_items;
+        } else if ((invoiceData as any).invoiceItems) {
+          invoiceData.items = (invoiceData as any).invoiceItems;
+        } else {
+          invoiceData.items = [];
+        }
+      }
+
+      // Đảm bảo items là mảng và có dữ liệu hợp lệ
+      if (!Array.isArray(invoiceData.items)) {
+        invoiceData.items = [];
+      }
+
       setInvoice(invoiceData);
     } catch (error: any) {
       console.error("Lỗi khi tải hóa đơn:", error);
-      toast.error(error.response?.data?.message || "Không thể tải thông tin hóa đơn!");
+      toast.error(
+        error.response?.data?.message || "Không thể tải thông tin hóa đơn!"
+      );
       navigate("/admin/invoice");
     } finally {
       setLoading(false);
@@ -102,7 +121,9 @@ const ViewInvoice: React.FC = () => {
       fetchInvoice();
     } catch (error: any) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
+      toast.error(
+        error.response?.data?.message || "Không thể cập nhật trạng thái!"
+      );
     }
   };
 
@@ -147,7 +168,8 @@ const ViewInvoice: React.FC = () => {
       render: (type) => {
         const typeMap: Record<string, { color: string; text: string }> = {
           room_charge: { color: "blue", text: "Phí phòng" },
-          service_charge: { color: "cyan", text: "Dịch vụ" },
+          service_charge: { color: "cyan", text: "Phí dịch vụ" },
+          supply_charge: { color: "green", text: "Phí vật tư" },
           penalty: { color: "red", text: "Phạt" },
           other: { color: "default", text: "Khác" },
         };
@@ -201,14 +223,17 @@ const ViewInvoice: React.FC = () => {
       {/* Header Actions */}
       <div style={{ marginBottom: 24 }}>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/admin/invoice")}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/admin/invoice")}
+          >
             Quay lại
           </Button>
           <Button icon={<PrinterOutlined />} onClick={handlePrint}>
             In hóa đơn
           </Button>
           <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
-          
+
           {/* Trạng thái hóa đơn */}
           <Select
             value={invoice.invoice_status}
@@ -224,31 +249,31 @@ const ViewInvoice: React.FC = () => {
           </Select>
 
           {/* Đánh dấu đã thanh toán */}
-          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
-            <Button 
-              type="primary" 
-              icon={<CheckCircleOutlined />} 
-              onClick={handleMarkAsPaid}
-            >
-              Đánh dấu đã thanh toán
-            </Button>
-          )}
+          {invoice.payment_status !== "paid" &&
+            invoice.invoice_status !== "cancelled" && (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={handleMarkAsPaid}
+              >
+                Đánh dấu đã thanh toán
+              </Button>
+            )}
 
           {/* Hủy hóa đơn */}
-          {invoice.invoice_status !== "cancelled" && invoice.invoice_status !== "paid" && (
-            <Popconfirm
-              title="Xác nhận hủy hóa đơn"
-              description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
-              onConfirm={handleCancelInvoice}
-              okText="Hủy"
-              cancelText="Không"
-              okType="danger"
-            >
-              <Button danger>
-                Hủy hóa đơn
-              </Button>
-            </Popconfirm>
-          )}
+          {invoice.invoice_status !== "cancelled" &&
+            invoice.invoice_status !== "paid" && (
+              <Popconfirm
+                title="Xác nhận hủy hóa đơn"
+                description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
+                onConfirm={handleCancelInvoice}
+                okText="Hủy"
+                cancelText="Không"
+                okType="danger"
+              >
+                <Button danger>Hủy hóa đơn</Button>
+              </Popconfirm>
+            )}
         </Space>
       </div>
 
@@ -263,17 +288,23 @@ const ViewInvoice: React.FC = () => {
           </Col>
           <Col style={{ textAlign: "right" }}>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>Trạng thái:</Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>
+                Trạng thái:
+              </Text>
               {getInvoiceStatusTag(invoice.invoice_status)}
             </div>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>Thanh toán:</Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>
+                Thanh toán:
+              </Text>
               {getPaymentStatusTag(invoice.payment_status)}
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Ngày tạo:</Text>
               <br />
-              <Text strong>{dayjs(invoice.issue_date).format("DD/MM/YYYY")}</Text>
+              <Text strong>
+                {dayjs(invoice.issue_date).format("DD/MM/YYYY")}
+              </Text>
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Hạn thanh toán:</Text>
@@ -292,9 +323,15 @@ const ViewInvoice: React.FC = () => {
               <Descriptions.Item label="Tên">
                 <Text strong>{invoice.customer_name}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Email">{invoice.customer_email || "-"}</Descriptions.Item>
-              <Descriptions.Item label="Điện thoại">{invoice.customer_phone || "-"}</Descriptions.Item>
-              <Descriptions.Item label="Địa chỉ">{invoice.customer_address || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {invoice.customer_email || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Điện thoại">
+                {invoice.customer_phone || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ">
+                {invoice.customer_address || "-"}
+              </Descriptions.Item>
             </Descriptions>
           </Col>
           <Col span={12}>
@@ -317,55 +354,151 @@ const ViewInvoice: React.FC = () => {
         <Divider />
 
         {/* Invoice Items */}
-        <Title level={4}>Chi tiết hóa đơn</Title>
-        <Table
-          columns={itemColumns}
-          dataSource={invoice.items || []}
-          rowKey="id"
-          pagination={false}
-          size="small"
-        />
+        <Title level={4} style={{ marginBottom: 16 }}>
+          Chi tiết hóa đơn
+        </Title>
+        {invoice.items && invoice.items.length > 0 ? (
+          <Table
+            columns={itemColumns}
+            dataSource={invoice.items}
+            rowKey="id"
+            pagination={false}
+            size="middle"
+            bordered
+          />
+        ) : (
+          <div
+            style={{
+              padding: 40,
+              textAlign: "center",
+              background: "#fafafa",
+              borderRadius: 8,
+              border: "1px dashed #d9d9d9",
+            }}
+          >
+            <Text type="secondary" style={{ fontSize: 16 }}>
+              Không có chi tiết hóa đơn
+            </Text>
+          </div>
+        )}
 
         <Divider />
 
         {/* Summary */}
-        <Row justify="end">
-          <Col span={8}>
-            <div style={{ padding: 16, background: "#fafafa", borderRadius: 8 }}>
-              <Space direction="vertical" style={{ width: "100%" }} size="small">
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text>Tổng phụ:</Text>
-                  <Text>{(invoice.subtotal || 0).toLocaleString("vi-VN")}₫</Text>
+        <Row justify="end" style={{ marginTop: 24 }}>
+          <Col span={10}>
+            <div
+              style={{
+                padding: 20,
+                background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                borderRadius: 8,
+                border: "1px solid #e8e8e8",
+              }}
+            >
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="middle"
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 15 }}>Tổng phụ:</Text>
+                  <Text strong style={{ fontSize: 15 }}>
+                    {(invoice.subtotal || 0).toLocaleString("vi-VN")} ₫
+                  </Text>
                 </div>
                 {(invoice.discount_amount || 0) > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
-                    <Text>Giảm giá:</Text>
-                    <Text>-{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫</Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      color: "#52c41a",
+                    }}
+                  >
+                    <Text style={{ fontSize: 15 }}>Giảm giá:</Text>
+                    <Text strong style={{ fontSize: 15 }}>
+                      -{(invoice.discount_amount || 0).toLocaleString("vi-VN")}{" "}
+                      ₫
+                    </Text>
                   </div>
                 )}
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text>Thuế ({invoice.tax_rate || 0}%):</Text>
-                  <Text>{(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫</Text>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 15 }}>
+                    Thuế ({Number(invoice.tax_rate || 0).toFixed(2)}%):
+                  </Text>
+                  <Text strong style={{ fontSize: 15 }}>
+                    {(invoice.tax_amount || 0).toLocaleString("vi-VN")} ₫
+                  </Text>
                 </div>
-                <Divider style={{ margin: "8px 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text strong style={{ fontSize: 16 }}>
+                <Divider style={{ margin: "12px 0", borderColor: "#d9d9d9" }} />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "12px",
+                    background: "#fff",
+                    borderRadius: 6,
+                    border: "2px solid #1890ff",
+                  }}
+                >
+                  <Text strong style={{ fontSize: 17 }}>
                     Tổng cộng:
                   </Text>
-                  <Text strong style={{ fontSize: 18, color: "#1890ff" }}>
-                    {(invoice.total_amount || 0).toLocaleString("vi-VN")}₫
+                  <Text strong style={{ fontSize: 20, color: "#1890ff" }}>
+                    {(invoice.total_amount || 0).toLocaleString("vi-VN")} ₫
                   </Text>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text>Đã thanh toán:</Text>
-                  <Text style={{ color: "#52c41a" }}>
-                    {(invoice.paid_amount || 0).toLocaleString("vi-VN")}₫
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 15 }}>Đã thanh toán:</Text>
+                  <Text strong style={{ fontSize: 15, color: "#52c41a" }}>
+                    {(invoice.paid_amount || 0).toLocaleString("vi-VN")} ₫
                   </Text>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text strong>Còn lại:</Text>
-                  <Text strong style={{ color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a" }}>
-                    {(invoice.balance || 0).toLocaleString("vi-VN")}₫
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px",
+                    background:
+                      (invoice.balance || 0) > 0 ? "#fff1f0" : "#f6ffed",
+                    borderRadius: 6,
+                    border:
+                      (invoice.balance || 0) > 0
+                        ? "1px solid #ffccc7"
+                        : "1px solid #b7eb8f",
+                  }}
+                >
+                  <Text strong style={{ fontSize: 16 }}>
+                    Còn lại:
+                  </Text>
+                  <Text
+                    strong
+                    style={{
+                      fontSize: 18,
+                      color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a",
+                    }}
+                  >
+                    {(invoice.balance || 0).toLocaleString("vi-VN")} ₫
                   </Text>
                 </div>
               </Space>
@@ -379,7 +512,14 @@ const ViewInvoice: React.FC = () => {
             <Divider />
             <div>
               <Text strong>Ghi chú:</Text>
-              <div style={{ marginTop: 8, padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: 12,
+                  background: "#f5f5f5",
+                  borderRadius: 4,
+                }}
+              >
                 {invoice.notes}
               </div>
             </div>
@@ -404,6 +544,3 @@ const ViewInvoice: React.FC = () => {
 };
 
 export default ViewInvoice;
-
-
-
