@@ -6,10 +6,10 @@ import {
     DatePicker,
     Button,
     Card,
-    message,
     Space,
     Radio,
 } from "antd";
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
 
@@ -45,11 +45,11 @@ const AddPromotion: React.FC = () => {
             };
 
             await promotionService.create(promotionData);
-            message.success("Thêm mã giảm giá thành công!");
+            toast.success("Thêm mã giảm giá thành công!");
             navigate("/admin/promotion");
         } catch (error: any) {
             console.error("Lỗi khi thêm mã giảm giá:", error);
-            message.error(error.response?.data?.message || "Không thể thêm mã giảm giá!");
+            toast.error(error.response?.data?.message || "Không thể thêm mã giảm giá!");
         } finally {
             setLoading(false);
         }

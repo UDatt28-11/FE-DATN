@@ -9,10 +9,10 @@ import {
     Input,
     Button,
     Select,
-    message,
     Breadcrumb,
     Space,
 } from "antd";
+import { toast } from "react-toastify";
 import {
     HomeOutlined,
     MailOutlined,
@@ -44,7 +44,7 @@ const ContactPage: React.FC = () => {
         // Giả lập gửi form
         setTimeout(() => {
             console.log("Form values:", values);
-            message.success("Gửi liên hệ thành công! Chúng tôi sẽ phản hồi trong 24h.");
+            toast.success("Gửi liên hệ thành công! Chúng tôi sẽ phản hồi trong 24h.");
             form.resetFields();
             setLoading(false);
         }, 1500);

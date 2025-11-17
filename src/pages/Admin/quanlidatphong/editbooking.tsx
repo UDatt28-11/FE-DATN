@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Form, Input, Button, InputNumber, message, Card, Space, Spin } from "antd";
+import { Form, Input, Button, InputNumber, Card, Space, Spin, Select } from "antd";
+import { toast } from "react-toastify";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
 import { BookingOrder, getBooking, updateBooking, UpdateBookingData } from "../../../service/bookingService";
+
+const { Option } = Select;
 
 ;
 
@@ -27,17 +30,25 @@ const EditBooking: React.FC = () => {
             const data = await getBooking(bookingId);
             setBooking(data);
             
+            // Map payment method từ tiếng Anh sang tiếng Việt để hiển thị
+            const paymentMethodDisplayMap: Record<string, string> = {
+                'cash': 'Tiền mặt',
+                'bank_transfer': 'Chuyển khoản',
+                'credit_card': 'Thẻ tín dụng',
+                'e_wallet': 'Ví điện tử',
+            };
+
             // Điền dữ liệu vào form
             form.setFieldsValue({
                 customer_name: data.customer_name,
                 customer_phone: data.customer_phone,
                 customer_email: data.customer_email || '',
                 total_amount: data.total_amount,
-                payment_method: data.payment_method || '',
+                payment_method: paymentMethodDisplayMap[data.payment_method || 'cash'] || 'Tiền mặt',
                 notes: data.notes || '',
             });
         } catch (error: any) {
-            message.error("Không thể tải thông tin đặt phòng");
+            toast.error("Không thể tải thông tin đặt phòng");
         } finally {
             setLoading(false);
         }
@@ -49,18 +60,26 @@ const EditBooking: React.FC = () => {
         try {
             setSubmitting(true);
 
+            // Map payment method từ tiếng Việt sang tiếng Anh
+            const paymentMethodMap: Record<string, string> = {
+                'Tiền mặt': 'cash',
+                'Chuyển khoản': 'bank_transfer',
+                'Thẻ tín dụng': 'credit_card',
+                'Ví điện tử': 'e_wallet',
+            };
+
             const updateData: UpdateBookingData = {
                 customer_name: values.customer_name,
                 customer_phone: values.customer_phone,
                 customer_email: values.customer_email,
                 total_amount: values.total_amount,
-                payment_method: values.payment_method,
+                payment_method: paymentMethodMap[values.payment_method] || 'cash',
                 notes: values.notes,
             };
 
             await updateBooking(parseInt(id), updateData);
             
-            message.success("Cập nhật đặt phòng thành công!");
+            toast.success("Cập nhật đặt phòng thành công!");
             
             // Chuyển về trang danh sách sau khi update thành công
             setTimeout(() => {
@@ -68,7 +87,7 @@ const EditBooking: React.FC = () => {
             }, 1000);
 
         } catch (error: any) {
-            message.error(error.response?.data?.message || "Không thể cập nhật đặt phòng. Vui lòng thử lại!");
+            toast.error(error.response?.data?.message || "Không thể cập nhật đặt phòng. Vui lòng thử lại!");
         } finally {
             setSubmitting(false);
         }
@@ -168,8 +187,14 @@ const EditBooking: React.FC = () => {
                     <Form.Item 
                         label="Phương thức thanh toán" 
                         name="payment_method"
+                        initialValue="Tiền mặt"
                     >
-                        <Input placeholder="VD: Tiền mặt, Chuyển khoản, Thẻ tín dụng" size="large" />
+                        <Select placeholder="Chọn phương thức thanh toán" size="large">
+                            <Option value="Tiền mặt">💵 Tiền mặt</Option>
+                            <Option value="Chuyển khoản">🏦 Chuyển khoản</Option>
+                            <Option value="Thẻ tín dụng">💳 Thẻ tín dụng</Option>
+                            <Option value="Ví điện tử">📱 Ví điện tử</Option>
+                        </Select>
                     </Form.Item>
 
                     <Form.Item label="Ghi chú" name="notes">

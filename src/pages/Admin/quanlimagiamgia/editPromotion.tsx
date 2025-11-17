@@ -6,11 +6,11 @@ import {
     DatePicker,
     Button,
     Card,
-    message,
     Space,
     Radio,
     Spin,
 } from "antd";
+import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
 
@@ -55,7 +55,7 @@ const EditPromotion: React.FC = () => {
             });
         } catch (error: any) {
             console.error("Lỗi khi tải mã giảm giá:", error);
-            message.error(error.response?.data?.message || "Không thể tải thông tin mã giảm giá!");
+            toast.error(error.response?.data?.message || "Không thể tải thông tin mã giảm giá!");
             navigate("/admin/promotion");
         } finally {
             setFetchLoading(false);
@@ -82,11 +82,11 @@ const EditPromotion: React.FC = () => {
             };
 
             await promotionService.update(id, promotionData);
-            message.success("Cập nhật mã giảm giá thành công!");
+            toast.success("Cập nhật mã giảm giá thành công!");
             navigate("/admin/promotion");
         } catch (error: any) {
             console.error("Lỗi khi cập nhật mã giảm giá:", error);
-            message.error(error.response?.data?.message || "Không thể cập nhật mã giảm giá!");
+            toast.error(error.response?.data?.message || "Không thể cập nhật mã giảm giá!");
         } finally {
             setLoading(false);
         }

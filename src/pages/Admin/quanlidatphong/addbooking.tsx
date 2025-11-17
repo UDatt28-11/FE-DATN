@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Form, Input, Button, DatePicker, InputNumber, Select, message, Space, Card, Spin } from "antd";
+import { Form, Input, Button, DatePicker, InputNumber, Select, Space, Card, Spin } from "antd";
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { Room } from "../../../types/room/room";
@@ -31,7 +32,7 @@ const AddBooking: React.FC = () => {
             const roomsData = await listRooms();
             setRooms(roomsData);
         } catch (error) {
-            message.error("Không thể tải danh sách phòng");
+            toast.error("Không thể tải danh sách phòng");
         } finally {
             setLoadingRooms(false);
         }
@@ -66,13 +67,21 @@ const AddBooking: React.FC = () => {
         try {
             setLoading(true);
 
+            // Map payment method từ tiếng Việt sang tiếng Anh
+            const paymentMethodMap: Record<string, string> = {
+                'Tiền mặt': 'cash',
+                'Chuyển khoản': 'bank_transfer',
+                'Thẻ tín dụng': 'credit_card',
+                'Ví điện tử': 'e_wallet',
+            };
+
             // Chuẩn bị dữ liệu gửi lên API
             const bookingData: CreateBookingData = {
                 customer_name: values.customerName,
                 customer_phone: values.customerPhone,
                 customer_email: values.customerEmail,
                 total_amount: values.totalPrice,
-                payment_method: values.paymentMethod,
+                payment_method: paymentMethodMap[values.paymentMethod] || 'cash',
                 notes: values.notes,
                 details: [
                     {
@@ -89,7 +98,7 @@ const AddBooking: React.FC = () => {
             // Gọi API tạo booking
             const result = await createBooking(bookingData);
             
-            message.success(`Đã thêm đặt phòng mới! Mã đơn: ${result.code}`);
+            toast.success(`Đã thêm đặt phòng mới! Mã đơn: ${result.code}`);
             
             // Reset form
             form.resetFields();
@@ -101,7 +110,7 @@ const AddBooking: React.FC = () => {
             }, 1500);
 
         } catch (error: any) {
-            message.error(error.response?.data?.message || "Không thể thêm đặt phòng. Vui lòng thử lại!");
+            toast.error(error.response?.data?.message || "Không thể thêm đặt phòng. Vui lòng thử lại!");
         } finally {
             setLoading(false);
         }
@@ -240,12 +249,14 @@ const AddBooking: React.FC = () => {
                     <Form.Item 
                         label="Phương thức thanh toán" 
                         name="paymentMethod" 
+                        initialValue="Tiền mặt"
                         rules={[{ required: true, message: 'Vui lòng chọn phương thức thanh toán' }]}
                     >
                         <Select placeholder="Chọn phương thức thanh toán">
                             <Option value="Tiền mặt">💵 Tiền mặt</Option>
                             <Option value="Chuyển khoản">🏦 Chuyển khoản</Option>
                             <Option value="Thẻ tín dụng">💳 Thẻ tín dụng</Option>
+                            <Option value="Ví điện tử">📱 Ví điện tử</Option>
                         </Select>
                     </Form.Item>
 

@@ -6,12 +6,12 @@ import {
   Button,
   Space,
   Tag,
-  message,
   Tooltip,
   Tabs,
   Image,
   Modal, // 🟢 THÊM MỚI
 } from "antd";
+import { toast } from "react-toastify";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -125,7 +125,7 @@ const ListCategory: React.FC = () => {
       onOk() {
         setCategories((prev) => prev.filter((cat) => cat.id !== record.id));
         setHistoryCategories((prev) => [...prev, record]);
-        message.success(`Đã xóa danh mục "${record.name}"`);
+        toast.success(`Đã xóa danh mục "${record.name}"`);
       },
     });
   };
@@ -302,7 +302,7 @@ const ListCategory: React.FC = () => {
     };
     setCategories([...categories, newCategory]);
     setAddModalVisible(false);
-    message.success("Đã thêm danh mục mới!");
+    toast.success("Đã thêm danh mục mới!");
   };
 
   return (

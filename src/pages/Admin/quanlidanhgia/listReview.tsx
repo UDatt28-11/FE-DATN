@@ -9,9 +9,9 @@ import {
   Modal,
   Select,
   Input,
-  message,
   Spin,
 } from "antd";
+import { toast } from "react-toastify";
 import {
   EyeOutlined,
   DeleteOutlined,
@@ -48,7 +48,7 @@ const ListReview: React.FC = () => {
       setReviews(reviewList);
       setFiltered(reviewList);
     } catch (error: any) {
-      message.error("Lỗi khi tải danh sách đánh giá: " + error.message);
+      toast.error("Lỗi khi tải danh sách đánh giá: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -87,10 +87,10 @@ const ListReview: React.FC = () => {
   ) => {
     try {
       await reviewService.update(id, { status: newStatus });
-      message.success("Đã cập nhật trạng thái đánh giá!");
+      toast.success("Đã cập nhật trạng thái đánh giá!");
       fetchReviews();
     } catch (error: any) {
-      message.error("Cập nhật trạng thái thất bại: " + error.message);
+      toast.error("Cập nhật trạng thái thất bại: " + error.message);
     }
   };
 
@@ -103,11 +103,11 @@ const ListReview: React.FC = () => {
         try {
           // Gọi API xóa review
           await reviewService.remove(id);
-          message.success("Đã xóa đánh giá!");
+          toast.success("Đã xóa đánh giá!");
           // Load lại danh sách sau khi xóa
           fetchReviews();
         } catch (error: any) {
-          message.error("Xóa thất bại: " + error.message);
+          toast.error("Xóa thất bại: " + error.message);
         }
       },
     });

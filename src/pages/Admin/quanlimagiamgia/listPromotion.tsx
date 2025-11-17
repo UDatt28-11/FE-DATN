@@ -1,7 +1,7 @@
 // src/pages/quanlimagiamgia/listPromotion.tsx
 import React, { useState, useEffect } from "react";
 import {
-    Table, Button, Space, Input, Select, Tag, message, Row, Tooltip, Popconfirm, Spin, notification
+    Table, Button, Space, Input, Select, Tag, Row, Tooltip, Popconfirm, Spin
 } from "antd";
 import {
     PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
@@ -9,6 +9,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { Promotion, PromotionStatus } from "../../../types/promotion/promotion";
 import promotionService from "../../../service/promotionService";
 
@@ -54,7 +55,7 @@ const ListPromotion: React.FC = () => {
         } catch (error: any) {
             console.error("Lỗi khi tải danh sách:", error);
             console.error("Error details:", error.response);
-            message.error(error.response?.data?.message || "Không thể tải danh sách mã giảm giá!");
+            toast.error(error.response?.data?.message || "Không thể tải danh sách mã giảm giá!");
             // Set empty array để tránh lỗi
             setPromotions([]);
             setFilteredPromotions([]);
@@ -125,10 +126,10 @@ const ListPromotion: React.FC = () => {
             );
             setPromotions(updated);
             applyFilters(searchText, statusFilter);
-            message.success("Đã cập nhật trạng thái!");
+            toast.success("Đã cập nhật trạng thái!");
         } catch (error: any) {
             console.error("Lỗi cập nhật trạng thái:", error);
-            message.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
+            toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
         }
     };
 
@@ -142,12 +143,7 @@ const ListPromotion: React.FC = () => {
             setPromotions(updated);
             applyFilters(searchText, statusFilter);
             
-            notification.success({
-                message: "Xóa thành công!",
-                description: "Mã giảm giá đã được xóa khỏi hệ thống.",
-                placement: "topRight",
-                duration: 3,
-            });
+            toast.success("Xóa mã giảm giá thành công!");
             
             // Reload lại danh sách để đảm bảo đồng bộ
             setTimeout(() => {
@@ -157,12 +153,7 @@ const ListPromotion: React.FC = () => {
             console.error("Lỗi xóa mã giảm giá:", error);
             console.error("Chi tiết lỗi:", error.response);
             
-            notification.error({
-                message: "Xóa thất bại!",
-                description: error.response?.data?.message || error.message || "Không thể xóa mã giảm giá. Vui lòng thử lại.",
-                placement: "topRight",
-                duration: 5,
-            });
+            toast.error(error.response?.data?.message || error.message || "Không thể xóa mã giảm giá. Vui lòng thử lại.");
         }
     };
 
@@ -174,30 +165,20 @@ const ListPromotion: React.FC = () => {
             applyFilters(searchText, statusFilter);
             setSelectedRowKeys([]);
             
-            notification.success({
-                message: "Xóa hàng loạt thành công!",
-                description: `Đã xóa ${selectedRowKeys.length} mã giảm giá khỏi hệ thống.`,
-                placement: "topRight",
-                duration: 3,
-            });
+            toast.success(`Đã xóa ${selectedRowKeys.length} mã giảm giá khỏi hệ thống.`);
             
             // Reload lại danh sách
             fetchPromotions();
         } catch (error: any) {
             console.error("Lỗi xóa hàng loạt:", error);
             
-            notification.error({
-                message: "Xóa hàng loạt thất bại!",
-                description: error.response?.data?.message || "Không thể xóa các mã giảm giá. Vui lòng thử lại.",
-                placement: "topRight",
-                duration: 5,
-            });
+            toast.error(error.response?.data?.message || "Không thể xóa các mã giảm giá. Vui lòng thử lại.");
         }
     };
 
     const handleCopyCode = (code: string) => {
         navigator.clipboard.writeText(code);
-        message.success("Đã sao chép mã!");
+        toast.success("Đã sao chép mã!");
     };
 
     const columns: ColumnsType<Promotion> = [

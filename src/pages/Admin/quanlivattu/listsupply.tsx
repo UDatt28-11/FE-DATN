@@ -7,9 +7,7 @@ import {
   Modal,
   Input,
   Tooltip,
-  message,
   Spin,
-  notification,
 } from "antd";
 import {
   PlusOutlined,
@@ -18,8 +16,9 @@ import {
   EyeOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+import { toast } from "react-toastify";
 
-import { Supply } from "../../../types/supply/supplies";
+import { Supply, statusMapToFrontend, SupplyStatusBackend } from "../../../types/supply/supplies";
 import AddSupply from "./addsupply";
 import EditSupply from "./editsupply";
 import ViewSupply from "./viewsupply";
@@ -44,15 +43,24 @@ const ListSupplies: React.FC = () => {
     setLoading(true);
     try {
       const res: any = await supplyService.getAll();
-      setData(res.data ?? res ?? []);
-    } catch {
-      notification.error({
-        message: "Lỗi tải dữ liệu",
-        description: "Không thể tải danh sách vật tư. Vui lòng thử lại!",
-        placement: "topRight",
-      });
+      // Xử lý response có thể có nhiều dạng
+      let data: Supply[] = [];
+      if (Array.isArray(res)) {
+        data = res;
+      } else if (res?.data) {
+        if (Array.isArray(res.data)) {
+          data = res.data;
+        } else if (res.data?.data && Array.isArray(res.data.data)) {
+          data = res.data.data;
+        }
+      }
+      setData(data);
+    } catch (error: any) {
+      console.error("Lỗi khi tải danh sách:", error);
+      toast.error(error.response?.data?.message || "Không thể tải danh sách vật tư!");
+      setData([]);
     } finally {
-      setLoading(false); // ✅ Quan trọng
+      setLoading(false);
     }
   };
 
@@ -77,27 +85,15 @@ const ListSupplies: React.FC = () => {
       okType: "danger",
       cancelText: "Hủy",
       onOk: async () => {
-  return supplyService
-    .remove(id)
-    .then(() => {
-      fetchSupplies();
-      notification.success({
-        message: "Xóa thành công",
-        description: "Vật tư đã được xóa khỏi hệ thống.",
-        placement: "topRight",
-        duration: 2,
-      });
-    })
-    .catch((err: any) => {
-      notification.error({
-        message: "Xóa thất bại",
-        description: err?.response?.data?.message || "Không thể xóa vật tư!",
-        placement: "topRight",
-        duration: 3,
-      });
-    });
-},
-
+        try {
+          await supplyService.remove(id);
+          toast.success("Xóa vật tư thành công!");
+          fetchSupplies();
+        } catch (err: any) {
+          console.error("Lỗi xóa vật tư:", err);
+          toast.error(err?.response?.data?.message || "Không thể xóa vật tư!");
+        }
+      },
     });
   };
 
@@ -119,9 +115,17 @@ const ListSupplies: React.FC = () => {
     {
       title: "Trạng thái",
       dataIndex: "status",
-      render: (status: Supply["status"]) => (
-        <Tag color={status === "Hoạt động" ? "green" : "red"}>{status}</Tag>
-      ),
+      render: (status: Supply["status"]) => {
+        const displayStatus = typeof status === "string" && 
+          (status === "active" || status === "inactive" || status === "discontinued")
+          ? statusMapToFrontend[status as SupplyStatusBackend]
+          : status;
+        return (
+          <Tag color={displayStatus === "Hoạt động" ? "green" : "red"}>
+            {displayStatus}
+          </Tag>
+        );
+      },
     },
     {
       title: "Thao tác",
@@ -200,7 +204,12 @@ const ListSupplies: React.FC = () => {
       <AddSupply
         visible={addModal}
         onCancel={() => setAddModal(false)}
-        onAdd={fetchSupplies}
+        onAdd={(newSupply: Supply) => {
+          fetchSupplies();
+          // Tự động mở modal xem chi tiết sau khi thêm thành công
+          setSelected(newSupply);
+          setViewModal(true);
+        }}
       />
       <EditSupply
         visible={editModal}
@@ -210,8 +219,12 @@ const ListSupplies: React.FC = () => {
       />
       <ViewSupply
         visible={viewModal}
-        onCancel={() => setViewModal(false)}
+        onCancel={() => {
+          setViewModal(false);
+          setSelected(null);
+        }}
         supplyId={selected?.id ?? null}
+        supply={selected ?? null}
       />
     </div>
   );

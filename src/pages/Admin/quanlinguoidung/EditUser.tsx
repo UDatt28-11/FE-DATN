@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Input, Select, message } from "antd";
+import { Modal, Form, Input, Select } from "antd";
+import { toast } from "react-toastify";
 import { User } from "../../../types/user/user";
 
 
@@ -20,7 +21,7 @@ const EditUser: React.FC<Props> = ({ visible, user, onClose, onUpdate }) => {
   const handleOk = () => {
     form.validateFields().then(values => {
       onUpdate({ ...user, ...values });
-      message.success("Cập nhật người dùng thành công!");
+      toast.success("Cập nhật người dùng thành công!");
       onClose();
     });
   };

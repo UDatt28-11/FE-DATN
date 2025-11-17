@@ -11,11 +11,11 @@ import {
   Badge,
   Button,
   DatePicker,
-  message,
   Modal,
   Tag,
   Tooltip,
 } from "antd";
+import { toast } from "react-toastify";
 import {
   EyeOutlined,
   EditOutlined,
@@ -34,12 +34,15 @@ import {
   SyncOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 
 import type { BookingOrder } from "../../../types/booking/booking";
 import { useNavigate } from "react-router-dom";
 import { listBookings, updateBookingStatus } from "../../../service/bookingService";
+import invoiceService from "../../../service/invoiceService";
+import { Popconfirm } from "antd";
 
 
 const { Search } = Input;
@@ -59,15 +62,17 @@ const ListBooking: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [bookingToUpdate, setBookingToUpdate] = useState<BookingOrder | null>(null);
   const [newStatus, setNewStatus] = useState<'confirmed' | 'completed' | 'cancelled'>('confirmed');
+  const [creatingInvoiceId, setCreatingInvoiceId] = useState<number | null>(null);
 
   async function fetchData() {
     setLoading(true);
     try {
-      const { data } = await listBookings({} as any);
+      // Include invoice để kiểm tra đã có hóa đơn chưa
+      const { data } = await listBookings({ include: "invoice" } as any);
       setRows(data);
       applyFilters(searchText, statusFilter, dateRange, data);
     } catch (e) {
-      message.error('Không thể tải dữ liệu');
+      toast.error('Không thể tải dữ liệu');
     } finally {
       setLoading(false);
     }
@@ -194,7 +199,7 @@ const ListBooking: React.FC = () => {
       await updateBookingStatus(bookingToUpdate.id, newStatus);
       
       // Bước 4: Thông báo thành công
-      message.success(`✅ Đã cập nhật trạng thái thành "${newStatus}" thành công!`);
+      toast.success(`✅ Đã cập nhật trạng thái thành "${newStatus}" thành công!`);
       
     } catch (error: any) {
       // Rollback nếu lỗi
@@ -210,7 +215,7 @@ const ListBooking: React.FC = () => {
         )
       );
       
-      message.error(`❌ Không thể cập nhật: ${error.message || 'Lỗi không xác định'}`);
+      toast.error(`❌ Không thể cập nhật: ${error.message || 'Lỗi không xác định'}`);
     } finally {
       setBookingToUpdate(null);
     }
@@ -224,12 +229,12 @@ const ListBooking: React.FC = () => {
    * Xuất dữ liệu booking ra file Excel
    */
   const handleExportExcel = () => {
-    message.info('🔄 Đang chuẩn bị xuất file Excel...');
+    toast.info('🔄 Đang chuẩn bị xuất file Excel...');
     
     // TODO: Implement Excel export logic
     // Có thể sử dụng thư viện như xlsx hoặc exceljs
     setTimeout(() => {
-      message.success('✅ Xuất file Excel thành công!');
+      toast.success('✅ Xuất file Excel thành công!');
     }, 1000);
   };
   
@@ -237,13 +242,48 @@ const ListBooking: React.FC = () => {
    * Xuất dữ liệu booking ra file PDF
    */
   const handleExportPDF = () => {
-    message.info('🔄 Đang chuẩn bị xuất file PDF...');
+    toast.info('🔄 Đang chuẩn bị xuất file PDF...');
     
     // TODO: Implement PDF export logic
     // Có thể sử dụng thư viện như jspdf hoặc pdfmake
     setTimeout(() => {
-      message.success('✅ Xuất file PDF thành công!');
+      toast.success('✅ Xuất file PDF thành công!');
     }, 1000);
+  };
+
+  /**
+   * Tạo hóa đơn tạm tính từ booking
+   */
+  const handleCreateInvoice = async (bookingId: number) => {
+    setCreatingInvoiceId(bookingId);
+    try {
+      const response: any = await invoiceService.createFromBooking(bookingId);
+      
+      // Xử lý response có thể có nhiều dạng
+      let newInvoiceId: number | null = null;
+      if (response?.id) {
+        newInvoiceId = response.id;
+      } else if (response?.data?.id) {
+        newInvoiceId = response.data.id;
+      } else if (response?.data?.data?.id) {
+        newInvoiceId = response.data.data.id;
+      }
+      
+      if (newInvoiceId) {
+        toast.success("Tạo hóa đơn tạm tính thành công!");
+        // Tự động chuyển đến trang xem hóa đơn
+        navigate(`/admin/invoice/view/${newInvoiceId}`);
+      } else {
+        toast.success("Tạo hóa đơn thành công!");
+        // Refresh danh sách
+        fetchData();
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tạo hóa đơn:", error);
+      toast.error(error.response?.data?.message || "Không thể tạo hóa đơn!");
+    } finally {
+      setCreatingInvoiceId(null);
+    }
   };
 
   // ============================================
@@ -367,10 +407,36 @@ const ListBooking: React.FC = () => {
       dataIndex: "total_amount",
       key: "total_amount",
       align: "right" as const,
-      render: (v: number) => `${v?.toLocaleString("vi-VN")} đ`,
+      render: (v: number) => `${(v || 0).toLocaleString("vi-VN")} đ`,
     },
     
-    // Cột 7: Các nút hành động
+    // Cột 7: Hóa đơn
+    {
+      title: "Hóa đơn",
+      key: "invoice",
+      width: 100,
+      render: (_: any, record: BookingOrder) => {
+        const hasInvoice = (record as any).invoice && 
+          ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
+           (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
+        
+        if (hasInvoice) {
+          const invoiceId = Array.isArray((record as any).invoice) 
+            ? (record as any).invoice[0].id 
+            : (record as any).invoice.id;
+          return (
+            <Tag color="success" icon={<FileTextOutlined />}>
+              <a onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)} style={{ cursor: "pointer" }}>
+                Đã có
+              </a>
+            </Tag>
+          );
+        }
+        return <Tag color="default">Chưa có</Tag>;
+      },
+    },
+    
+    // Cột 8: Các nút hành động
     {
       title: "Hành động",
       key: "action",
@@ -409,6 +475,51 @@ const ListBooking: React.FC = () => {
               />
             </Tooltip>
           )}
+
+          {/* Nút tạo hóa đơn tạm tính hoặc xem hóa đơn */}
+          {record.status !== 'cancelled' && (() => {
+            const hasInvoice = (record as any).invoice && 
+              ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
+               (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
+            const invoiceId = hasInvoice 
+              ? (Array.isArray((record as any).invoice) 
+                  ? (record as any).invoice[0].id 
+                  : (record as any).invoice.id)
+              : null;
+
+            if (invoiceId) {
+              return (
+                <Tooltip title="Xem hóa đơn">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<FileTextOutlined />}
+                    onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
+                  />
+                </Tooltip>
+              );
+            }
+
+            return (
+              <Popconfirm
+                title="Tạo hóa đơn tạm tính"
+                description={`Tạo hóa đơn tạm tính cho đặt phòng ${record.code || record.id}?`}
+                onConfirm={() => handleCreateInvoice(record.id)}
+                okText="Tạo"
+                cancelText="Hủy"
+                okType="primary"
+              >
+                <Tooltip title="Tạo hóa đơn tạm tính">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<FileTextOutlined />}
+                    loading={creatingInvoiceId === record.id}
+                  />
+                </Tooltip>
+              </Popconfirm>
+            );
+          })()}
         </Space>
       ),
     },

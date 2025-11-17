@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Modal, Form, Input, InputNumber, Select, message } from "antd";
+import { Modal, Form, Input, InputNumber, Select } from "antd";
+import { toast } from "react-toastify";
 import { Supply } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
 
@@ -27,22 +28,31 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd }) => {
         status: values.status ?? "active", // mặc định active
       };
 
-      // gọi API tạo vật tư
-      const res: any = await supplyService.create(payload);
-      const newSupply: Supply = res.data || res;
+      // gọi API tạo vật tư (service đã xử lý response)
+      let newSupply: Supply = await supplyService.create(payload);
 
-      // truyền lên parent để cập nhật table
-      onAdd(newSupply);
+      // Nếu có ID, gọi lại API để lấy đầy đủ thông tin (bao gồm created_at, updated_at, etc.)
+      if (newSupply?.id) {
+        try {
+          const fullSupply = await supplyService.getById(newSupply.id);
+          newSupply = fullSupply;
+        } catch (err) {
+          console.warn("Không thể lấy đầy đủ thông tin, sử dụng dữ liệu từ response tạo mới");
+        }
+      }
 
-      message.success("Thêm vật tư thành công!");
+      toast.success("Thêm vật tư thành công!");
       form.resetFields();
       onCancel();
+      
+      // Truyền lên parent để cập nhật table và mở modal xem chi tiết
+      onAdd(newSupply);
     } catch (err: any) {
       console.error(err);
       if (err.response?.data?.message) {
-        message.error(`Lỗi: ${err.response.data.message}`);
+        toast.error(`Lỗi: ${err.response.data.message}`);
       } else {
-        message.error("Không thể thêm vật tư!");
+        toast.error("Không thể thêm vật tư!");
       }
     } finally {
       setLoading(false);

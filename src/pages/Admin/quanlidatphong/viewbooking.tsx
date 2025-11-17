@@ -7,10 +7,10 @@ import {
   Space,
   Button,
   Spin,
-  message,
   Table,
   Divider,
 } from "antd";
+import { toast } from "react-toastify";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -22,7 +22,10 @@ import {
   HomeOutlined,
   UserOutlined,
   MailOutlined,
+  FileTextOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
+import { Alert, Popconfirm } from "antd";
 import dayjs from "dayjs";
 
 import type {
@@ -30,12 +33,15 @@ import type {
   BookingDetail,
 } from "../../../types/booking/booking";
 import { getBooking } from "../../../service/bookingService";
+import invoiceService from "../../../service/invoiceService";
 
 const ViewBooking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [booking, setBooking] = useState<BookingOrder | null>(null);
   const [loading, setLoading] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<number | null>(null);
 
   // Load dữ liệu booking khi component mount hoặc id thay đổi
   useEffect(() => {
@@ -47,18 +53,70 @@ const ViewBooking: React.FC = () => {
   const fetchBookingDetail = async (bookingId: number) => {
     try {
       setLoading(true);
-      // Include thêm room và roomType
+      // Include thêm room và roomType, và invoice nếu có
       const data = await getBooking(
         bookingId,
-        "details,details.room,details.room.roomType,details.guests"
+        "details,details.room,details.room.roomType,details.guests,invoice"
       );
       console.log("Booking data:", data); // Log để debug
+      console.log("Booking details:", data.details || data.bookingDetails); // Log để debug
+      
+      // Đảm bảo details được set đúng
+      if (data.bookingDetails && !data.details) {
+        data.details = data.bookingDetails;
+      }
+      
       setBooking(data);
+      
+      // Kiểm tra xem đã có hóa đơn chưa
+      if ((data as any).invoice && Array.isArray((data as any).invoice) && (data as any).invoice.length > 0) {
+        setInvoiceId((data as any).invoice[0].id);
+      } else if ((data as any).invoice && typeof (data as any).invoice === 'object' && (data as any).invoice.id) {
+        setInvoiceId((data as any).invoice.id);
+      } else {
+        setInvoiceId(null);
+      }
     } catch (error: any) {
       console.error("Error fetching booking:", error);
-      message.error("Không thể tải thông tin đặt phòng");
+      toast.error("Không thể tải thông tin đặt phòng");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Tạo hóa đơn từ booking
+  const handleCreateInvoice = async () => {
+    if (!booking) return;
+    
+    setCreatingInvoice(true);
+    try {
+      const response: any = await invoiceService.createFromBooking(booking.id);
+      
+      // Xử lý response có thể có nhiều dạng
+      let newInvoiceId: number | null = null;
+      if (response?.id) {
+        newInvoiceId = response.id;
+      } else if (response?.data?.id) {
+        newInvoiceId = response.data.id;
+      } else if (response?.data?.data?.id) {
+        newInvoiceId = response.data.data.id;
+      }
+      
+      if (newInvoiceId) {
+        setInvoiceId(newInvoiceId);
+        toast.success("Tạo hóa đơn tạm tính thành công!");
+        // Tự động chuyển đến trang xem hóa đơn
+        navigate(`/admin/invoice/view/${newInvoiceId}`);
+      } else {
+        toast.success("Tạo hóa đơn thành công!");
+        // Refresh để lấy invoice ID
+        fetchBookingDetail(booking.id);
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tạo hóa đơn:", error);
+      toast.error(error.response?.data?.message || "Không thể tạo hóa đơn!");
+    } finally {
+      setCreatingInvoice(false);
     }
   };
 
@@ -93,50 +151,91 @@ const ViewBooking: React.FC = () => {
   const detailColumns = [
     {
       title: "Tên phòng",
-      dataIndex: "room_name",
       key: "room_name",
-      render: (name: string) => (
-        <Space>
-          <HomeOutlined style={{ color: "#1890ff" }} />
-          {name || "N/A"}
+      render: (_: any, record: BookingDetail) => (
+        <Space direction="vertical" size={0}>
+          <Space>
+            <HomeOutlined style={{ color: "#1890ff" }} />
+            <strong>{record.room?.name || record.room_name || "N/A"}</strong>
+          </Space>
+          {record.room?.description && (
+            <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: 20 }}>
+              {record.room.description}
+            </span>
+          )}
         </Space>
       ),
     },
     {
-      title: "Loại phòng", // Thêm cột mới
+      title: "Loại phòng",
       key: "room_type",
       render: (_: any, record: BookingDetail) => (
-        <Tag color="blue">{record.room?.roomType?.name || "N/A"}</Tag>
+        <Space direction="vertical" size={0}>
+          <Tag color="blue">{record.room?.roomType?.name || "N/A"}</Tag>
+          {record.room?.price_per_night && (
+            <span style={{ fontSize: 12, color: "#52c41a" }}>
+              {record.room.price_per_night.toLocaleString("vi-VN")} đ/đêm
+            </span>
+          )}
+        </Space>
       ),
     },
     {
       title: "Check-in",
       dataIndex: "check_in_date",
       key: "check_in_date",
-      render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
+      render: (date: string) => (
+        <Space>
+          <CalendarOutlined style={{ color: "#1890ff" }} />
+          <strong>{dayjs(date).format("DD/MM/YYYY")}</strong>
+        </Space>
+      ),
     },
     {
       title: "Check-out",
       dataIndex: "check_out_date",
       key: "check_out_date",
-      render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
+      render: (date: string) => (
+        <Space>
+          <CalendarOutlined style={{ color: "#ff4d4f" }} />
+          <strong>{dayjs(date).format("DD/MM/YYYY")}</strong>
+        </Space>
+      ),
     },
     {
       title: "Số đêm",
       key: "nights",
+      align: "center" as const,
       render: (_: any, record: BookingDetail) => {
         const checkIn = dayjs(record.check_in_date);
         const checkOut = dayjs(record.check_out_date);
-        return checkOut.diff(checkIn, "day");
+        const nights = checkOut.diff(checkIn, "day");
+        return (
+          <Tag color="orange" style={{ fontSize: 14, padding: "4px 12px" }}>
+            {nights} đêm
+          </Tag>
+        );
       },
     },
     {
       title: "Số khách",
       key: "guests",
       render: (_: any, record: BookingDetail) => (
-        <Space>
-          <UserOutlined />
-          {record.num_adults} người lớn, {record.num_children} trẻ em
+        <Space direction="vertical" size={0}>
+          <Space>
+            <UserOutlined style={{ color: "#1890ff" }} />
+            <span><strong>{record.num_adults}</strong> người lớn</span>
+          </Space>
+          {record.num_children > 0 && (
+            <Space style={{ marginLeft: 20 }}>
+              <span><strong>{record.num_children}</strong> trẻ em</span>
+            </Space>
+          )}
+          {record.room?.max_adults && (
+            <span style={{ fontSize: 11, color: "#8c8c8c" }}>
+              Tối đa: {record.room.max_adults} người lớn, {record.room.max_children || 0} trẻ em
+            </span>
+          )}
         </Space>
       ),
     },
@@ -144,7 +243,14 @@ const ViewBooking: React.FC = () => {
       title: "Giá phòng",
       dataIndex: "sub_total",
       key: "sub_total",
-      render: (amount: number) => `${amount.toLocaleString("vi-VN")} đ`,
+      align: "right" as const,
+      render: (amount: number) => (
+        <Space direction="vertical" size={0} align="end">
+          <span style={{ fontSize: 16, fontWeight: "bold", color: "#52c41a" }}>
+            {(amount || 0).toLocaleString("vi-VN")} đ
+          </span>
+        </Space>
+      ),
     },
     {
       title: "Trạng thái",
@@ -197,14 +303,62 @@ const ViewBooking: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      {/* Nút quay lại */}
-      <Button
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate("/admin/booking")}
-        style={{ marginBottom: 16 }}
-      >
-        Quay lại danh sách
-      </Button>
+      {/* Nút quay lại và tạo hóa đơn */}
+      <Space style={{ marginBottom: 16 }}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/admin/booking")}
+        >
+          Quay lại danh sách
+        </Button>
+        
+        {invoiceId ? (
+          <Button
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
+          >
+            Xem hóa đơn
+          </Button>
+        ) : (
+          <Popconfirm
+            title="Tạo hóa đơn tạm tính"
+            description={`Bạn có chắc muốn tạo hóa đơn tạm tính cho đặt phòng ${booking.code}?`}
+            onConfirm={handleCreateInvoice}
+            okText="Tạo"
+            cancelText="Hủy"
+            okType="primary"
+          >
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              loading={creatingInvoice}
+            >
+              Tạo hóa đơn tạm tính
+            </Button>
+          </Popconfirm>
+        )}
+      </Space>
+
+      {/* Thông báo nếu đã có hóa đơn */}
+      {invoiceId && (
+        <Alert
+          message="Đã có hóa đơn"
+          description={`Đặt phòng này đã có hóa đơn. Nhấn "Xem hóa đơn" để xem chi tiết.`}
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          action={
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
+            >
+              Xem hóa đơn
+            </Button>
+          }
+        />
+      )}
 
       {/* Card thông tin chính */}
       <Card
@@ -300,18 +454,125 @@ const ViewBooking: React.FC = () => {
       </Card>
 
       {/* Bảng chi tiết phòng */}
-      {booking.details && booking.details.length > 0 && (
-        <>
-          <Divider orientation="left">Chi tiết phòng đặt</Divider>
-          <Table
-            columns={detailColumns}
-            dataSource={booking.details}
-            rowKey="id"
-            pagination={false}
-            bordered
-          />
-        </>
-      )}
+      {(() => {
+        const details = booking.details || (booking as any).bookingDetails || [];
+        console.log("Details to render:", details);
+        
+        if (!details || details.length === 0) {
+          return (
+            <Card>
+              <div style={{ textAlign: "center", padding: "40px" }}>
+                <HomeOutlined style={{ fontSize: 48, color: "#d9d9d9", marginBottom: 16 }} />
+                <p style={{ color: "#8c8c8c" }}>Chưa có thông tin phòng đặt</p>
+              </div>
+            </Card>
+          );
+        }
+        
+        return (
+          <>
+            <Divider orientation="left">
+              <Space>
+                <HomeOutlined style={{ color: "#1890ff" }} />
+                <span style={{ fontSize: 16, fontWeight: 500 }}>
+                  Chi tiết phòng đặt ({details.length} phòng)
+                </span>
+              </Space>
+            </Divider>
+            <Card>
+              <Table
+                columns={detailColumns}
+                dataSource={details}
+                rowKey="id"
+                pagination={false}
+                bordered
+                size="middle"
+              />
+            </Card>
+          </>
+        );
+      })()}
+
+          {/* Hiển thị thông tin khách đã check-in nếu có */}
+          {(() => {
+            const details = booking.details || (booking as any).bookingDetails || [];
+            return details.some((detail: BookingDetail) => 
+              detail.guests && detail.guests.length > 0
+            );
+          })() && (
+            <>
+              <Divider orientation="left">
+                <Space>
+                  <UserOutlined style={{ color: "#1890ff" }} />
+                  <span style={{ fontSize: 16, fontWeight: 500 }}>
+                    Danh sách khách đã check-in
+                  </span>
+                </Space>
+              </Divider>
+              <Card>
+                {((booking.details || (booking as any).bookingDetails) || []).map((detail: BookingDetail) => {
+                  if (!detail.guests || detail.guests.length === 0) return null;
+                  
+                  return (
+                    <Card
+                      key={detail.id}
+                      type="inner"
+                      title={
+                        <Space>
+                          <HomeOutlined />
+                          <span>{detail.room?.name || detail.room_name || `Phòng #${detail.id}`}</span>
+                        </Space>
+                      }
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Table
+                        columns={[
+                          {
+                            title: "Họ tên",
+                            dataIndex: "full_name",
+                            key: "full_name",
+                          },
+                          {
+                            title: "Ngày sinh",
+                            dataIndex: "date_of_birth",
+                            key: "date_of_birth",
+                            render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY") : "N/A",
+                          },
+                          {
+                            title: "Loại giấy tờ",
+                            dataIndex: "identity_type",
+                            key: "identity_type",
+                            render: (type: string) => {
+                              const typeMap: any = {
+                                cccd: "CCCD",
+                                passport: "Hộ chiếu",
+                              };
+                              return typeMap[type] || type || "N/A";
+                            },
+                          },
+                          {
+                            title: "Số giấy tờ",
+                            dataIndex: "identity_number",
+                            key: "identity_number",
+                          },
+                          {
+                            title: "Thời gian check-in",
+                            dataIndex: "check_in_time",
+                            key: "check_in_time",
+                            render: (time: string) => time ? dayjs(time).format("DD/MM/YYYY HH:mm") : "N/A",
+                          },
+                        ]}
+                        dataSource={detail.guests}
+                        rowKey="id"
+                        pagination={false}
+                        size="small"
+                      />
+                    </Card>
+                  );
+                })}
+              </Card>
+            </>
+          )}
     </div>
   );
 };

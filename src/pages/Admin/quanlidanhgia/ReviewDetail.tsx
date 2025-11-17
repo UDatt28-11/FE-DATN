@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Spin, Rate, Image, Tag, message, Button } from "antd";
+import { Card, Spin, Rate, Image, Tag, Button } from "antd";
+import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import reviewService from "../../../service/reviewService";
 import { Review } from "../../../types/review/review";
@@ -20,7 +21,7 @@ const ReviewDetail: React.FC = () => {
       const data = await reviewService.getById(id); // gọi API
       setReview(data);
     } catch (error: any) {
-      message.error("Lỗi khi tải chi tiết đánh giá: " + error.message);
+      toast.error("Lỗi khi tải chi tiết đánh giá: " + error.message);
     } finally {
       setLoading(false);
     }

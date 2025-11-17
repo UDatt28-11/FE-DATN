@@ -18,7 +18,7 @@ const supplyService = {
   // Lấy chi tiết 1 vật tư
   async getById(id: number | string): Promise<Supply> {
     const res = await api.get(`/supplies/${id}`);
-    return res.data.data || res.data;
+    return res.data?.data || res.data || res;
   },
 
   // --- 🔒 Protected API (cần token + role: staff/admin) ---
@@ -44,13 +44,14 @@ const supplyService = {
   // Tạo mới vật tư
   async create(data: Partial<Supply>): Promise<Supply> {
     const res = await api.post("/supplies", data);
-     return res.data.data;
+    // Xử lý response có thể có nhiều dạng
+    return res.data?.data || res.data || res;
   },
 
   // Cập nhật vật tư
   async update(id: number | string, data: Partial<Supply>): Promise<Supply> {
     const res = await api.put(`/supplies/${id}`, data);
-    return res.data;
+    return res.data?.data || res.data || res;
   },
 
   // Xóa vật tư

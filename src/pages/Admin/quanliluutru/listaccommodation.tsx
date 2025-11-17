@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Table, Button, Space, Input, Select, Tag, Modal, Form, message, Card, Row, Col, Statistic, Avatar, Badge } from "antd";
+import { Table, Button, Space, Input, Select, Tag, Modal, Form, Card, Row, Col, Statistic, Avatar, Badge } from "antd";
+import { toast } from "react-toastify";
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, HomeOutlined, UserOutlined, SearchOutlined, DollarOutlined, CheckCircleOutlined, ClockCircleOutlined, ToolOutlined, CalendarOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { Accommodation } from "../../../types/accommodation/accommodation";
@@ -109,7 +110,7 @@ const ListAccommodation: React.FC = () => {
                 const updatedData = data.filter((item) => item.id !== id);
                 setData(updatedData);
                 applyFilters(searchText, statusFilter);
-                message.success("Đã xóa phòng thành công!");
+                toast.success("Đã xóa phòng thành công!");
             },
         });
     };

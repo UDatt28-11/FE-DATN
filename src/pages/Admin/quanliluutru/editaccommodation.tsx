@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Input, Select, message, Row, Col } from "antd";
+import { Modal, Form, Input, Select, Row, Col } from "antd";
+import { toast } from "react-toastify";
 import { Accommodation } from "../../../types/accommodation/accommodation";
 
 
@@ -23,7 +24,7 @@ const EditAccommodation: React.FC<Props> = ({ visible, accommodation, onCancel, 
         if (accommodation) {
             const updated = { ...accommodation, ...values, updatedAt: new Date().toISOString() };
             onUpdate(updated);
-            message.success("Cập nhật phòng thành công!");
+            toast.success("Cập nhật phòng thành công!");
             onCancel();
         }
     };

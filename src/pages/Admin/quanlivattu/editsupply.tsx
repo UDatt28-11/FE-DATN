@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Form, Input, InputNumber, Select, message } from "antd";
-import { Supply, SupplyStatus } from "../../../types/supply/supplies";
+import { Modal, Form, Input, InputNumber, Select } from "antd";
+import { toast } from "react-toastify";
+import { Supply, SupplyStatus, statusMapToBackend, statusMapToFrontend, SupplyStatusBackend } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
-
-// Map frontend <-> backend status
-const statusMapToBackend: Record<SupplyStatus, "active" | "inactive"> = {
-  "Hoạt động": "active",
-  "Ngưng hoạt động": "inactive",
-};
-const statusMapToFrontend: Record<"active" | "inactive", SupplyStatus> = {
-  active: "Hoạt động",
-  inactive: "Ngưng hoạt động",
-};
 
 interface EditSupplyProps {
   visible: boolean;
@@ -31,9 +22,15 @@ const EditSupply: React.FC<EditSupplyProps> = ({
 
   useEffect(() => {
     if (supply) {
+      // Map status từ backend về frontend nếu cần
+      const displayStatus = typeof supply.status === "string" && 
+        (supply.status === "active" || supply.status === "inactive" || supply.status === "discontinued")
+        ? statusMapToFrontend[supply.status as SupplyStatusBackend]
+        : supply.status;
+      
       form.setFieldsValue({
         ...supply,
-        status: supply.status,
+        status: displayStatus,
       });
     } else {
       form.resetFields();
@@ -57,18 +54,21 @@ const EditSupply: React.FC<EditSupplyProps> = ({
       const res: any = await supplyService.update(supply.id, payload);
 
       // Map status backend về frontend
+      const backendStatus = res.data?.data?.status || res.data?.status;
       const updatedSupply: Supply = {
-        ...res.data.data,
-        status: statusMapToFrontend[res.data.status as "active" | "inactive"],
+        ...(res.data?.data || res.data),
+        status: backendStatus && (backendStatus === "active" || backendStatus === "inactive" || backendStatus === "discontinued")
+          ? statusMapToFrontend[backendStatus as SupplyStatusBackend]
+          : backendStatus,
       };
 
       onUpdate(updatedSupply);
-      message.success("Cập nhật vật tư thành công!");
+      toast.success("Cập nhật vật tư thành công!");
       onCancel();
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.message || "Không thể cập nhật vật tư!";
-      message.error(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

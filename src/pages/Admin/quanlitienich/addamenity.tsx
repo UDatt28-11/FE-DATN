@@ -1,5 +1,6 @@
 import React from "react";
-import { Modal, Form, Input, Select, message } from "antd";
+import { Modal, Form, Input, Select } from "antd";
+import { toast } from "react-toastify";
 import { Amenity } from "../../../types/amenity/amenity";
 
 
@@ -21,7 +22,7 @@ const AddAmenity: React.FC<Props> = ({ visible, onCancel, onAdd }) => {
                 updatedAt: new Date().toISOString().split("T")[0]
             };
             onAdd(newAmenity);
-            message.success("Thêm tiện ích thành công!");
+            toast.success("Thêm tiện ích thành công!");
             form.resetFields();
             onCancel();
         });

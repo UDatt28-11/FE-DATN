@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Input, Select, message } from "antd";
+import { Modal, Form, Input, Select } from "antd";
+import { toast } from "react-toastify";
 import { Amenity } from "../../../types/amenity/amenity";
 
 
@@ -22,7 +23,7 @@ const EditAmenity: React.FC<Props> = ({ visible, onCancel, amenity, onUpdate }) 
             if(amenity){
                 const updated = {...amenity, ...values, updatedAt: new Date().toISOString().split("T")[0]};
                 onUpdate(updated);
-                message.success("Cập nhật tiện ích thành công!");
+                toast.success("Cập nhật tiện ích thành công!");
                 form.resetFields();
                 onCancel();
             }

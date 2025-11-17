@@ -182,19 +182,10 @@ export interface UpdateInvoiceData {
   customer_email?: string;
   customer_phone?: string;
   customer_address?: string;
-  issue_date?: string;
   due_date?: string;
   payment_method?: string;
   notes?: string;
   terms_conditions?: string;
-  items?: {
-    id?: number;
-    item_type: string;
-    description: string;
-    quantity: number;
-    unit_price: number;
-    tax_rate?: number;
-  }[];
 }
 
 export interface MergeInvoicesData {
@@ -224,3 +215,6 @@ export interface ApplyRefundPolicyData {
   cancellation_date: string;
   reason?: string;
 }
+
+
+

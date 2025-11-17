@@ -11,9 +11,9 @@ import {
     Input,
     Space,
     Tabs,
-    message,
     Modal,
 } from "antd";
+import { toast } from "react-toastify";
 import {
     HomeOutlined,
     GiftOutlined,
@@ -146,7 +146,7 @@ const PromotionsPage: React.FC = () => {
     const handleCopyCode = (code: string) => {
         navigator.clipboard.writeText(code);
         setCopiedCode(code);
-        message.success(`Đã sao chép mã: ${code}`);
+        toast.success(`Đã sao chép mã: ${code}`);
 
         setTimeout(() => {
             setCopiedCode("");
