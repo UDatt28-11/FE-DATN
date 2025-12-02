@@ -1,0 +1,55 @@
+/* Common styles */
+.container {
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 1200px;
+}
+
+.section-padding {
+  padding: 100px 0;
+}
+
+/* Override Ant Design styles for custom primary color */
+.ant-btn-primary {
+  background-color: #cb8670 !important;
+  border-color: #cb8670 !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #a96d5a !important;
+  border-color: #a96d5a !important;
+}
+
+.ant-menu-item-selected {
+  color: #60a5fa !important;
+  background-color: rgba(96, 165, 250, 0.15) !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item-selected a {
+  color: #60a5fa !important;
+}
+
+/* Sidebar menu active item styling */
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: rgba(96, 165, 250, 0.2) !important;
+  color: #93c5fd !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected::after {
+  border-right-color: #60a5fa !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: rgba(96, 165, 250, 0.1) !important;
+  color: #93c5fd !important;
+}
+
+/* Remove underline from sidebar menu links */
+.ant-menu-dark .ant-menu-item a,
+.ant-menu-dark .ant-menu-item a:hover,
+.ant-menu-dark .ant-menu-item-selected a {
+  text-decoration: none !important;
+}
