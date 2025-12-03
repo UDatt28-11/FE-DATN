@@ -11,6 +11,7 @@ import About from "../pages/About";
 import Services from "../pages/Clients/Services/Services";
 import RoomList from "../pages/Clients/Rooms/RoomList";
 import RoomDetailPage from "../pages/Clients/Rooms/RoomDetailPage";
+import RoomTypeDetailPage from "../pages/Clients/Rooms/RoomTypeDetailPage";
 import BookingInfoPage from "../pages/Clients/Booking/BookingInfoPage";
 import PaymentPage from "../pages/Clients/Booking/PaymentPage";
 import PaymentSuccessPage from "../pages/Clients/Booking/PaymentSuccessPage";
@@ -79,6 +80,10 @@ export const clientRoutes: RouteObject[] = [
   {
     path: "/rooms/:id",
     element: <ClientLayout><RoomDetailPage /></ClientLayout>,
+  },
+  {
+    path: "/room-types/:id",
+    element: <ClientLayout><RoomTypeDetailPage /></ClientLayout>,
   },
   {
     path: "/booking/info",

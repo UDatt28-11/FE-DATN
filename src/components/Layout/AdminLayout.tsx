@@ -32,6 +32,7 @@ import {
   FileTextOutlined,
   IdcardOutlined,
   CustomerServiceOutlined,
+  LoginOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -108,12 +109,6 @@ const AdminLayout: React.FC = () => {
       icon: <IdcardOutlined />,
       label: "Yêu cầu check-in",
       path: "/admin/check-in-requests",
-    },
-    {
-      key: "invoice",
-      icon: <FileTextOutlined />,
-      label: "Quản lý hóa đơn",
-      path: "/admin/invoice",
     },
     {
       key: "promotionManagement",

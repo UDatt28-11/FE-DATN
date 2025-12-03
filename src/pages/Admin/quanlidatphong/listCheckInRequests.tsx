@@ -5,7 +5,6 @@ import {
     Row,
     Col,
     Space,
-    Input,
     Select,
     Button,
     Tag,
@@ -21,12 +20,13 @@ import {
     EyeOutlined,
     CheckCircleOutlined,
     CloseCircleOutlined,
-    SearchOutlined,
     ReloadOutlined,
     IdcardOutlined,
     UserOutlined,
     CalendarOutlined,
     PhoneOutlined,
+    LoginOutlined,
+    HomeOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -38,7 +38,6 @@ import {
 import type { Pagination, BookingOrder } from '../../../types/booking/booking';
 import AdminCheckInModal from '../../../components/Booking/AdminCheckInModal';
 
-const { Search } = Input;
 const { TextArea } = AntdInput;
 const { Option } = Select;
 
@@ -53,6 +52,7 @@ const ListCheckInRequests: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
     const [checkInModalVisible, setCheckInModalVisible] = useState(false);
     const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<BookingOrder | null>(null);
+    const [selectedBookingDetailId, setSelectedBookingDetailId] = useState<number | undefined>(undefined);
 
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
@@ -63,7 +63,113 @@ const ListCheckInRequests: React.FC = () => {
                 status: status === 'all' ? undefined : (status as any),
                 include_ready_bookings: true, // Bao gồm các booking đã confirmed và sẵn sàng check-in
             });
-            setRequests(result.data);
+            
+            // 1) Chuẩn hóa dữ liệu ready_booking: đảm bảo booking.details có guests
+            const normalized = (result.data as any[]).map((req) => {
+                if (req.type === 'ready_booking' || req.status === 'ready_for_checkin') {
+                    const booking = req.booking_order || req.bookingOrder;
+                    if (booking && booking.details) {
+                        booking.details = booking.details.map((detail: any) => ({
+                            ...detail,
+                            guests: detail.guests || detail.checkedInGuests || [],
+                        }));
+                        req.booking_order = booking;
+                    }
+                }
+                return req;
+            });
+
+            // 2) Gộp các ready_booking theo booking_order_id để tránh trùng lặp mỗi phòng 1 dòng
+            const groupedReadyBookings = new Map<number, any>();
+            const finalList: any[] = [];
+
+            normalized.forEach((req) => {
+                if (req.type === 'ready_booking' || req.status === 'ready_for_checkin') {
+                    const booking = req.booking_order || req.bookingOrder;
+                    const bookingId: number | undefined =
+                        booking?.id ?? req.booking_order_id ?? req.bookingOrderId;
+
+                    if (!bookingId) {
+                        // Nếu không xác định được bookingId thì push thẳng
+                        finalList.push(req);
+                        return;
+                    }
+
+                    const existing = groupedReadyBookings.get(bookingId);
+                    if (!existing) {
+                        // Clone record làm đại diện cho booking này
+                        // Đảm bảo map guests từ checkedInGuests
+                        const clonedDetails = Array.isArray(booking?.details)
+                            ? booking.details.map((detail: any) => ({
+                                ...detail,
+                                guests: detail.guests || detail.checkedInGuests || [],
+                            }))
+                            : [];
+                        
+                        const clone = {
+                            ...req,
+                            booking_order: {
+                                ...booking,
+                                details: clonedDetails,
+                            },
+                        };
+                        groupedReadyBookings.set(bookingId, clone);
+                    } else {
+                        // Merge thêm các details mới (nếu có) để tránh thiếu phòng
+                        const existingBooking = existing.booking_order || existing.bookingOrder;
+                        const existingDetails: any[] = Array.isArray(existingBooking.details)
+                            ? existingBooking.details
+                            : [];
+                        const newDetails: any[] = Array.isArray(booking?.details)
+                            ? booking.details
+                            : [];
+
+                        // Merge details: cập nhật details đã có và thêm details mới
+                        newDetails.forEach((newDetail) => {
+                            const existingDetailIndex = existingDetails.findIndex((d) => d.id === newDetail.id);
+                            if (existingDetailIndex >= 0) {
+                                // Cập nhật detail đã có với guests mới từ backend
+                                // Ưu tiên checkedInGuests mới từ backend (có thể đã được cập nhật sau check-in)
+                                const newGuests = newDetail.checkedInGuests || newDetail.guests || [];
+                                const existingGuests = existingDetails[existingDetailIndex].guests || [];
+                                
+                                // Nếu backend trả về checkedInGuests mới, dùng nó (có thể đã check-in)
+                                // Nếu không có, giữ nguyên guests cũ
+                                const finalGuests = newGuests.length > 0 ? newGuests : existingGuests;
+                                
+                                existingDetails[existingDetailIndex] = {
+                                    ...existingDetails[existingDetailIndex],
+                                    ...newDetail, // Cập nhật tất cả fields từ backend
+                                    guests: finalGuests, // Đảm bảo guests được cập nhật
+                                    checkedInGuests: newDetail.checkedInGuests || existingDetails[existingDetailIndex].checkedInGuests,
+                                };
+                            } else {
+                                // Thêm detail mới
+                                existingDetails.push({
+                                    ...newDetail,
+                                    guests: newDetail.guests || newDetail.checkedInGuests || [],
+                                });
+                            }
+                        });
+
+                        existing.booking_order = {
+                            ...existingBooking,
+                            details: existingDetails,
+                        };
+                        groupedReadyBookings.set(bookingId, existing);
+                    }
+                } else {
+                    // Các CheckInRequest bình thường giữ nguyên
+                    finalList.push(req);
+                }
+            });
+
+            // Thêm các ready_booking đã gộp vào danh sách cuối cùng
+            groupedReadyBookings.forEach((value) => {
+                finalList.push(value);
+            });
+
+            setRequests(finalList);
             setPagination(result.pagination);
         } catch (error: any) {
             // Không log error cho 401/403 vì axios interceptor sẽ xử lý redirect
@@ -176,9 +282,23 @@ const ListCheckInRequests: React.FC = () => {
         {
             title: 'Phòng',
             key: 'room',
-            render: (_: any, record: CheckInRequest) => (
-                <span>{record.booking_detail?.room?.name || 'N/A'}</span>
-            ),
+            render: (_: any, record: any) => {
+                // Nếu là booking sẵn sàng check-in, hiển thị số phòng
+                if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
+                    const booking = record.booking_order || record.bookingOrder;
+                    const detailsCount = booking?.details?.length || 0;
+                    return (
+                        <Space>
+                            <HomeOutlined />
+                            <span>{detailsCount} phòng</span>
+                        </Space>
+                    );
+                }
+                // CheckInRequest thông thường
+                return (
+                    <span>{record.booking_detail?.room?.name || 'N/A'}</span>
+                );
+            },
         },
         {
             title: 'Trạng thái',
@@ -228,14 +348,16 @@ const ListCheckInRequests: React.FC = () => {
                             >
                                 Xem
                             </Button>
+                            {/* Nút này sẽ bị ẩn khi có expandable row, nhưng giữ lại để tương thích */}
                             <Button
                                 type="primary"
-                                icon={<CheckCircleOutlined />}
+                                icon={<LoginOutlined />}
                                 onClick={() => {
                                     // Lấy booking_order từ record
                                     const booking = record.booking_order || record.bookingOrder;
                                     if (booking) {
                                         setSelectedBookingForCheckIn(booking);
+                                        setSelectedBookingDetailId(undefined); // Check-in phòng đầu tiên
                                         setCheckInModalVisible(true);
                                     } else {
                                         message.error('Không tìm thấy thông tin booking');
@@ -243,7 +365,7 @@ const ListCheckInRequests: React.FC = () => {
                                 }}
                                 style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
                             >
-                                Check-in
+                                Check-in tất cả
                             </Button>
                         </Space>
                     );
@@ -329,8 +451,155 @@ const ListCheckInRequests: React.FC = () => {
                 <Table
                     columns={columns}
                     dataSource={requests}
-                    rowKey="id"
+                    rowKey={(record: any) => {
+                        // Nếu là ready_booking, dùng booking_order_id làm key
+                        if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
+                            return `ready_${record.booking_order?.id || record.booking_order_id}`;
+                        }
+                        return record.id;
+                    }}
                     loading={loading}
+                    expandable={{
+                        expandedRowRender: (record: any) => {
+                            // Chỉ expand cho ready_bookings
+                            if (record.type !== 'ready_booking' && record.status !== 'ready_for_checkin') {
+                                return null;
+                            }
+
+                            const booking = record.booking_order || record.bookingOrder;
+                            const details = booking?.details || [];
+
+                            if (details.length === 0) {
+                                return <div style={{ padding: '16px' }}>Không có thông tin phòng</div>;
+                            }
+
+                            // Columns cho bảng phòng
+                            const roomColumns = [
+                                {
+                                    title: 'Phòng',
+                                    key: 'room',
+                                    render: (_: any, detail: any) => (
+                                        <Space>
+                                            <HomeOutlined style={{ color: '#1890ff' }} />
+                                            <span style={{ fontWeight: 500 }}>
+                                                {detail.room?.name || 'N/A'}
+                                            </span>
+                                            {detail.room?.roomType && (
+                                                <Tag color="blue">{detail.room.roomType.name}</Tag>
+                                            )}
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Check-in',
+                                    dataIndex: 'check_in_date',
+                                    key: 'check_in_date',
+                                    render: (date: string) => (
+                                        <Space>
+                                            <CalendarOutlined style={{ color: '#52c41a' }} />
+                                            <span>{dayjs(date).format('DD/MM/YYYY')}</span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Check-out',
+                                    dataIndex: 'check_out_date',
+                                    key: 'check_out_date',
+                                    render: (date: string) => (
+                                        <Space>
+                                            <CalendarOutlined style={{ color: '#ff4d4f' }} />
+                                            <span>{dayjs(date).format('DD/MM/YYYY')}</span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Số khách',
+                                    key: 'guests',
+                                    render: (_: any, detail: any) => (
+                                        <Space>
+                                            <UserOutlined />
+                                            <span>
+                                                {detail.num_adults || 0} người lớn
+                                                {detail.num_children ? `, ${detail.num_children} trẻ em` : ''}
+                                            </span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Trạng thái',
+                                    key: 'status',
+                                    render: (_: any, detail: any) => {
+                                        // Kiểm tra cả guests và checkedInGuests để đảm bảo phát hiện đúng trạng thái check-in
+                                        const checkedInGuests = detail.guests || detail.checkedInGuests || [];
+                                        const isCheckedIn = checkedInGuests.length > 0;
+
+                                        return (
+                                            <Space>
+                                                {isCheckedIn ? (
+                                                    <>
+                                                        <Badge status="success" />
+                                                        <Tag color="success">
+                                                            Đã check-in ({checkedInGuests.length} khách)
+                                                        </Tag>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Badge status="warning" />
+                                                        <Tag color="warning">Chưa check-in</Tag>
+                                                    </>
+                                                )}
+                                            </Space>
+                                        );
+                                    },
+                                },
+                                {
+                                    title: 'Thao tác',
+                                    key: 'action',
+                                    render: (_: any, detail: any) => {
+                                        // Kiểm tra cả guests và checkedInGuests để đảm bảo phát hiện đúng trạng thái check-in
+                                        const checkedInGuests = detail.guests || detail.checkedInGuests || [];
+                                        const isCheckedIn = checkedInGuests.length > 0;
+
+                                        return (
+                                            <Button
+                                                type="primary"
+                                                icon={<LoginOutlined />}
+                                                onClick={() => {
+                                                    const booking = record.booking_order || record.bookingOrder;
+                                                    if (booking) {
+                                                        setSelectedBookingForCheckIn(booking);
+                                                        setSelectedBookingDetailId(detail.id);
+                                                        setCheckInModalVisible(true);
+                                                    }
+                                                }}
+                                                disabled={isCheckedIn}
+                                                style={{
+                                                    backgroundColor: isCheckedIn ? undefined : '#52c41a',
+                                                    borderColor: isCheckedIn ? undefined : '#52c41a',
+                                                }}
+                                            >
+                                                {isCheckedIn ? 'Đã check-in' : 'Check-in'}
+                                            </Button>
+                                        );
+                                    },
+                                },
+                            ];
+
+                            return (
+                                <Table
+                                    columns={roomColumns}
+                                    dataSource={details}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                />
+                            );
+                        },
+                        rowExpandable: (record: any) => {
+                            // Chỉ expand cho ready_bookings
+                            return record.type === 'ready_booking' || record.status === 'ready_for_checkin';
+                        },
+                    }}
                     pagination={{
                         current: pagination?.page || 1,
                         pageSize: pagination?.per_page || 15,
@@ -488,15 +757,21 @@ const ListCheckInRequests: React.FC = () => {
             <AdminCheckInModal
                 open={checkInModalVisible}
                 booking={selectedBookingForCheckIn}
+                bookingDetailId={selectedBookingDetailId}
                 onCancel={() => {
                     setCheckInModalVisible(false);
                     setSelectedBookingForCheckIn(null);
+                    setSelectedBookingDetailId(undefined);
                 }}
                 onSuccess={() => {
                     message.success('Check-in thành công!');
                     setCheckInModalVisible(false);
                     setSelectedBookingForCheckIn(null);
-                    fetchData(pagination?.page || 1, statusFilter);
+                    setSelectedBookingDetailId(undefined);
+                    // Đợi một chút để backend kịp cập nhật, rồi fetch lại dữ liệu
+                    setTimeout(() => {
+                        fetchData(pagination?.page || 1, statusFilter);
+                    }, 500);
                 }}
             />
         </div>

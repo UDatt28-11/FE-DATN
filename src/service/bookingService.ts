@@ -702,3 +702,24 @@ export async function getUserInvoice(invoiceId: number) {
     throw error;
   }
 }
+
+// Get checked-in guests (Quản lý lưu trú)
+export async function getCheckedInGuests(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  booking_id?: number;
+  room_id?: number;
+}) {
+  const { data } = await api.get("/admin/checked-in-guests", {
+    params: {
+      ...params,
+      _t: Date.now(),
+    },
+  });
+  
+  return {
+    data: Array.isArray(data.data) ? data.data : [],
+    pagination: data.meta?.pagination,
+  };
+}

@@ -18,6 +18,7 @@ import {
     Spin,
     message,
     Input,
+    InputNumber,
     Pagination,
     DatePicker,
     Badge,
@@ -25,6 +26,7 @@ import {
     List,
     Modal,
     Descriptions,
+    Avatar,
 } from "antd";
 import {
     HomeOutlined,
@@ -48,7 +50,7 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
 // import { getRooms, getRoomById } from "../../../service/room"; // Không dùng nữa, đã chuyển sang RoomType
-import { getRoomTypesWithDetails, type RoomTypeWithDetails } from "../../../service/roomType";
+import { getRoomTypesWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";
 import api from "../../../api/axios";
 // import type { Room } from "../../../types/room/room"; // Không dùng nữa
 // import type { RoomType } from "../../../types/roomtype/roomtype"; // Không dùng nữa
@@ -120,7 +122,7 @@ const useDebounce = (value: any, delay: number) => {
 const RoomList: React.FC = () => {
     const navigate = useNavigate();
     // const [searchParams, setSearchParams] = useSearchParams(); // Không dùng nữa vì đã bỏ filter theo loại phòng
-    
+
     // Sử dụng useAuth - nếu không có AuthProvider sẽ throw error
     // Component này cần được wrap trong AuthProvider ở App level
     const { isLoggedIn } = useAuth();
@@ -128,10 +130,11 @@ const RoomList: React.FC = () => {
     // Sử dụng BookingCartContext để quản lý cart globally
     const {
         // Mô hình mới: RoomType-based
-        selectedRoomTypes,
+        selectedRoomTypes = [],
         dateRange,
         setDateRange,
         addRoomTypeToCart,
+        updateRoomTypeQuantity,
         removeRoomTypeFromCart,
         clearCart,
         isRoomTypeInCart,
@@ -155,6 +158,11 @@ const RoomList: React.FC = () => {
     const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
     const [selectedRoomTypeDetail, setSelectedRoomTypeDetail] = useState<RoomTypeWithDetails | null>(null);
     const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
+    const [reviewsPage, setReviewsPage] = useState<number>(1);
+    const [reviewsTotal, setReviewsTotal] = useState<number>(0);
+    const [averageRating, setAverageRating] = useState<number>(0);
 
     // State cho filter options (amenities)
     // const [roomTypeOptions, setRoomTypeOptions] = useState<RoomType[]>([]); // Không dùng nữa
@@ -217,57 +225,63 @@ const RoomList: React.FC = () => {
         setLoading(true);
         try {
             // Lấy check-in/check-out dates nếu có
-            let checkIn: string | undefined;
-            let checkOut: string | undefined;
+            // Chỉ gửi check_in/check_out nếu cả hai đều có giá trị hợp lệ và không phải ngày quá khứ
+            const params: any = {
+                per_page: 100, // Lấy tất cả để filter ở frontend
+            };
+            
             if (dateRange && dateRange[0] && dateRange[1]) {
-                checkIn = dateRange[0].format('YYYY-MM-DD');
-                checkOut = dateRange[1].format('YYYY-MM-DD');
+                const today = dayjs().startOf('day');
+                const checkInDate = dateRange[0].startOf('day');
+                const checkOutDate = dateRange[1].startOf('day');
+                
+                // Chỉ gửi nếu cả hai ngày đều không phải quá khứ và check-out sau check-in
+                if (!checkInDate.isBefore(today) && checkOutDate.isAfter(checkInDate)) {
+                    params.check_in = dateRange[0].format('YYYY-MM-DD');
+                    params.check_out = dateRange[1].format('YYYY-MM-DD');
+                }
             }
 
-            const response = await getRoomTypesWithDetails({
-                check_in: checkIn,
-                check_out: checkOut,
-                per_page: 100, // Lấy tất cả để filter ở frontend
-            });
+            const response = await getRoomTypesWithDetails(params);
 
             if (response.success && response.data) {
                 let filteredRoomTypes = [...response.data];
 
                 // Filter ở frontend
-                // Search
-                if (debouncedSearchQuery) {
+            // Search
+            if (debouncedSearchQuery) {
                     const query = debouncedSearchQuery.toLowerCase();
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         rt.name.toLowerCase().includes(query) ||
                         rt.description?.toLowerCase().includes(query) ||
                         rt.property?.name?.toLowerCase().includes(query)
                     );
-                }
+            }
 
                 // Room type filter đã bỏ (không cần filter theo loại phòng nữa)
 
-                // Price range
+            // Price range
                 if (priceRange[0] > 0 || priceRange[1] < 5000000) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const price = rt.price_per_night || 0;
                         return price >= priceRange[0] && price <= priceRange[1];
                     });
-                }
+            }
 
-                // Rating filter
-                if (minRating > 0) {
+            // Rating filter
+            if (minRating > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.rating || 0) >= minRating
                     );
-                }
+            }
 
-                // Guests filter
-                if (maxAdults > 1) {
+            // Guests filter
+            if (maxAdults > 1) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.max_adults || 0) >= maxAdults
                     );
-                }
-                if (maxChildren > 0) {
+            }
+            if (maxChildren > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.max_children || 0) >= maxChildren
                     );
@@ -311,17 +325,10 @@ const RoomList: React.FC = () => {
                             roomAmenities.some((a: any) => a.id === floorId && a.filter_category === 'floor')
                         );
                     });
-                }
+            }
 
-                // Availability filter: chỉ hiển thị RoomType còn phòng trống
-                if (dateRange && dateRange[0] && dateRange[1]) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.available_count || 0) > 0
-                    );
-                }
-
-                // Sort
-                if (sortBy !== "default") {
+            // Sort
+            if (sortBy !== "default") {
                     filteredRoomTypes.sort((a, b) => {
                         let aValue: any = 0;
                         let bValue: any = 0;
@@ -366,7 +373,7 @@ const RoomList: React.FC = () => {
 
                 setRoomTypes(paginatedRoomTypes);
                 setTotalRoomTypes(filteredRoomTypes.length);
-
+                
                 // Cập nhật price range max nếu cần
                 if (response.data.length > 0) {
                     const maxPrice = Math.max(...response.data.map(rt => rt.price_per_night || 0));
@@ -515,7 +522,7 @@ const RoomList: React.FC = () => {
             return;
         }
 
-        if (selectedRoomTypes.length === 0) {
+        if (!selectedRoomTypes || selectedRoomTypes.length === 0) {
             message.warning('Vui lòng chọn ít nhất một loại phòng!');
             return;
         }
@@ -553,32 +560,31 @@ const RoomList: React.FC = () => {
         });
     };
 
-    // Xử lý xem chi tiết loại phòng
-    const handleViewDetail = async (roomTypeId: number) => {
-        setDetailModalVisible(true);
-        setLoadingDetail(true);
-        setSelectedRoomTypeDetail(null);
+    // Xử lý xem chi tiết loại phòng - Navigate đến page detail
+    const handleViewDetail = (roomTypeId: number) => {
+        navigate(`/room-types/${roomTypeId}`);
+    };
 
+    // Fetch reviews cho RoomType
+    const fetchRoomTypeReviews = async (roomTypeId: number, page: number = 1) => {
+        setLoadingReviews(true);
         try {
-            const response = await getRoomTypesWithDetails();
+            const response = await getRoomTypeReviews(roomTypeId, {
+                page,
+                per_page: 5,
+            });
             if (response.success && response.data) {
-                const roomType = response.data.find(rt => rt.id === roomTypeId);
-                if (roomType) {
-                    setSelectedRoomTypeDetail(roomType);
-                } else {
-                    message.error('Không tìm thấy phòng');
-                    setDetailModalVisible(false);
+                setReviews(response.data);
+                setReviewsPage(page);
+                if (response.meta) {
+                    setReviewsTotal(response.meta.pagination?.total || 0);
+                    setAverageRating(response.meta.average_rating || 0);
                 }
-            } else {
-                message.error('Không thể tải thông tin chi tiết phòng');
-                setDetailModalVisible(false);
             }
         } catch (error: any) {
-            console.error('Error fetching room type detail:', error);
-            message.error('Không thể tải thông tin chi tiết phòng');
-            setDetailModalVisible(false);
+            console.error('Error fetching room type reviews:', error);
         } finally {
-            setLoadingDetail(false);
+            setLoadingReviews(false);
         }
     };
 
@@ -667,27 +673,27 @@ const RoomList: React.FC = () => {
                     <div style={{ marginBottom: 32 }}>
                         <Row justify="space-between" align="middle">
                             <Col>
-                                <Title level={2} style={{ marginBottom: 8 }}>
-                                    Danh sách phòng
-                                </Title>
-                                <Space split={<Divider type="vertical" />}>
-                                    <Text type="secondary">
+                        <Title level={2} style={{ marginBottom: 8 }}>
+                            Danh sách phòng
+                        </Title>
+                        <Space split={<Divider type="vertical" />}>
+                            <Text type="secondary">
                                         Tìm thấy <Text strong style={{ color: '#cb8670' }}>{totalRoomTypes}</Text> loại phòng
-                                    </Text>
-                                    {(debouncedSearchQuery || selectedAmenityIds.length > 0) && (
-                                        <Button
-                                            type="link"
-                                            icon={<ReloadOutlined />}
-                                            onClick={handleResetFilters}
-                                            size="small"
-                                        >
-                                            Xóa bộ lọc
-                                        </Button>
-                                    )}
-                                </Space>
+                            </Text>
+                                    {(debouncedSearchQuery || (selectedAmenityIds?.length || 0) > 0) && (
+                                <Button
+                                    type="link"
+                                    icon={<ReloadOutlined />}
+                                    onClick={handleResetFilters}
+                                    size="small"
+                                >
+                                    Xóa bộ lọc
+                                </Button>
+                            )}
+                        </Space>
                             </Col>
                             <Col>
-                                <Space>
+                                    <Space>
                                     {/* DatePicker cho ngày check-in/check-out */}
                                     <Space>
                                         <CalendarOutlined style={{ color: '#cb8670' }} />
@@ -702,7 +708,7 @@ const RoomList: React.FC = () => {
                                         />
                                     </Space>
                                     {/* Booking Cart Button */}
-                                    <Badge count={selectedRoomTypes.length} showZero={false}>
+                                    <Badge count={selectedRoomTypes?.length || 0} showZero={false}>
                                         <Button
                                             type="primary"
                                             icon={<ShoppingCartOutlined />}
@@ -712,13 +718,13 @@ const RoomList: React.FC = () => {
                                                 borderColor: '#cb8670',
                                             }}
                                         >
-                                            Booking Cart {selectedRoomTypes.length > 0 && `(${selectedRoomTypes.length})`}
+                                            Booking Cart {(selectedRoomTypes?.length || 0) > 0 && `(${selectedRoomTypes.length})`}
                                         </Button>
                                     </Badge>
-                                </Space>
+                                                </Space>
                             </Col>
                         </Row>
-                    </div>
+                                    </div>
 
                     {/* Button mở Filter Modal - Thay thế sidebar */}
                     <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
@@ -730,47 +736,47 @@ const RoomList: React.FC = () => {
                                 size="large"
                             >
                                 Bộ lọc
-                                {(selectedAmenityIds.length > 0 || selectedKeyAmenityIds.length > 0 || 
-                                  selectedViewIds.length > 0 || selectedFloorIds.length > 0 ||
-                                  priceRange[0] > 0 || priceRange[1] < 5000000 || minRating > 0 ||
+                                {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 || 
+                                  (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
+                                  (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
                                   maxAdults > 1 || maxChildren > 0) && (
-                                    <Badge count={selectedAmenityIds.length + selectedKeyAmenityIds.length + 
-                                                  selectedViewIds.length + selectedFloorIds.length + 
-                                                  (priceRange[0] > 0 || priceRange[1] < 5000000 ? 1 : 0) +
+                                    <Badge count={(selectedAmenityIds?.length || 0) + (selectedKeyAmenityIds?.length || 0) + 
+                                                  (selectedViewIds?.length || 0) + (selectedFloorIds?.length || 0) + 
+                                                  ((priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 ? 1 : 0) +
                                                   (minRating > 0 ? 1 : 0) + (maxAdults > 1 ? 1 : 0) + (maxChildren > 0 ? 1 : 0)} 
                                            offset={[8, 0]} />
                                 )}
                             </Button>
-                            {(selectedAmenityIds.length > 0 || selectedKeyAmenityIds.length > 0 || 
-                              selectedViewIds.length > 0 || selectedFloorIds.length > 0 ||
-                              priceRange[0] > 0 || priceRange[1] < 5000000 || minRating > 0 ||
+                            {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 || 
+                              (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
+                              (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
                               maxAdults > 1 || maxChildren > 0) && (
                                 <Button type="link" onClick={handleResetFilters} size="small">
                                     Xóa bộ lọc
                                 </Button>
                             )}
-                        </Space>
-                        <Space>
-                            <Text type="secondary">
+                                        </Space>
+                                                <Space>
+                                <Text type="secondary">
                                 Hiển thị {roomTypes.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, totalRoomTypes)} trong tổng số {totalRoomTypes} loại phòng
-                            </Text>
-                            <Space>
-                                <Text>Sắp xếp theo:</Text>
-                                <Select
-                                    style={{ width: 200 }}
-                                    value={getSortDisplayValue()}
-                                    onChange={handleSortChange}
-                                >
-                                    <Option value="default">Mặc định</Option>
+                                </Text>
+                                <Space>
+                                    <Text>Sắp xếp theo:</Text>
+                                    <Select
+                                        style={{ width: 200 }}
+                                        value={getSortDisplayValue()}
+                                        onChange={handleSortChange}
+                                    >
+                                        <Option value="default">Mặc định</Option>
                                     <Option value="best-seller">Bán chạy nhất</Option>
-                                    <Option value="price-asc">Giá: Thấp đến cao</Option>
-                                    <Option value="price-desc">Giá: Cao đến thấp</Option>
-                                    <Option value="rating">Đánh giá cao nhất</Option>
-                                    <Option value="name">Tên A-Z</Option>
-                                </Select>
+                                        <Option value="price-asc">Giá: Thấp đến cao</Option>
+                                        <Option value="price-desc">Giá: Cao đến thấp</Option>
+                                        <Option value="rating">Đánh giá cao nhất</Option>
+                                        <Option value="name">Tên A-Z</Option>
+                                    </Select>
                             </Space>
-                        </Space>
-                    </div>
+                                </Space>
+                            </div>
 
                     {/* Danh sách phòng - Full width */}
                     <Row gutter={[24, 24]}>
@@ -807,7 +813,13 @@ const RoomList: React.FC = () => {
                                                         hoverable
                                                         className="room-card"
                                                         bodyStyle={{ padding: 0 }}
-                                                        style={{ borderRadius: 12, overflow: 'hidden', height: '100%' }}
+                                                        style={{
+                                                            borderRadius: 12,
+                                                            overflow: 'hidden',
+                                                            height: '100%',
+                                                            // Chỉ làm mờ khi đã chọn ngày và hết phòng
+                                                            opacity: (dateRange && dateRange[0] && dateRange[1] && availableCount === 0) ? 0.7 : 1,
+                                                        }}
                                                     >
                                                         <Row gutter={0}>
                                                             {/* Ảnh loại phòng */}
@@ -833,24 +845,50 @@ const RoomList: React.FC = () => {
                                                                         }}
                                                                         className="room-image-hover"
                                                                     />
-                                                                    {/* Badge số lượng còn trống */}
-                                                                    {availableCount > 0 && (
-                                                                        <div
-                                                                            style={{
-                                                                                position: 'absolute',
-                                                                                top: 12,
-                                                                                right: 12,
-                                                                                background: 'rgba(82, 196, 26, 0.9)',
-                                                                                color: 'white',
-                                                                                padding: '4px 12px',
-                                                                                borderRadius: 4,
-                                                                                fontSize: 12,
-                                                                                fontWeight: 'bold'
-                                                                            }}
-                                                                        >
-                                                                            Còn {availableCount} phòng
-                                                                        </div>
-                                                                    )}
+                                                                    {/* Badge số lượng còn trống / hết phòng */}
+                                                                    {/* Chỉ hiển thị "Hết phòng" khi đã chọn ngày và availableCount = 0 */}
+                                                                    {(() => {
+                                                                        const hasDateRange = dateRange && dateRange[0] && dateRange[1];
+                                                                        if (hasDateRange && availableCount === 0) {
+                                                                            return (
+                                                                                <div
+                                                                                    style={{
+                                                                                        position: 'absolute',
+                                                                                        top: 12,
+                                                                                        right: 12,
+                                                                                        background: 'rgba(0, 0, 0, 0.6)',
+                                                                                        color: 'white',
+                                                                                        padding: '4px 12px',
+                                                                                        borderRadius: 4,
+                                                                                        fontSize: 12,
+                                                                                        fontWeight: 'bold',
+                                                                                    }}
+                                                                                >
+                                                                                    Hết phòng
+                                                                                </div>
+                                                                            );
+                                                                        } else if (availableCount > 0) {
+                                                                            return (
+                                                                                <div
+                                                                                    style={{
+                                                                                        position: 'absolute',
+                                                                                        top: 12,
+                                                                                        right: 12,
+                                                                                        background: 'rgba(82, 196, 26, 0.9)',
+                                                                                        color: 'white',
+                                                                                        padding: '4px 12px',
+                                                                                        borderRadius: 4,
+                                                                                        fontSize: 12,
+                                                                                        fontWeight: 'bold',
+                                                                                    }}
+                                                                                >
+                                                                                    Còn {availableCount} phòng
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        // Không hiển thị badge khi chưa chọn ngày
+                                                                        return null;
+                                                                    })()}
                                                                 </div>
                                                             </Col>
 
@@ -872,15 +910,15 @@ const RoomList: React.FC = () => {
                                                                         </Title>
 
                                                                         {roomTypeRating > 0 && (
-                                                                            <Space>
+                                                                        <Space>
                                                                                 <Rate disabled defaultValue={roomTypeRating} allowHalf style={{ fontSize: 14 }} />
                                                                                 <Text strong style={{ color: '#cb8670' }}>{roomTypeRating.toFixed(1)}</Text>
                                                                                 {roomType.reviews_count && (
-                                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                                <Text type="secondary" style={{ fontSize: 12 }}>
                                                                                         ({roomType.reviews_count})
-                                                                                    </Text>
-                                                                                )}
-                                                                            </Space>
+                                                                                </Text>
+                                                                            )}
+                                                                        </Space>
                                                                         )}
 
                                                                         <Space>
@@ -912,11 +950,11 @@ const RoomList: React.FC = () => {
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                                                         {/* Price */}
                                                                         {roomType.price_per_night && (
-                                                                            <div>
-                                                                                <Text style={{ fontSize: 20, color: '#cb8670', fontWeight: 'bold' }}>
+                                                                        <div>
+                                                                            <Text style={{ fontSize: 20, color: '#cb8670', fontWeight: 'bold' }}>
                                                                                     {formatVNDWithUnit(roomType.price_per_night, '/đêm')}
-                                                                                </Text>
-                                                                            </div>
+                                                                            </Text>
+                                                                        </div>
                                                                         )}
                                                                         
                                                                         {/* Buttons - Stack vertically on small screens, horizontal on larger */}
@@ -942,32 +980,33 @@ const RoomList: React.FC = () => {
                                                                                     Đã chọn
                                                                                 </Button>
                                                                             ) : (
-                                                                                <Button
-                                                                                    type="primary"
+                                                                        <Button
+                                                                            type="primary"
                                                                                     block
-                                                                                    style={{
+                                                                            style={{
                                                                                         backgroundColor: '#52c41a',
                                                                                         borderColor: '#52c41a',
                                                                                         height: 40
                                                                                     }}
                                                                                     onClick={() => handleAddRoomTypeToCart(roomType, 1)}
-                                                                                    disabled={!dateRange || !dateRange[0] || !dateRange[1] || availableCount === 0}
+                                                                                    disabled={!dateRange || !dateRange[0] || !dateRange[1] || (dateRange && dateRange[0] && dateRange[1] && availableCount === 0)}
                                                                                 >
                                                                                     Thêm vào booking
                                                                                 </Button>
                                                                             )}
                                                                             <Button
-                                                                                type="primary"
+                                                                                type="default"
                                                                                 block
                                                                                 style={{
-                                                                                    backgroundColor: '#cb8670',
+                                                                                    backgroundColor: '#fff',
                                                                                     borderColor: '#cb8670',
+                                                                                    color: '#cb8670',
                                                                                     height: 40
-                                                                                }}
+                                                                            }}
                                                                                 onClick={() => handleViewDetail(roomType.id)}
-                                                                            >
-                                                                                Chi tiết
-                                                                            </Button>
+                                                                        >
+                                                                            Chi tiết
+                                                                        </Button>
                                                                         </Space>
                                                                     </div>
                                                                 </div>
@@ -1014,7 +1053,7 @@ const RoomList: React.FC = () => {
                 title={
                     <Space>
                         <ShoppingCartOutlined />
-                        <span>Booking Cart ({selectedRoomTypes.length} loại phòng)</span>
+                        <span>Booking Cart ({(selectedRoomTypes?.length || 0)} loại phòng)</span>
                     </Space>
                 }
                 placement="right"
@@ -1022,14 +1061,14 @@ const RoomList: React.FC = () => {
                 open={cartVisible}
                 width={400}
                 extra={
-                    selectedRoomTypes.length > 0 && (
+                    (selectedRoomTypes?.length || 0) > 0 && (
                         <Button type="link" danger onClick={handleClearCart} size="small">
                             Xóa tất cả
                         </Button>
                     )
                 }
             >
-                {selectedRoomTypes.length === 0 ? (
+                {(!selectedRoomTypes || selectedRoomTypes.length === 0) ? (
                     <Empty
                         description="Chưa có loại phòng nào được chọn"
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -1041,24 +1080,50 @@ const RoomList: React.FC = () => {
                 ) : (
                     <Space direction="vertical" size="large" style={{ width: '100%' }}>
                         <List
-                            dataSource={selectedRoomTypes}
+                            dataSource={selectedRoomTypes || []}
                             renderItem={(item) => {
                                 const roomTypeImage = getRoomTypeImage(item.roomType);
+                                const quantity = item.quantity || 1;
+                                
+                                // Lấy available_count mới nhất từ danh sách roomTypes (từ API) thay vì dùng giá trị cũ trong cart
+                                const currentRoomType = roomTypes.find(rt => rt.id === item.roomType.id);
+                                const latestAvailableCount = currentRoomType?.available_count ?? (item.roomType as any).available_count ?? 0;
+                                
+                                // Tính tổng số lượng của cùng RoomType đã có trong cart (bao gồm cả item hiện tại)
+                                const totalQuantityInCart = (selectedRoomTypes || []).reduce((sum, cartItem) => {
+                                    if (cartItem.roomType.id === item.roomType.id) {
+                                        return sum + (cartItem.quantity || 1);
+                                    }
+                                    return sum;
+                                }, 0);
+                                
+                                // Số lượng của item hiện tại
+                                const currentItemQuantity = item.quantity || 1;
+                                
+                                // Số lượng của các item khác cùng RoomType (không bao gồm item hiện tại)
+                                const otherItemsQuantity = totalQuantityInCart - currentItemQuantity;
+                                
+                                // Số lượng tối đa có thể đặt cho item hiện tại = available_count mới nhất - số lượng đã có của các item khác
+                                // Nếu không tìm thấy trong roomTypes, dùng giá trị từ cart và trừ đi số lượng đã có trong cart
+                                const maxQuantity = Math.max(1, latestAvailableCount - otherItemsQuantity);
+                                
+                                // Debug log (chỉ trong dev mode)
+                                if (import.meta.env.DEV) {
+                                    console.log(`RoomType ${item.roomType.name}:`, {
+                                        latestAvailableCount,
+                                        totalQuantityInCart,
+                                        currentItemQuantity,
+                                        otherItemsQuantity,
+                                        maxQuantity
+                                    });
+                                }
+                                
                                 return (
                                     <List.Item
-                                        actions={[
-                                            <Button
-                                                type="text"
-                                                danger
-                                                icon={<DeleteOutlined />}
-                                                onClick={() => removeRoomTypeFromCart(item.roomType.id)}
-                                            >
-                                                Xóa
-                                            </Button>
-                                        ]}
+                                        style={{ padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}
                                     >
-                                        <List.Item.Meta
-                                            avatar={
+                                        <Row gutter={16} style={{ width: '100%' }}>
+                                            <Col flex="80px">
                                                 <Image
                                                     src={roomTypeImage}
                                                     alt={item.roomType.name}
@@ -1067,35 +1132,76 @@ const RoomList: React.FC = () => {
                                                     style={{ objectFit: 'cover', borderRadius: 8 }}
                                                     preview={false}
                                                 />
-                                            }
-                                            title={
-                                                <Text strong style={{ fontSize: 14 }}>
-                                                    {item.roomType.name}
-                                                    {item.quantity && item.quantity > 1 && (
-                                                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
-                                                            (x{item.quantity})
+                                            </Col>
+                                            <Col flex="auto" style={{ minWidth: 0 }}>
+                                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                    <Text strong style={{ fontSize: 14, display: 'block' }}>
+                                                        {item.roomType.name}
+                                                    </Text>
+                                                    <Space wrap style={{ width: '100%' }}>
+                                                        <Text type="secondary" style={{ fontSize: 12 }}>Số lượng:</Text>
+                                                        <InputNumber
+                                                            min={1}
+                                                            max={maxQuantity}
+                                                            value={quantity}
+                                                            onChange={(value) => {
+                                                                if (value && value > 0) {
+                                                                    // Lấy available_count mới nhất
+                                                                    const currentRoomType = roomTypes.find(rt => rt.id === item.roomType.id);
+                                                                    const latestAvailableCount = currentRoomType?.available_count || (item.roomType as any).available_count || 0;
+                                                                    
+                                                                    // Tính lại maxQuantity: available_count mới nhất - số lượng của các item khác (không đổi)
+                                                                    // otherItemsQuantity không thay đổi vì chỉ tính các item khác, không tính item hiện tại
+                                                                    const newMaxQuantity = Math.max(1, latestAvailableCount - otherItemsQuantity);
+                                                                    
+                                                                    if (value <= newMaxQuantity) {
+                                                                        updateRoomTypeQuantity(item.roomType.id, value);
+                                                                    } else {
+                                                                        message.warning(`Chỉ còn ${newMaxQuantity} phòng trống cho loại phòng này${otherItemsQuantity > 0 ? ` (đã có ${otherItemsQuantity} phòng khác trong cart)` : ''}`);
+                                                                        updateRoomTypeQuantity(item.roomType.id, newMaxQuantity);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            size="small"
+                                                            style={{ width: 80 }}
+                                                        />
+                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                            phòng (tối đa: {maxQuantity})
                                                         </Text>
-                                                    )}
-                                                </Text>
-                                            }
-                                            description={
-                                                <Space direction="vertical" size="small" style={{ fontSize: 12 }}>
+                                                    </Space>
                                                     {item.checkIn && item.checkOut && (
-                                                        <Text type="secondary">
+                                                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
                                                             {item.checkIn} → {item.checkOut}
                                                         </Text>
                                                     )}
                                                     {item.nights && (
-                                                        <Text type="secondary">
+                                                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
                                                             {item.nights} đêm
                                                         </Text>
                                                     )}
-                                                    <Text strong style={{ color: '#cb8670', fontSize: 14 }}>
+                                                    <Text strong style={{ color: '#cb8670', fontSize: 14, display: 'block' }}>
                                                         {formatVND(item.totalPrice || 0)}
+                                                        {quantity > 1 && (
+                                                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                                                                ({formatVND((item.pricePerNight || 0) * (item.nights || 1))} x {quantity})
+                                                            </Text>
+                                                        )}
                                                     </Text>
                                                 </Space>
-                                            }
-                                        />
+                                            </Col>
+                                            <Col flex="none">
+                                                <Button
+                                                    type="text"
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    onClick={() => removeRoomTypeFromCart(item.roomType.id)}
+                                                    size="small"
+                                                    style={{ padding: '4px 8px' }}
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            </Col>
+                                        </Row>
                                     </List.Item>
                                 );
                             }}
@@ -1115,7 +1221,7 @@ const RoomList: React.FC = () => {
                                     <Text strong style={{ fontSize: 16 }}>Tổng cộng</Text>
                                     <br />
                                     <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {selectedRoomTypes.length} loại phòng
+                                        {(selectedRoomTypes?.length || 0)} loại phòng, {(selectedRoomTypes || []).reduce((sum, item) => sum + (item.quantity || 1), 0)} phòng
                                     </Text>
                                 </Col>
                                 <Col>
@@ -1146,7 +1252,7 @@ const RoomList: React.FC = () => {
                                 fontWeight: 'bold'
                             }}
                         >
-                            Đặt phòng ngay ({selectedRoomTypes.length} loại phòng)
+                            Đặt phòng ngay ({selectedRoomTypes.reduce((sum, item) => sum + (item.quantity || 1), 0)} phòng)
                         </Button>
 
                         <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
@@ -1337,7 +1443,7 @@ const RoomList: React.FC = () => {
                                                         {amenity.name}
                                                     </Checkbox>
                                                 ))}
-                                            {amenities.filter(amenity => amenity.filter_category === 'key_amenity').length === 0 && (
+                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'key_amenity').length === 0) && (
                                                 <Text type="secondary" style={{ fontSize: 12 }}>
                                                     Không có tiện nghi đặc biệt
                                                 </Text>
@@ -1368,7 +1474,7 @@ const RoomList: React.FC = () => {
                                                         {amenity.name}
                                                     </Checkbox>
                                                 ))}
-                                            {amenities.filter(amenity => amenity.filter_category === 'view').length === 0 && (
+                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'view').length === 0) && (
                                                 <Text type="secondary" style={{ fontSize: 12 }}>
                                                     Không có thông tin hướng nhìn
                                                 </Text>
@@ -1399,7 +1505,7 @@ const RoomList: React.FC = () => {
                                                         {amenity.name}
                                                     </Checkbox>
                                                 ))}
-                                            {amenities.filter(amenity => amenity.filter_category === 'floor').length === 0 && (
+                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'floor').length === 0) && (
                                                 <Text type="secondary" style={{ fontSize: 12 }}>
                                                     Không có thông tin tầng
                                                 </Text>
@@ -1430,7 +1536,7 @@ const RoomList: React.FC = () => {
                                                         {amenity.name}
                                                     </Checkbox>
                                                 ))}
-                                            {amenities.filter(amenity => !amenity.filter_category || amenity.filter_category === null).length === 0 && (
+                                            {(!amenities || amenities.filter(amenity => !amenity.filter_category || amenity.filter_category === null).length === 0) && (
                                                 <Text type="secondary" style={{ fontSize: 12 }}>
                                                     Không có tiện ích nào
                                                 </Text>
@@ -1581,6 +1687,81 @@ const RoomList: React.FC = () => {
                                     </div>
                                 </>
                             )}
+
+                            {/* Đánh giá */}
+                            <Divider />
+                            <div>
+                                <Title level={5}>Đánh giá từ khách hàng</Title>
+                                {averageRating > 0 && (
+                                    <Space style={{ marginBottom: 16 }}>
+                                        <Rate disabled defaultValue={averageRating} allowHalf />
+                                        <Text strong>{averageRating.toFixed(1)}</Text>
+                                        <Text type="secondary">({reviewsTotal} đánh giá)</Text>
+                                    </Space>
+                                )}
+                                {loadingReviews ? (
+                                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                        <Spin />
+                                    </div>
+                                ) : reviews.length > 0 ? (
+                                    <List
+                                        dataSource={reviews}
+                                        renderItem={(review: any) => (
+                                            <List.Item>
+                                                <List.Item.Meta
+                                                    avatar={
+                                                        <Avatar
+                                                            src={review.user?.avatar}
+                                                            icon={<UserOutlined />}
+                                                        />
+                                                    }
+                                                    title={
+                                                        <Space>
+                                                            <Text strong>{review.user?.full_name || 'Khách hàng'}</Text>
+                                                            <Rate disabled defaultValue={review.rating} style={{ fontSize: 12 }} />
+                                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                {review.reviewed_at ? new Date(review.reviewed_at).toLocaleDateString('vi-VN') : ''}
+                                                            </Text>
+                                                        </Space>
+                                                    }
+                                                    description={
+                                                        <div>
+                                                            {review.title && (
+                                                                <Text strong style={{ display: 'block', marginBottom: 4 }}>
+                                                                    {review.title}
+                                                                </Text>
+                                                            )}
+                                                            {review.comment && (
+                                                                <Paragraph style={{ marginBottom: 0 }}>
+                                                                    {review.comment}
+                                                                </Paragraph>
+                                                            )}
+                                                        </div>
+                                                    }
+                                                />
+                                            </List.Item>
+                                        )}
+                                    />
+                                ) : (
+                                    <Text type="secondary">Chưa có đánh giá nào</Text>
+                                )}
+                                {reviewsTotal > 5 && (
+                                    <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                        <Button
+                                            type="link"
+                                            onClick={() => {
+                                                const nextPage = reviewsPage + 1;
+                                                if (selectedRoomTypeDetail) {
+                                                    fetchRoomTypeReviews(selectedRoomTypeDetail.id, nextPage);
+                                                }
+                                            }}
+                                            disabled={loadingReviews || reviews.length >= reviewsTotal}
+                                        >
+                                            Xem thêm đánh giá
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Nút hành động */}
                             <Divider />

@@ -41,7 +41,7 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  // Fetch room types for dropdown menu
+  // Fetch room types for dropdown menu - chỉ hiển thị 4 loại phòng ngẫu nhiên
   useEffect(() => {
     const fetchRoomTypes = async () => {
       setLoadingRoomTypes(true);
@@ -53,9 +53,15 @@ const Header: React.FC = () => {
           }
         });
         if (response.data.success && response.data.data) {
-          setRoomTypes(response.data.data);
+          const allRoomTypes = response.data.data;
+          // Shuffle array và lấy 4 loại phòng đầu tiên
+          const shuffled = [...allRoomTypes].sort(() => Math.random() - 0.5);
+          setRoomTypes(shuffled.slice(0, 4));
         } else if (Array.isArray(response.data)) {
-          setRoomTypes(response.data);
+          const allRoomTypes = response.data;
+          // Shuffle array và lấy 4 loại phòng đầu tiên
+          const shuffled = [...allRoomTypes].sort(() => Math.random() - 0.5);
+          setRoomTypes(shuffled.slice(0, 4));
         }
       } catch (error: any) {
         if (import.meta.env.DEV) {

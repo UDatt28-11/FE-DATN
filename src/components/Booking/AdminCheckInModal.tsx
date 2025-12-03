@@ -34,6 +34,7 @@ interface AdminCheckInModalProps {
     open?: boolean;
     visible?: boolean; // Deprecated, use open instead
     booking: BookingOrder | null;
+    bookingDetailId?: number; // Optional: specify which booking detail to check-in
     onCancel: () => void;
     onSuccess: () => void;
 }
@@ -42,6 +43,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
     open,
     visible, // Deprecated, use open instead
     booking,
+    bookingDetailId, // Optional: specify which booking detail to check-in
     onCancel,
     onSuccess,
 }) => {
@@ -57,14 +59,20 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
             setGuestForms([0]);
             
             // Pre-fill với thông tin booking nếu có
-            if (booking.details && booking.details.length > 0) {
-                const firstDetail = booking.details[0];
+            let bookingDetail: BookingDetail | undefined;
+            if (bookingDetailId) {
+                bookingDetail = booking.details?.find(d => d.id === bookingDetailId);
+            } else {
+                bookingDetail = booking.details?.[0];
+            }
+            
+            if (bookingDetail) {
                 form.setFieldsValue({
                     notes: booking.notes || '',
                 });
             }
         }
-    }, [isOpen, booking, form]);
+    }, [isOpen, booking, bookingDetailId, form]);
 
     const handleAddGuest = () => {
         setGuestForms([...guestForms, guestForms.length]);
@@ -108,9 +116,14 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 return;
             }
 
-            // Cho phép admin chọn booking detail nếu có nhiều phòng
-            // Hiện tại lấy booking detail đầu tiên, có thể cải thiện sau để cho admin chọn
-            const bookingDetail = booking.details[0];
+            // Tìm booking detail theo bookingDetailId nếu có, nếu không thì lấy đầu tiên
+            let bookingDetail: BookingDetail | undefined;
+            if (bookingDetailId) {
+                bookingDetail = booking.details?.find(d => d.id === bookingDetailId);
+            } else {
+                bookingDetail = booking.details?.[0];
+            }
+            
             if (!bookingDetail) {
                 message.error('Không tìm thấy thông tin phòng');
                 return;
@@ -148,7 +161,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 notes: values.notes,
             });
 
-            message.success('Check-in thành công!');
+            // Không hiển thị message ở đây, để onSuccess callback xử lý
             onSuccess();
             onCancel();
         } catch (error: any) {
@@ -178,7 +191,14 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
 
     if (!booking) return null;
 
-    const bookingDetail = booking.details?.[0];
+    // Tìm booking detail theo bookingDetailId nếu có, nếu không thì lấy đầu tiên
+    let bookingDetail: BookingDetail | undefined;
+    if (bookingDetailId) {
+        bookingDetail = booking.details?.find(d => d.id === bookingDetailId);
+    } else {
+        bookingDetail = booking.details?.[0];
+    }
+    
     const roomName = bookingDetail?.room?.name || 'N/A';
     const checkInDate = bookingDetail?.check_in_date
         ? dayjs(bookingDetail.check_in_date).format('DD/MM/YYYY')

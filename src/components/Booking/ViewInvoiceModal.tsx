@@ -23,6 +23,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { toast } from 'react-toastify';
 import { getUserInvoice } from '../../service/bookingService';
+import invoiceService from '../../service/invoiceService';
 import type { Invoice, InvoiceItem } from '../../types/invoice/invoice';
 import { formatVND } from '../../utils/currency';
 
@@ -33,6 +34,7 @@ interface ViewInvoiceModalProps {
     visible?: boolean; // Deprecated, use open instead
     invoiceId: number | null;
     onCancel: () => void;
+    isAdmin?: boolean; // Nếu true, sử dụng admin endpoint thay vì user endpoint
 }
 
 const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
@@ -40,6 +42,7 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
     visible, // Deprecated, use open instead
     invoiceId,
     onCancel,
+    isAdmin = false,
 }) => {
     const isOpen = open !== undefined ? open : visible; // Support both for backward compatibility
     const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -57,18 +60,31 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
         if (!invoiceId) return;
         setLoading(true);
         try {
-            // Sử dụng getUserInvoice từ bookingService để gọi đúng endpoint /user/invoices/{id}
-            const invoiceData = await getUserInvoice(invoiceId);
+            // Sử dụng admin endpoint nếu isAdmin = true, ngược lại dùng user endpoint
+            let invoiceData;
+            if (isAdmin) {
+                // Sử dụng admin endpoint
+                invoiceData = await invoiceService.getById(invoiceId);
+            } else {
+                // Sử dụng user endpoint
+                invoiceData = await getUserInvoice(invoiceId);
+            }
             // Xử lý response có thể có nhiều dạng
             let invoice: Invoice;
-            if (invoiceData?.data?.data) {
-                invoice = invoiceData.data.data;
-            } else if (invoiceData?.data) {
-                invoice = invoiceData.data;
-            } else if (invoiceData) {
+            if (isAdmin) {
+                // Admin endpoint trả về trực tiếp Invoice object
                 invoice = invoiceData as Invoice;
             } else {
-                throw new Error("Không nhận được dữ liệu từ server");
+                // User endpoint có thể wrap trong data.data hoặc data
+                if (invoiceData?.data?.data) {
+                    invoice = invoiceData.data.data;
+                } else if (invoiceData?.data) {
+                    invoice = invoiceData.data;
+                } else if (invoiceData) {
+                    invoice = invoiceData as Invoice;
+                } else {
+                    throw new Error("Không nhận được dữ liệu từ server");
+                }
             }
             
             // Map invoice_items từ backend (snake_case) thành items cho frontend
@@ -152,9 +168,10 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                     service_charge: 'Dịch vụ',
                     damage_fee: 'Thiệt hại',
                     penalty: 'Phạt',
+                    deposit: 'Tiền cọc',
                     other: 'Khác',
                 };
-                return <Tag>{typeMap[type] || type}</Tag>;
+                return <Tag color={type === 'deposit' ? 'orange' : undefined}>{typeMap[type] || type}</Tag>;
             },
         },
         {
@@ -179,7 +196,12 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             align: 'right',
             render: (_: any, record: InvoiceItem) => {
                 const total = record.total || record.total_line || (record.unit_price * record.quantity);
-                return <Text strong>{formatVND(total)}</Text>;
+                const isNegative = total < 0;
+                return (
+                    <Text strong style={{ color: isNegative ? '#ff4d4f' : undefined }}>
+                        {isNegative ? '-' : ''}{formatVND(Math.abs(total))}
+                    </Text>
+                );
             },
         },
     ];

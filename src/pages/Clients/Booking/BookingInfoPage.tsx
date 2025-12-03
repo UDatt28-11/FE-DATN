@@ -25,6 +25,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useAuth } from '../../../context/AuthContext';
+import { useBookingCart } from '../../../context/BookingCartContext';
 import { createUserBooking } from '../../../service/bookingService';
 import './BookingInfo.css';
 
@@ -68,6 +69,7 @@ const BookingInfoPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, isLoggedIn } = useAuth();
+    const { dateRange, clearCart } = useBookingCart(); // Lấy dateRange & hàm clear cart từ context
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
@@ -95,11 +97,11 @@ const BookingInfoPage: React.FC = () => {
             }
             return {
                 rooms: [{
-                    roomId: '1',
-                    roomName: 'Deluxe Room',
-                    price: 1500000,
-                    nights: 1,
-                    totalPrice: 1500000,
+        roomId: '1',
+        roomName: 'Deluxe Room',
+        price: 1500000,
+        nights: 1,
+        totalPrice: 1500000,
                 }]
             };
         }
@@ -175,12 +177,23 @@ const BookingInfoPage: React.FC = () => {
         try {
             // Tạo details array từ mảng phòng
             const details = rooms.map((room) => {
-                const checkInDate = room.checkIn 
-                    ? dayjs(room.checkIn, 'DD/MM/YYYY').format('YYYY-MM-DD')
-                    : dayjs().format('YYYY-MM-DD');
-                const checkOutDate = room.checkOut
-                    ? dayjs(room.checkOut, 'DD/MM/YYYY').format('YYYY-MM-DD')
-                    : dayjs().add(1, 'day').format('YYYY-MM-DD');
+                // Ưu tiên dùng checkIn/checkOut từ room, nếu không có thì dùng dateRange từ context
+                let checkInDate: string;
+                let checkOutDate: string;
+
+                if (room.checkIn && room.checkOut) {
+                    // Parse từ format DD/MM/YYYY
+                    checkInDate = dayjs(room.checkIn, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                    checkOutDate = dayjs(room.checkOut, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else if (dateRange && dateRange[0] && dateRange[1]) {
+                    // Fallback: dùng dateRange từ context
+                    checkInDate = dateRange[0].format('YYYY-MM-DD');
+                    checkOutDate = dateRange[1].format('YYYY-MM-DD');
+                } else {
+                    // Fallback cuối cùng: dùng ngày hiện tại
+                    checkInDate = dayjs().format('YYYY-MM-DD');
+                    checkOutDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
+                }
 
                 const detail: any = {
                     check_in_date: checkInDate,
@@ -220,7 +233,10 @@ const BookingInfoPage: React.FC = () => {
             // Gọi API tạo booking
             const createdBooking = await createUserBooking(bookingPayload);
 
-            message.success('Thông tin đã được lưu!');
+            // Xóa cart sau khi tạo đơn thành công
+            clearCart();
+
+            message.success('Đặt phòng thành công! Vui lòng tiến hành thanh toán.');
 
             // Chuyển sang trang thanh toán với thông tin đầy đủ
             navigate('/booking/payment', {
@@ -472,7 +488,7 @@ const BookingInfoPage: React.FC = () => {
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.checkIn} → {room.checkOut}
                                                     </Text>
-                                                    <br />
+                                        <br />
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.nights} đêm
                                                     </Text>
@@ -491,7 +507,7 @@ const BookingInfoPage: React.FC = () => {
                                                     {(room.totalPrice || room.price * (room.nights || 1)).toLocaleString('vi-VN')} VNĐ
                                                 </Text>
                                             </div>
-                                        </div>
+                                    </div>
                                     ))}
 
                                     {rooms.length > 0 && rooms[0].checkIn && (
@@ -524,10 +540,10 @@ const BookingInfoPage: React.FC = () => {
                                         <Row justify="space-between" align="middle">
                                             <Col>
                                                 <Text strong style={{ fontSize: 16 }}>Tổng cộng</Text>
-                                                <br />
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                        <br />
+                                                        <Text type="secondary" style={{ fontSize: 12 }}>
                                                     {rooms.length} phòng
-                                                </Text>
+                                                        </Text>
                                             </Col>
                                             <Col>
                                                 <Text

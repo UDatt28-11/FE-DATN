@@ -34,13 +34,14 @@ import {
   SyncOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 
 import type { BookingOrder } from "../../../types/booking/booking";
 import { useNavigate } from "react-router-dom";
-import { listBookings, updateBookingStatus, confirmDeposit } from "../../../service/bookingService";
-import { Popconfirm } from "antd";
+import { listBookings, updateBookingStatus } from "../../../service/bookingService";
+import ViewInvoiceModal from "../../../components/Booking/ViewInvoiceModal";
 
 
 const { Search } = Input;
@@ -60,12 +61,19 @@ const ListBooking: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [bookingToUpdate, setBookingToUpdate] = useState<BookingOrder | null>(null);
   const [newStatus, setNewStatus] = useState<'confirmed' | 'completed' | 'cancelled'>('confirmed');
-  const [confirmDepositLoading, setConfirmDepositLoading] = useState<number | null>(null);
+  
+  // State cho modal xem hóa đơn
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
   async function fetchData() {
     setLoading(true);
     try {
-      const { data } = await listBookings({} as any);
+      // Include invoices để biết booking có hóa đơn hay không
+      // Lưu ý: Backend chỉ hỗ trợ include 'invoices', không hỗ trợ nested relationships
+      const { data } = await listBookings({ 
+        include: 'invoices' 
+      } as any);
       setRows(data);
       applyFilters(searchText, statusFilter, dateRange, data);
     } catch (e) {
@@ -354,26 +362,6 @@ const ListBooking: React.FC = () => {
     );
   };
 
-  /**
-   * Xử lý xác nhận đã cọc
-   */
-  const handleConfirmDeposit = async (booking: BookingOrder) => {
-    try {
-      setConfirmDepositLoading(booking.id);
-      // Tính 30% của total_amount làm deposit
-      const depositAmount = booking.total_amount * 0.3;
-      await confirmDeposit(booking.id, depositAmount);
-      toast.success('Xác nhận đã cọc thành công!');
-      // Refresh data
-      await fetchData();
-    } catch (error: any) {
-      console.error('Error confirming deposit:', error);
-      toast.error(error?.response?.data?.message || 'Không thể xác nhận đã cọc.');
-    } finally {
-      setConfirmDepositLoading(null);
-    }
-  };
-
   // ============================================
   // CẤU HÌNH CÁC CỘT CHO BẢNG DANH SÁCH BOOKING
   // ============================================
@@ -470,33 +458,6 @@ const ListBooking: React.FC = () => {
       width: 200,
       render: (_: any, record: BookingOrder) => (
         <Space>
-          {/* Nút xác nhận đã cọc - chỉ hiển thị khi pending và chưa thanh toán */}
-          {record.status === 'pending' && record.payment_status === 'unpaid' && (
-            <Popconfirm
-              title="Xác nhận đã cọc"
-              description={`Xác nhận khách đã cọc ${(record.total_amount * 0.3).toLocaleString('vi-VN')} VNĐ (30%)?`}
-              onConfirm={() => handleConfirmDeposit(record)}
-              okText="Xác nhận"
-              cancelText="Hủy"
-              okButtonProps={{ type: 'primary' }}
-            >
-              <Tooltip title="Xác nhận đã cọc">
-                <Button
-                  type="primary"
-                  icon={<DollarOutlined />}
-                  loading={confirmDepositLoading === record.id}
-                  size="small"
-                  style={{
-                    backgroundColor: '#1890ff',
-                    borderColor: '#1890ff',
-                  }}
-                >
-                  Xác nhận cọc
-                </Button>
-              </Tooltip>
-            </Popconfirm>
-          )}
-
           {/* Nút xem chi tiết booking */}
           <Tooltip title="Xem chi tiết đặt phòng">
             <Button
@@ -513,6 +474,20 @@ const ListBooking: React.FC = () => {
               onClick={() => navigate(`/admin/booking/edit/${record.id}`)}
             />
           </Tooltip>
+          
+          {/* Nút xem hóa đơn */}
+          {record.invoices && record.invoices.length > 0 && (
+            <Tooltip title="Xem hóa đơn">
+              <Button
+                type="default"
+                icon={<FileTextOutlined />}
+                onClick={() => {
+                  setSelectedInvoiceId(record.invoices![0].id);
+                  setInvoiceModalVisible(true);
+                }}
+              />
+            </Tooltip>
+          )}
           
           {/* 
             Nút đổi trạng thái
@@ -719,6 +694,17 @@ const ListBooking: React.FC = () => {
           </div>
         )}
       </Modal>
+      
+      {/* Modal xem hóa đơn */}
+      <ViewInvoiceModal
+        open={invoiceModalVisible}
+        invoiceId={selectedInvoiceId}
+        isAdmin={true}
+        onCancel={() => {
+          setInvoiceModalVisible(false);
+          setSelectedInvoiceId(null);
+        }}
+      />
     </div>
   );
 };

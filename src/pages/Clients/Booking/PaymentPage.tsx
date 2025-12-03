@@ -10,6 +10,7 @@ import {
     Divider,
     Button,
     App,
+    Radio,
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -21,6 +22,9 @@ import {
     createPayOSPaymentLink,
 } from '../../../service/bookingService';
 import './PaymentPage.css';
+
+// Nếu cần tính số đêm từ ngày checkin/checkout, có thể dùng dayjs sau này
+// import dayjs from 'dayjs';
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -84,21 +88,52 @@ const PaymentPage: React.FC = () => {
         totalPrice: bookingData.totalPrice || bookingData.price || 0,
     }] : []);
     
-    // Tính toán tiền cọc (30% của total_amount)
+    // Tính tổng tiền
     const totalAmount = bookingData.totalPrice || 
         (rooms.length > 0 ? rooms.reduce((sum, room) => 
-            sum + (room.totalPrice || room.price * (room.nights || 1)), 0
-        ) : 0);
-    const depositAmount = Math.round(totalAmount * 0.3);
-    const remainingAmount = totalAmount - depositAmount;
+            sum + (room.totalPrice || (room.price || 0) * (room.nights || 1)), 0
+        ) : 0) || 0;
+
+    // Tính số đêm đơn giản từ room đầu tiên (nếu có trường nights)
+    const firstRoomNights = rooms.length > 0 ? (rooms[0].nights || 1) : (bookingData.nights || 1);
+    const nights = firstRoomNights && firstRoomNights > 0 ? firstRoomNights : 1;
+
+    // Xác định đơn giá trị thấp: cần thanh toán toàn bộ
+    let suggestedDeposit = 0;
+    const isLowValue = totalAmount > 0 && totalAmount < 1_000_000;
+
+    // Cho phép khách chọn chính sách cọc: 50% hoặc 100% (với đơn >= 1tr)
+    type DepositOption = 'half' | 'full';
+    // Đơn < 1 triệu: mặc định là thanh toán toàn bộ, không cần lựa chọn
+    const initialDepositOption: DepositOption = isLowValue ? 'full' : 'half';
+    const [depositOption, setDepositOption] = useState<DepositOption>(initialDepositOption);
+
+    let depositAmount = 0;
+    if (isLowValue) {
+        // Đơn nhỏ: luôn thanh toán toàn bộ
+        depositAmount = Math.round(totalAmount || 0);
+    } else if (depositOption === 'half') {
+        depositAmount = Math.round((totalAmount || 0) * 0.5);
+    } else if (depositOption === 'full') {
+        depositAmount = Math.round(totalAmount || 0);
+    }
+    // Đảm bảo không vượt quá tổng tiền và không âm
+    if (depositAmount > (totalAmount || 0)) {
+        depositAmount = totalAmount || 0;
+    }
+    if (!Number.isFinite(depositAmount) || depositAmount < 0) {
+        depositAmount = 0;
+    }
+
+    const remainingAmount = (totalAmount || 0) - (depositAmount || 0);
 
     // Nếu không có thông tin, redirect về trang trước
     React.useEffect(() => {
-        if (!bookingData.guestInfo) {
-            message.warning('Vui lòng nhập thông tin người đặt phòng!');
-            navigate(-1);
+        if (!bookingData.guestInfo || !bookingData.bookingId || rooms.length === 0) {
+            message.warning('Thông tin đặt phòng không hợp lệ. Vui lòng thử lại!');
+            navigate('/rooms');
         }
-    }, [bookingData, navigate]);
+    }, [bookingData, rooms.length, navigate, message]);
 
     const handlePayWithPayOS = async () => {
         if (!bookingData.bookingId) {
@@ -198,7 +233,7 @@ const PaymentPage: React.FC = () => {
                                             </Space>
                                             <Text type="secondary" style={{ fontSize: 13, marginLeft: 28 }}>
                                                 Hệ thống sử dụng PayOS - đối tác thanh toán uy tín, được bảo mật bởi các ngân hàng hàng đầu Việt Nam
-                                            </Text>
+                                    </Text>
                                         </Space>
                                     </div>
 
@@ -221,33 +256,89 @@ const PaymentPage: React.FC = () => {
                                             }}>
                                                 <Text style={{ fontSize: 13 }}>💳 Thẻ ghi nợ nội địa (ATM)</Text>
                                             </div>
-                                            <div style={{
-                                                padding: '8px 16px',
-                                                background: '#f5f5f5',
-                                                borderRadius: 6,
-                                                border: '1px solid #e8e8e8'
-                                            }}>
-                                                <Text style={{ fontSize: 13 }}>📱 Ví điện tử (MoMo, ZaloPay, ShopeePay)</Text>
+                                            <div
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: '#f5f5f5',
+                                                    borderRadius: 6,
+                                                    border: '1px solid #e8e8e8',
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 13 }}>
+                                                    📱 Ví điện tử (MoMo, ZaloPay, ShopeePay)
+                                                </Text>
                                             </div>
                                         </Space>
                                     </Space>
 
                                     <Divider style={{ margin: '16px 0' }} />
 
-                                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                                        <Text type="secondary" style={{ fontSize: 13 }}>
-                                            • Bạn sẽ được chuyển tới trang thanh toán bảo mật của PayOS
-                                        </Text>
-                                        <Text type="secondary" style={{ fontSize: 13 }}>
-                                            • Thanh toán được xử lý tự động, không cần xác nhận thủ công
-                                        </Text>
-                                        <Text type="secondary" style={{ fontSize: 13 }}>
-                                            • Hệ thống sẽ tự động ghi nhận đặt cọc sau khi thanh toán thành công
-                                        </Text>
-                                        <Text type="secondary" style={{ fontSize: 13 }}>
-                                            • Email xác nhận sẽ được gửi đến <Text strong>{bookingData.guestInfo?.email}</Text>
-                                        </Text>
-                                    </Space>
+                                    {/* Chọn / hiển thị mức cọc */}
+                                    {isLowValue ? (
+                                        // Đơn giá trị thấp: yêu cầu thanh toán toàn bộ, không cần lựa chọn
+                                        <Space
+                                            direction="vertical"
+                                            size="small"
+                                            style={{ width: '100%', padding: 12, background: '#fafafa', borderRadius: 8 }}
+                                        >
+                                            <Text strong style={{ fontSize: 14 }}>
+                                                Đơn này cần thanh toán toàn bộ trước khi xác nhận
+                                            </Text>
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                Tổng tiền: <Text strong>{(totalAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
+                                            </Text>
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                Số tiền sẽ thanh toán ngay:{" "}
+                                                <Text strong>{(depositAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
+                                            </Text>
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                • Bạn sẽ được chuyển tới trang thanh toán bảo mật của PayOS
+                                                </Text>
+                                        </Space>
+                                    ) : (
+                                        <Space
+                                            direction="vertical"
+                                            size="middle"
+                                            style={{ width: '100%', padding: 12, background: '#fafafa', borderRadius: 8 }}
+                                        >
+                                            <Text strong style={{ fontSize: 14 }}>
+                                                Chọn số tiền bạn muốn thanh toán hôm nay
+                                                </Text>
+                                            <Radio.Group
+                                                style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: 8,
+                                                }}
+                                                value={depositOption}
+                                                onChange={(e) => setDepositOption(e.target.value)}
+                                            >
+                                                <Radio value="half" style={{ padding: '8px 12px', borderRadius: 6 }}>
+                                                    <Text strong>Cọc 50%</Text>{" "}
+                                                <Text type="secondary">
+                                                        ({Math.round((totalAmount || 0) * 0.5).toLocaleString("vi-VN")} VNĐ)
+                                                </Text>
+                                                </Radio>
+                                                <Radio value="full" style={{ padding: '8px 12px', borderRadius: 6 }}>
+                                                    <Text strong>Thanh toán toàn bộ</Text>{" "}
+                                                <Text type="secondary">
+                                                        ({(totalAmount || 0).toLocaleString("vi-VN")} VNĐ)
+                                                    </Text>
+                                                </Radio>
+                                            </Radio.Group>
+
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                • Bạn sẽ được chuyển tới trang thanh toán bảo mật của PayOS
+                                                </Text>
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                • Hệ thống sẽ tự động ghi nhận số tiền đã thanh toán vào đơn đặt phòng
+                                                </Text>
+                                            <Text type="secondary" style={{ fontSize: 13 }}>
+                                                • Email xác nhận sẽ được gửi đến{" "}
+                                                <Text strong>{bookingData.guestInfo?.email}</Text>
+                                                </Text>
+                                        </Space>
+                                    )}
                                 </Space>
 
                                 <Divider />
@@ -267,7 +358,7 @@ const PaymentPage: React.FC = () => {
                                         fontWeight: 'bold',
                                     }}
                                 >
-                                    Thanh toán online qua PayOS ({depositAmount.toLocaleString('vi-VN')} VNĐ)
+                                    Thanh toán online qua PayOS ({(depositAmount || 0).toLocaleString('vi-VN')} VNĐ)
                                 </Button>
                             </Card>
 
@@ -375,7 +466,7 @@ const PaymentPage: React.FC = () => {
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.checkIn} → {room.checkOut}
                                                     </Text>
-                                                    <br />
+                                        <br />
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.nights} đêm
                                                     </Text>
@@ -391,10 +482,10 @@ const PaymentPage: React.FC = () => {
                                             )}
                                             <div style={{ marginTop: 8 }}>
                                                 <Text strong style={{ color: '#cb8670', fontSize: 14 }}>
-                                                    {(room.totalPrice || room.price * (room.nights || 1)).toLocaleString('vi-VN')} VNĐ
+                                                    {((room.totalPrice || (room.price || 0) * (room.nights || 1)) || 0).toLocaleString('vi-VN')} VNĐ
                                                 </Text>
                                             </div>
-                                        </div>
+                                    </div>
                                     ))}
 
                                     {rooms.length > 0 && rooms[0].checkIn && (
@@ -421,18 +512,18 @@ const PaymentPage: React.FC = () => {
                                     <div>
                                         {rooms.map((room, index) => (
                                             <div key={index} style={{ marginBottom: index < rooms.length - 1 ? 8 : 0 }}>
-                                                <Row justify="space-between">
+                                        <Row justify="space-between">
                                                     <Col>
                                                         <Text type="secondary" style={{ fontSize: 12 }}>
                                                             {room.roomName}
                                                         </Text>
                                                     </Col>
-                                                    <Col>
+                                                <Col>
                                                         <Text style={{ fontSize: 12 }}>
-                                                            {(room.totalPrice || room.price * (room.nights || 1)).toLocaleString('vi-VN')} VNĐ
-                                                        </Text>
-                                                    </Col>
-                                                </Row>
+                                                            {((room.totalPrice || (room.price || 0) * (room.nights || 1)) || 0).toLocaleString('vi-VN')} VNĐ
+                                                    </Text>
+                                                </Col>
+                                            </Row>
                                             </div>
                                         ))}
                                     </div>
@@ -446,7 +537,7 @@ const PaymentPage: React.FC = () => {
                                                 <Text>Tổng tiền phòng</Text>
                                             </Col>
                                             <Col>
-                                                <Text>{totalAmount.toLocaleString('vi-VN')} VNĐ</Text>
+                                                <Text>{(totalAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
                                             </Col>
                                         </Row>
                                         <Row justify="space-between" style={{ marginBottom: 8 }}>
@@ -454,7 +545,7 @@ const PaymentPage: React.FC = () => {
                                                 <Text type="secondary">Tiền cọc (30%)</Text>
                                             </Col>
                                             <Col>
-                                                <Text type="secondary">{depositAmount.toLocaleString('vi-VN')} VNĐ</Text>
+                                                <Text type="secondary">{(depositAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
                                             </Col>
                                         </Row>
                                         <Row justify="space-between">
@@ -462,7 +553,7 @@ const PaymentPage: React.FC = () => {
                                                 <Text type="secondary">Số tiền còn lại</Text>
                                             </Col>
                                             <Col>
-                                                <Text type="secondary">{remainingAmount.toLocaleString('vi-VN')} VNĐ</Text>
+                                                <Text type="secondary">{(remainingAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
                                             </Col>
                                         </Row>
                                     </div>
@@ -491,7 +582,7 @@ const PaymentPage: React.FC = () => {
                                                         color: '#cb8670'
                                                     }}
                                                 >
-                                                    {depositAmount.toLocaleString('vi-VN')} VNĐ
+                                                    {(depositAmount || 0).toLocaleString('vi-VN')} VNĐ
                                                 </Text>
                                             </Col>
                                         </Row>

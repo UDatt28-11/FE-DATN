@@ -41,10 +41,11 @@ import AddPromotion from "../pages/Admin/quanlimagiamgia/addPromotion";
 import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
-import ListInvoice from "../pages/Admin/quanlihoadon/listInvoice";
-import ViewInvoice from "../pages/Admin/quanlihoadon/viewInvoice";
-import AddInvoice from "../pages/Admin/quanlihoadon/addInvoice";
-import EditInvoice from "../pages/Admin/quanlihoadon/editInvoice";
+// Invoice pages đã được gộp vào quản lý đặt phòng
+// import ListInvoice from "../pages/Admin/quanlihoadon/listInvoice";
+// import ViewInvoice from "../pages/Admin/quanlihoadon/viewInvoice";
+// import AddInvoice from "../pages/Admin/quanlihoadon/addInvoice";
+// import EditInvoice from "../pages/Admin/quanlihoadon/editInvoice";
 import ListSupply from "../pages/Admin/quanlivattu/listsupply";
 import AddSupply from "../pages/Admin/quanlivattu/addsupply";
 import EditSupply from "../pages/Admin/quanlivattu/editsupply";
@@ -148,11 +149,8 @@ export const adminRoutes: RouteObject[] = [
       // Quản lý bình luận (Admin + Staff)
       { path: "message", element: <ListMessage /> },
 
-      // Quản lý hóa đơn (Admin + Staff)
-      { path: "invoice", element: <ListInvoice /> },
-      { path: "invoice/add", element: <AddInvoice /> },
-      { path: "invoice/edit/:id", element: <EditInvoice /> },
-      { path: "invoice/view/:id", element: <ViewInvoice /> },
+      // Quản lý hóa đơn đã được gộp vào quản lý đặt phòng
+      // Xem hóa đơn trong booking/view/:id
 
       // Quản lý vật tư (Admin + Staff)
       { path: "supplies", element: <ListSupply /> },

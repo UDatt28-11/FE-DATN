@@ -22,21 +22,21 @@ function App() {
     <HelmetProvider>
       <AuthProvider>
         <BookingCartProvider>
-          <ConfigProvider
-            theme={{
-              token: {
-                colorPrimary: "#cb8670",
-                colorLink: "#cb8670",
-                colorLinkHover: "#a96d5a",
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-              },
-            }}
-          >
-            <AntdApp>
-              <RouterProvider router={router} />
-            </AntdApp>
-          </ConfigProvider>
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: "#cb8670",
+              colorLink: "#cb8670",
+              colorLinkHover: "#a96d5a",
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            },
+          }}
+        >
+          <AntdApp>
+            <RouterProvider router={router} />
+          </AntdApp>
+        </ConfigProvider>
         </BookingCartProvider>
       </AuthProvider>
     </HelmetProvider>

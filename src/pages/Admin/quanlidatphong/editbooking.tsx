@@ -198,6 +198,7 @@ const EditBooking: React.FC = () => {
             name="total_amount"
             rules={[{ required: true, message: "Vui lòng nhập tổng tiền" }]}
           >
+            <Space.Compact style={{ width: "100%" }}>
             <InputNumber
               min={0}
               style={{ width: "100%" }}
@@ -206,8 +207,16 @@ const EditBooking: React.FC = () => {
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
               parser={(value: any) => value.replace(/\$\s?|(,*)/g, "")}
-              addonAfter="đ"
-            />
+              />
+              <span style={{ 
+                padding: '0 11px', 
+                lineHeight: '40px', 
+                background: '#fafafa', 
+                border: '1px solid #d9d9d9',
+                borderLeft: 'none',
+                borderRadius: '0 6px 6px 0'
+              }}>đ</span>
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item

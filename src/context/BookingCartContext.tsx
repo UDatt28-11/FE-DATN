@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { message } from 'antd';
 import type { Room } from '../types/room/room';
 import type { RoomType } from '../types/roomtype/roomtype';
@@ -31,6 +31,7 @@ interface BookingCartContextType {
     // Mô hình mới: RoomType-based booking
     selectedRoomTypes: SelectedRoomType[];
     addRoomTypeToCart: (roomType: RoomType, quantity: number, checkIn: string, checkOut: string, nights: number, pricePerNight: number, maxAdults: number, maxChildren: number) => void;
+    updateRoomTypeQuantity: (roomTypeId: number, quantity: number) => void;
     removeRoomTypeFromCart: (roomTypeId: number) => void;
     isRoomTypeInCart: (roomTypeId: number) => boolean;
     
@@ -92,10 +93,18 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
                 const parsed = JSON.parse(saved) as [string | null, string | null];
                 // Convert ISO strings back to Dayjs objects
                 if (parsed && Array.isArray(parsed) && parsed.length === 2) {
-                    return [
-                        parsed[0] ? dayjs(parsed[0]) : null,
-                        parsed[1] ? dayjs(parsed[1]) : null
-                    ] as [Dayjs | null, Dayjs | null];
+                    const today = dayjs().startOf('day');
+                    const checkIn = parsed[0] ? dayjs(parsed[0]).startOf('day') : null;
+                    const checkOut = parsed[1] ? dayjs(parsed[1]).startOf('day') : null;
+                    
+                    // Chỉ load nếu cả hai ngày đều không phải quá khứ và check-out sau check-in
+                    if (checkIn && checkOut && 
+                        !checkIn.isBefore(today) && 
+                        checkOut.isAfter(checkIn)) {
+                        return [checkIn, checkOut] as [Dayjs | null, Dayjs | null];
+                    }
+                    // Nếu ngày đã quá khứ, xóa khỏi localStorage
+                    localStorage.removeItem(DATE_RANGE_STORAGE_KEY);
                 }
             }
         } catch (e) {
@@ -158,15 +167,30 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
     }, [selectedRooms]);
 
-    // Save date range to localStorage
+    // Save date range to localStorage và cập nhật checkIn/checkOut cho tất cả items trong cart
     useEffect(() => {
         try {
-            if (dateRange) {
+            if (dateRange && dateRange[0] && dateRange[1]) {
                 // Convert Dayjs to ISO strings for storage
                 const dateRangeData = dateRange.map(date => 
                     date ? date.toISOString() : null
                 ) as [string | null, string | null];
                 localStorage.setItem(DATE_RANGE_STORAGE_KEY, JSON.stringify(dateRangeData));
+
+                // Cập nhật checkIn/checkOut cho tất cả selectedRoomTypes khi dateRange thay đổi
+                setSelectedRoomTypes(prev => {
+                    const checkInStr = dateRange[0]!.format('DD/MM/YYYY');
+                    const checkOutStr = dateRange[1]!.format('DD/MM/YYYY');
+                    const nights = dateRange[1]!.diff(dateRange[0]!, 'day');
+
+                    return prev.map(item => ({
+                        ...item,
+                        checkIn: checkInStr,
+                        checkOut: checkOutStr,
+                        nights: nights,
+                        totalPrice: (item.pricePerNight || 0) * nights * (item.quantity || 1),
+                    }));
+                });
             } else {
                 localStorage.removeItem(DATE_RANGE_STORAGE_KEY);
             }
@@ -219,6 +243,41 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         });
     }, []);
 
+    // Mô hình mới: Xóa RoomType khỏi cart
+    const removeRoomTypeFromCart = useCallback((roomTypeId: number) => {
+        setSelectedRoomTypes(prev => {
+            const filtered = prev.filter(item => item.roomType.id !== roomTypeId);
+            if (filtered.length < prev.length) {
+                message.success('Đã xóa loại phòng khỏi booking cart!');
+            }
+            return filtered;
+        });
+    }, []);
+
+    // Cập nhật số lượng cho RoomType trong cart
+    const updateRoomTypeQuantity = useCallback((roomTypeId: number, quantity: number) => {
+        if (quantity <= 0) {
+            removeRoomTypeFromCart(roomTypeId);
+            return;
+        }
+
+        setSelectedRoomTypes(prev => {
+            const updated = prev.map(item => {
+                if (item.roomType.id === roomTypeId) {
+                    const newQuantity = quantity;
+                    const newTotalPrice = newQuantity * (item.pricePerNight || 0) * (item.nights || 1);
+                    return {
+                        ...item,
+                        quantity: newQuantity,
+                        totalPrice: newTotalPrice,
+                    };
+                }
+                return item;
+            });
+            return updated;
+        });
+    }, [removeRoomTypeFromCart]);
+
     // Mô hình cũ: Thêm Room vào cart (backward compatibility)
     const addToCart = useCallback((room: Room, checkIn: string, checkOut: string, nights: number, totalPrice: number) => {
         setSelectedRooms(prev => {
@@ -242,17 +301,6 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         });
     }, []);
 
-    // Mô hình mới: Xóa RoomType khỏi cart
-    const removeRoomTypeFromCart = useCallback((roomTypeId: number) => {
-        setSelectedRoomTypes(prev => {
-            const filtered = prev.filter(item => item.roomType.id !== roomTypeId);
-            if (filtered.length < prev.length) {
-                message.success('Đã xóa loại phòng khỏi booking cart!');
-            }
-            return filtered;
-        });
-    }, []);
-
     // Mô hình cũ: Xóa Room khỏi cart (backward compatibility)
     const removeFromCart = useCallback((roomId: number) => {
         setSelectedRooms(prev => {
@@ -267,6 +315,14 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
     const clearCart = useCallback(() => {
         setSelectedRoomTypes([]);
         setSelectedRooms([]);
+        setDateRangeState(null);
+        try {
+            localStorage.removeItem(ROOM_TYPE_CART_STORAGE_KEY);
+            localStorage.removeItem(CART_STORAGE_KEY);
+            localStorage.removeItem(DATE_RANGE_STORAGE_KEY);
+        } catch (e) {
+            console.error('Error clearing booking cart from localStorage:', e);
+        }
         message.success('Đã xóa tất cả khỏi booking cart!');
     }, []);
 
@@ -284,10 +340,11 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         return selectedRooms.some(item => item.room.id === roomId);
     }, [selectedRooms]);
 
-    const value = useCallback(() => ({
+    const value = useMemo(() => ({
         // Mô hình mới
         selectedRoomTypes,
         addRoomTypeToCart,
+        updateRoomTypeQuantity,
         removeRoomTypeFromCart,
         isRoomTypeInCart,
         // Mô hình cũ (backward compatibility)
@@ -302,13 +359,13 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         cartVisible,
         setCartVisible,
     }), [
-        selectedRoomTypes, addRoomTypeToCart, removeRoomTypeFromCart, isRoomTypeInCart,
+        selectedRoomTypes, addRoomTypeToCart, updateRoomTypeQuantity, removeRoomTypeFromCart, isRoomTypeInCart,
         selectedRooms, addToCart, removeFromCart, isInCart,
         dateRange, clearCart, setDateRange, cartVisible
     ]);
 
     return (
-        <BookingCartContext.Provider value={value()}>
+        <BookingCartContext.Provider value={value}>
             {children}
         </BookingCartContext.Provider>
     );

@@ -144,7 +144,7 @@ const MyBookingsPage: React.FC = () => {
     const [selectedBooking, setSelectedBooking] = useState<BookingOrder | null>(null);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState<boolean>(false);
-    const [activeTab, setActiveTab] = useState<string>('active'); // Mặc định hiển thị active bookings
+    const [activeTab, setActiveTab] = useState<string>('booked'); // Mặc định hiển thị các đơn đã đặt (chưa check-in)
     const [bookingCounts, setBookingCounts] = useState<{
         all: number;
         active: number;
@@ -193,14 +193,23 @@ const MyBookingsPage: React.FC = () => {
 
         setLoading(true);
         try {
-            // Xử lý active tab: nếu là 'active' thì lấy confirmed, checked_in, partially_checked_in
+            // Map tab -> các trạng thái backend
             let statusFilter: string[] | undefined;
-            if (activeTab === 'active') {
-                statusFilter = ['confirmed', 'checked_in', 'partially_checked_in'];
+            if (activeTab === 'booked') {
+                // ĐÃ ĐẶT: mọi đơn chưa check-in
+                statusFilter = ['pending', 'confirmed'];
+            } else if (activeTab === 'in_use') {
+                // ĐANG DÙNG: đang check-in
+                statusFilter = ['checked_in', 'partially_checked_in'];
+            } else if (activeTab === 'paid') {
+                // ĐÃ THANH TOÁN / HOÀN THÀNH
+                statusFilter = ['checked_out', 'partially_checked_out', 'completed'];
+            } else if (activeTab === 'cancelled') {
+                statusFilter = ['cancelled'];
             } else if (activeTab === 'all') {
                 statusFilter = undefined;
             } else {
-                statusFilter = [activeTab];
+                statusFilter = undefined;
             }
 
             const response = await getUserBookings({
@@ -208,7 +217,7 @@ const MyBookingsPage: React.FC = () => {
                 per_page: 20, // Giảm từ 50 xuống 20 để tăng tốc độ
                 status: statusFilter,
                 sort: '-created_at',
-                include: 'details,details.room,details.room.images,invoices,invoices.payments', // Thêm invoices và payments để tính số tiền còn phải thanh toán
+                include: 'details,details.room,details.room.images,invoices,invoices.payments,invoices.invoiceItems', // Thêm invoices, payments và invoiceItems để tính số tiền còn phải thanh toán
             });
 
             setBookings(response.data || []);
@@ -368,28 +377,33 @@ const MyBookingsPage: React.FC = () => {
 
     // Tính số tiền còn phải thanh toán
     const calculateRemainingAmount = (booking: BookingOrder): number => {
-        // Sử dụng remaining_amount từ backend nếu có (đã được tính sẵn)
-        if (booking.remaining_amount !== undefined) {
+        // Ưu tiên 1: Sử dụng remaining_amount từ backend nếu có (đã được tính sẵn)
+        if (booking.remaining_amount !== undefined && booking.remaining_amount !== null) {
             return booking.remaining_amount;
         }
         
-        // Fallback: Nếu có invoice, tính dựa trên invoice
+        // Ưu tiên 2: Nếu có invoice, tính dựa trên invoice
         if (booking.invoices && booking.invoices.length > 0) {
             const invoice = booking.invoices[0]; // Lấy invoice đầu tiên
-            const invoiceTotal = invoice.total_amount || 0;
             
-            // Sử dụng remaining_amount từ invoice nếu có
-            if (invoice.remaining_amount !== undefined) {
+            // Ưu tiên 2a: Sử dụng remaining_amount từ invoice nếu có
+            if (invoice.remaining_amount !== undefined && invoice.remaining_amount !== null) {
                 return invoice.remaining_amount;
             }
             
-            // Tính tổng tiền đã thanh toán từ payments
+            // Ưu tiên 2b: Tính từ invoice.total_amount và payments
+            // invoice.total_amount đã được tính = room_charge - deposit (vì deposit item có giá trị âm)
+            // remaining_amount = invoice.total_amount - tổng payments thành công
+            const invoiceTotal = invoice.total_amount || 0;
+            
+            // Tính tổng tiền đã thanh toán từ payments thành công
             const paidAmount = invoice.payments 
                 ? invoice.payments
-                    .filter((p: any) => p.status === 'success')
+                    .filter((p: any) => p.status === 'success' || p.status === 'paid')
                     .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
                 : invoice.paid_amount || 0;
             
+            // remaining_amount = invoice.total_amount - tổng payments
             return Math.max(0, invoiceTotal - paidAmount);
         }
         
@@ -411,6 +425,11 @@ const MyBookingsPage: React.FC = () => {
         );
         const guests = getTotalGuests(booking);
         const createdAt = formatDateTime(booking.created_at);
+        
+        // Lấy remaining_amount từ invoice nếu có, nếu không thì tính từ booking
+        const remainingAmount = booking.invoices && booking.invoices.length > 0 && booking.invoices[0].remaining_amount !== undefined
+            ? booking.invoices[0].remaining_amount
+            : (booking.remaining_amount !== undefined ? booking.remaining_amount : calculateRemainingAmount(booking));
 
         return (
             <Card
@@ -449,21 +468,6 @@ const MyBookingsPage: React.FC = () => {
                                     <Tag icon={statusConfig.icon} color={statusConfig.color}>
                                         {statusConfig.text}
                                     </Tag>
-                                </Space>
-                            </Col>
-                            <Col>
-                                <Space direction="vertical" align="end">
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        Còn phải thanh toán
-                                    </Text>
-                                    <Text strong style={{ fontSize: 20, color: '#cb8670' }}>
-                                        {formatVND(calculateRemainingAmount(booking))}
-                                    </Text>
-                                    {(booking.total_amount && calculateRemainingAmount(booking) !== booking.total_amount) && (
-                                        <Text type="secondary" style={{ fontSize: 11, textDecoration: 'line-through' }}>
-                                            {formatVND(booking.total_amount)}
-                                        </Text>
-                                    )}
                                 </Space>
                             </Col>
                         </Row>
@@ -600,8 +604,32 @@ const MyBookingsPage: React.FC = () => {
                                             </Button>
                                         </>
                                     )}
-                                    {booking.status === 'pending' && (
+                                    {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                        <Popconfirm
+                                            title="Hủy đặt phòng"
+                                            description="Bạn có chắc chắn muốn hủy đơn đặt phòng này?"
+                                            okText="Hủy"
+                                            cancelText="Không"
+                                            okButtonProps={{ danger: true }}
+                                            onConfirm={async () => {
+                                                try {
+                                                    setLoading(true);
+                                                    await cancelUserBooking(booking.id);
+                                                    message.success('Hủy đặt phòng thành công.');
+                                                    // Refresh danh sách & counters
+                                                    fetchBookingCounts();
+                                                    fetchBookings();
+                                                } catch (error: any) {
+                                                    console.error('Error cancelling booking:', error);
+                                                    const errorMessage = error?.response?.data?.message || 'Không thể hủy đặt phòng. Vui lòng thử lại sau.';
+                                                    message.error(errorMessage);
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }}
+                                        >
                                         <Button danger>Hủy đặt phòng</Button>
+                                        </Popconfirm>
                                     )}
                                     {booking.status === 'cancelled' && (
                                         <Button
@@ -654,39 +682,31 @@ const MyBookingsPage: React.FC = () => {
                         <HomeOutlined /> Đơn đặt phòng của tôi
                     </Title>
 
-                    {/* Tabs lọc theo trạng thái */}
+                    {/* Tabs lọc theo nhóm trạng thái thân thiện hơn */}
                     <Tabs
                         activeKey={activeTab}
                         onChange={setActiveTab}
                         style={{ marginBottom: 24 }}
                         items={[
-                            { 
-                                key: 'active', 
-                                label: `Đang đặt (${bookingCounts.active})` 
+                            {
+                                key: 'booked',
+                                label: `Đã đặt (${(bookingCounts.pending || 0) + (bookingCounts.confirmed || 0)})`,
                             },
-                            { 
-                                key: 'all', 
-                                label: `Tất cả (${bookingCounts.all})` 
+                            {
+                                key: 'in_use',
+                                label: `Đang sử dụng (${(bookingCounts.checked_in || 0) + (bookingCounts.partially_checked_in || 0)})`,
                             },
-                            { 
-                                key: 'pending', 
-                                label: `Chờ xác nhận (${bookingCounts.pending})` 
+                            {
+                                key: 'paid',
+                                label: `Đã thanh toán (${(bookingCounts.checked_out || 0) + (bookingCounts.partially_checked_out || 0) + (bookingCounts.completed || 0)})`,
                             },
-                            { 
-                                key: 'confirmed', 
-                                label: `Đã xác nhận (${bookingCounts.confirmed})` 
+                            {
+                                key: 'cancelled',
+                                label: `Đã hủy (${bookingCounts.cancelled || 0})`,
                             },
-                            { 
-                                key: 'checked_in', 
-                                label: `Đã check-in (${bookingCounts.checked_in})` 
-                            },
-                            { 
-                                key: 'completed', 
-                                label: `Hoàn thành (${bookingCounts.completed})` 
-                            },
-                            { 
-                                key: 'cancelled', 
-                                label: `Đã hủy (${bookingCounts.cancelled})` 
+                            {
+                                key: 'all',
+                                label: `Tất cả (${bookingCounts.all || 0})`,
                             },
                         ]}
                     />
@@ -738,7 +758,7 @@ const MyBookingsPage: React.FC = () => {
                     }}>
                         Đóng
                     </Button>,
-                    selectedBooking?.status === 'pending' && (
+                    selectedBooking && (selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
                         <Popconfirm
                             key="cancel"
                             title="Hủy đặt phòng"
@@ -861,8 +881,22 @@ const MyBookingsPage: React.FC = () => {
                                 selectedBooking.details.map((detail, index) => (
                                     <React.Fragment key={detail.id}>
                                         {index > 0 && <Divider />}
-                                        <Descriptions.Item label="Tên phòng">
-                                            <Text strong>{detail.room?.name || detail.room_name || 'N/A'}</Text>
+                                        <Descriptions.Item label="Phòng đã được gán" span={2}>
+                                            <Space direction="vertical" size="small">
+                                                <Text strong style={{ fontSize: 16 }}>
+                                                    {detail.room?.name || detail.room_name || 'N/A'}
+                                                </Text>
+                                                {detail.room?.id && (
+                                                    <Text type="secondary" style={{ fontSize: 13 }}>
+                                                        Mã phòng: <Text strong>#{detail.room.id}</Text>
+                                                    </Text>
+                                                )}
+                                                {detail.room?.roomType && (
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                        Loại phòng: {detail.room.roomType.name}
+                                                    </Text>
+                                                )}
+                                            </Space>
                                         </Descriptions.Item>
                                         <Descriptions.Item label="Ngày nhận phòng">
                                             {formatDate(detail.check_in_date)}
