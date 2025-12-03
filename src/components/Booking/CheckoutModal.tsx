@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Modal,
     Button,
@@ -6,12 +6,16 @@ import {
     Typography,
     Alert,
     Spin,
+    Divider,
+    List,
+    Tag,
 } from 'antd';
 import {
     LogoutOutlined,
     ExclamationCircleOutlined,
+    ShoppingOutlined,
 } from '@ant-design/icons';
-import type { BookingOrder } from '../../types/booking/booking';
+import type { BookingOrder, BookingService } from '../../types/booking/booking';
 import { checkOutUserBooking } from '../../service/bookingService';
 import { formatVND } from '../../utils/currency';
 
@@ -56,7 +60,28 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!booking) return null;
 
     const roomName = booking.details?.[0]?.room?.name || 'N/A';
-    const totalAmount = booking.total_amount || 0;
+    
+    // Tính tổng tiền bao gồm cả dịch vụ đã được approve
+    const approvedServices = useMemo(() => {
+        const services: BookingService[] = [];
+        booking.details?.forEach(detail => {
+            if (detail.booking_services) {
+                detail.booking_services.forEach((bs: BookingService) => {
+                    if (bs.status === 'approved') {
+                        services.push(bs);
+                    }
+                });
+            }
+        });
+        return services;
+    }, [booking]);
+
+    const servicesTotal = approvedServices.reduce((sum, bs) => {
+        return sum + (bs.price_at_booking * bs.quantity);
+    }, 0);
+
+    const baseAmount = booking.total_amount || 0;
+    const totalAmount = baseAmount + servicesTotal;
 
     return (
         <Modal
@@ -102,16 +127,50 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <Text strong>{roomName}</Text>
                 </div>
 
+                {approvedServices.length > 0 && (
+                    <>
+                        <Divider style={{ margin: '12px 0' }} />
+                        <div>
+                            <Text type="secondary" style={{ fontSize: 12 }}>Dịch vụ đã được duyệt:</Text>
+                            <List
+                                size="small"
+                                dataSource={approvedServices}
+                                renderItem={(service) => (
+                                    <List.Item style={{ padding: '8px 0' }}>
+                                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                                            <Space>
+                                                <ShoppingOutlined style={{ color: '#52c41a' }} />
+                                                <Text>{service.service?.name || 'N/A'}</Text>
+                                                <Text type="secondary">x{service.quantity}</Text>
+                                            </Space>
+                                            <Text strong>
+                                                {formatVND(service.price_at_booking * service.quantity)}
+                                            </Text>
+                                        </Space>
+                                    </List.Item>
+                                )}
+                            />
+                        </div>
+                        <Divider style={{ margin: '12px 0' }} />
+                    </>
+                )}
+
                 <div>
-                    <Text type="secondary">Tổng tiền cần thanh toán:</Text>
-                    <br />
-                    <Title level={4} style={{ margin: 0, color: '#52c41a' }}>
-                        {formatVND(totalAmount)}
-                    </Title>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text type="secondary">Tổng tiền cần thanh toán:</Text>
+                        <Title level={4} style={{ margin: 0, color: '#52c41a' }}>
+                            {formatVND(totalAmount)}
+                        </Title>
+                    </Space>
+                    {approvedServices.length > 0 && (
+                        <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                            (Bao gồm {approvedServices.length} dịch vụ đã được duyệt)
+                        </Text>
+                    )}
                 </div>
 
                 <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Bạn có chắc chắn muốn check-out không? Sau khi xác nhận, bạn sẽ được chuyển đến trang thanh toán.
+                    Bạn có chắc chắn muốn check-out không? Sau khi xác nhận, hệ thống sẽ tự động tạo hóa đơn bao gồm phòng và các dịch vụ đã được duyệt.
                 </Text>
             </Space>
         </Modal>

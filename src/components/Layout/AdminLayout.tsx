@@ -111,6 +111,18 @@ const AdminLayout: React.FC = () => {
       path: "/admin/check-in-requests",
     },
     {
+      key: "checkout-requests",
+      icon: <LogoutOutlined />,
+      label: "Yêu cầu checkout",
+      path: "/admin/checkout-requests",
+    },
+    {
+      key: "service-requests",
+      icon: <ShoppingOutlined />,
+      label: "Yêu cầu dịch vụ",
+      path: "/admin/service-requests",
+    },
+    {
       key: "promotionManagement",
       icon: <DollarOutlined />,
       label: "Quản lí mã giảm giá",

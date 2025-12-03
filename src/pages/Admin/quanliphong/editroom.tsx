@@ -6,7 +6,8 @@ import { toast } from "react-toastify";
 import axios from "../../../service/axiosConfig";
 import roomService from "../../../service/roomService";
 import roomtypeService from "../../../service/roomtypeService";
-import type { Room, RoomImage } from "../../../types/room/room";
+import type { Room } from "../../../types/room/room";
+import type { RoomTypeImage } from "../../../types/roomtype/roomtype";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -39,7 +40,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
     const [amenities, setAmenities] = useState<Amenity[]>([]);
     const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
-    const [existingImages, setExistingImages] = useState<RoomImage[]>([]);
+    const [existingImages, setExistingImages] = useState<RoomTypeImage[]>([]);
 
     // Load data và set form values
     useEffect(() => {
@@ -69,9 +70,12 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                 status: room.status,
             });
             setSelectedAmenities(room.amenities?.map(a => a.id) || []);
-            // Load existing images
-            if (room.images && room.images.length > 0) {
-                setExistingImages(room.images);
+            // Load existing images from roomType instead of room
+            if (room.roomType?.images && room.roomType.images.length > 0) {
+                setExistingImages(room.roomType.images);
+            } else if (room.images && room.images.length > 0) {
+                // Fallback: nếu vẫn có images trong room (backward compatibility)
+                setExistingImages(room.images as any);
             } else {
                 setExistingImages([]);
             }
@@ -131,8 +135,8 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
 
             const response = await roomService.updateRoom(room.id, roomData);
             if (response.success) {
-                // Upload images mới nếu có
-                if (fileList.length > 0) {
+                // Upload images mới cho roomType nếu có
+                if (fileList.length > 0 && values.room_type_id) {
                     try {
                         const formData = new FormData();
                         fileList.forEach((file) => {
@@ -141,7 +145,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                             }
                         });
                         
-                        await roomService.uploadImages(room.id, formData);
+                        await roomtypeService.uploadImages(values.room_type_id, formData);
                         toast.success("Cập nhật phòng và upload hình ảnh thành công!");
                     } catch (uploadError: any) {
                         console.error("Error uploading images:", uploadError);
@@ -200,7 +204,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
 
     const handleDeleteImage = async (imageId: number) => {
         try {
-            const response = await roomService.deleteImage(imageId);
+            const response = await roomtypeService.deleteImage(imageId);
             if (response.success) {
                 toast.success("Đã xóa hình ảnh!");
                 setExistingImages(existingImages.filter(img => img.id !== imageId));

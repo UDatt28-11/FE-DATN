@@ -101,6 +101,35 @@ const roomtypeService = {
     const response = await axios.get(`${API_URL}/admin/room-types/${id}/amenities`);
     return response.data;
   },
+
+  /**
+   * Upload hình ảnh cho room type
+   */
+  async uploadImages(roomTypeId: number, formData: FormData): Promise<{ success: boolean; data: any }> {
+    const response = await axios.post(`${API_URL}/admin/room-types/${roomTypeId}/upload-images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 60 seconds for image uploads
+    });
+    return response.data;
+  },
+
+  /**
+   * Xóa hình ảnh room type
+   */
+  async deleteImage(imageId: number): Promise<{ success: boolean; message: string }> {
+    const response = await axios.delete(`${API_URL}/admin/room-type-images/${imageId}`);
+    return response.data;
+  },
+
+  /**
+   * Xóa nhiều hình ảnh room type cùng lúc
+   */
+  async bulkDeleteImages(imageIds: number[]): Promise<{ success: boolean; message: string }> {
+    const response = await axios.post(`${API_URL}/admin/room-type-images/bulk-delete`, { ids: imageIds });
+    return response.data;
+  },
 };
 
 export default roomtypeService;

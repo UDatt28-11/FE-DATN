@@ -36,27 +36,57 @@ const serviceService = {
   async getAll(params?: { property_id?: number }): Promise<Service[]> {
     try {
       // Thử gọi admin route trước (nếu user là admin)
-      const res = await api.get("/admin/services", { params });
-      const data = res.data?.data || res.data;
+      const res = await api.get("/admin/services", { 
+        params: {
+          ...params,
+          per_page: 100, // Lấy tất cả services (tối đa 100)
+        }
+      });
+      
+      // ServiceController trả về dạng paginated với ServiceResource collection
+      // Response format: { success: true, data: ServiceResource[], meta: {...} }
+      let data = res.data?.data;
+      
+      // Nếu data là array của ServiceResource objects, extract ra
       if (Array.isArray(data)) {
-        return data;
+        // ServiceResource có thể wrap trong object, cần extract
+        return data.map((item: any) => {
+          // Nếu item đã là Service object thì return luôn
+          if (item.id && item.name) {
+            return item;
+          }
+          // Nếu item là ServiceResource object, extract data
+          return item;
+        });
       }
-      if (data?.data && Array.isArray(data.data)) {
-        return data.data;
+      
+      // Fallback: nếu data không phải array, thử lấy từ res.data trực tiếp
+      if (res.data && Array.isArray(res.data)) {
+        return res.data;
       }
+      
+      console.warn('Unexpected service response format:', res.data);
       return [];
     } catch (error: any) {
+      console.error('Error fetching services:', error);
       // Nếu admin route fail, thử public route
       if (error.response?.status === 403 || error.response?.status === 401) {
-        const res = await api.get("/services", { params });
-        const data = res.data?.data || res.data;
-        if (Array.isArray(data)) {
-          return data;
+        try {
+          const res = await api.get("/services", { 
+            params: {
+              ...params,
+              per_page: 100,
+            }
+          });
+          let data = res.data?.data || res.data;
+          if (Array.isArray(data)) {
+            return data;
+          }
+          return [];
+        } catch (publicError: any) {
+          console.error('Error fetching services from public route:', publicError);
+          throw publicError;
         }
-        if (data?.data && Array.isArray(data.data)) {
-          return data.data;
-        }
-        return [];
       }
       throw error;
     }

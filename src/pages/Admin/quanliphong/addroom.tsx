@@ -115,7 +115,10 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
                             }
                         });
                         
-                        await roomService.uploadImages(roomId, formData);
+                        // Upload images cho roomType thay vì room
+                        if (values.room_type_id) {
+                            await roomtypeService.uploadImages(values.room_type_id, formData);
+                        }
                         toast.success("Thêm phòng và upload hình ảnh thành công!");
                     } catch (uploadError: any) {
                         console.error("Error uploading images:", uploadError);

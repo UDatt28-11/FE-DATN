@@ -52,6 +52,8 @@ import EditSupply from "../pages/Admin/quanlivattu/editsupply";
 import ViewSupply from "../pages/Admin/quanlivattu/viewsupply";
 import SupplyLogs from "../pages/Admin/quanlivattu/supplyLogs";
 import ListCheckInRequests from "../pages/Admin/quanlidatphong/listCheckInRequests";
+import ListCheckoutRequests from "../pages/Admin/quanlidatphong/listCheckoutRequests";
+import ListServiceRequests from "../pages/Admin/quanlidatphong/listServiceRequests";
 import ListService from "../pages/Admin/quanlidichvu/ListService";
 
 /**
@@ -85,7 +87,9 @@ export const adminRoutes: RouteObject[] = [
       { path: "booking/add", element: <AddBooking /> },
       { path: "booking/edit/:id", element: <EditBooking /> },
       { path: "booking/view/:id", element: <ViewBooking /> },
-      { path: "check-in-requests", element: <ListCheckInRequests /> },
+              { path: "check-in-requests", element: <ListCheckInRequests /> },
+              { path: "checkout-requests", element: <ListCheckoutRequests /> },
+              { path: "service-requests", element: <ListServiceRequests /> },
 
       // Quản lý danh mục (Admin + Staff)
       { path: "category", element: <ListCategory /> },

@@ -80,10 +80,15 @@ const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
     });
 };
 
-// Helper function để lấy gallery images
+// Helper function để lấy gallery images từ roomType
 const getGalleryImages = (room: Room): string[] => {
+    // Lấy images từ roomType thay vì room
+    if (room.roomType?.images && room.roomType.images.length > 0) {
+        return room.roomType.images.map((img: any) => img.image_url).filter(Boolean);
+    }
+    // Fallback: nếu vẫn có images trong room (backward compatibility)
     if (room.images && room.images.length > 0) {
-        return room.images.map(img => img.image_url).filter(Boolean);
+        return room.images.map((img: any) => img.image_url).filter(Boolean);
     }
     return ["/img/bg-img/1.jpg"]; // Fallback
 };

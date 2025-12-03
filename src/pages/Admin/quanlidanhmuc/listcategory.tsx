@@ -345,14 +345,13 @@ const ListCategory: React.FC = () => {
       if (values.property_id) {
         formData.append("property_id", values.property_id);
       }
-      if (fileList[0]?.originFileObj) {
-        formData.append("image_file", fileList[0].originFileObj);
-      }
+      // Images are now handled directly in EditCategory component
+      // No need to append image_file here anymore
       formData.append("_method", "PUT");
 
       const response = await roomtypeService.updateRoomType(selectedRoomType.id, formData);
       if (response.success) {
-        toast.success("Đã cập nhật loại phòng!");
+        // Success message is already shown in EditCategory
         setEditModalVisible(false);
         loadRoomTypes(pagination.current, searchText);
       } else {

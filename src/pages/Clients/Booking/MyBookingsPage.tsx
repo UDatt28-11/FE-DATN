@@ -35,15 +35,17 @@ import {
     DollarOutlined,
     FileTextOutlined,
     RedoOutlined,
+    ShoppingOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getUserBookings, getUserBooking, getUserInvoices, cancelUserBooking, getUserBookingCounts } from '../../../service/bookingService';
-import type { BookingOrder } from '../../../types/booking/booking';
+import type { BookingOrder, BookingDetail } from '../../../types/booking/booking';
 import { formatVND } from '../../../utils/currency';
 import { useAuth } from '../../../context/AuthContext';
-import CheckoutModal from '../../../components/Booking/CheckoutModal';
+import RequestCheckoutModal from '../../../components/Booking/RequestCheckoutModal';
 import PaymentModal from '../../../components/Booking/PaymentModal';
 import ViewInvoiceModal from '../../../components/Booking/ViewInvoiceModal';
+import RequestServiceModal from '../../../components/Booking/RequestServiceModal';
 import { message } from 'antd';
 import './MyBookings.css';
 
@@ -86,14 +88,23 @@ const calculateNights = (checkIn?: string | null, checkOut?: string | null): num
     }
 };
 
-// Helper function để lấy ảnh phòng từ booking
+// Helper function để lấy ảnh phòng từ booking (từ roomType)
 const getRoomImage = (booking: BookingOrder): string => {
     if (booking.details && booking.details.length > 0) {
         const firstDetail = booking.details[0];
-        if (firstDetail.room?.images && firstDetail.room.images.length > 0) {
-            const primaryImage = firstDetail.room.images.find((img: any) => img.is_primary);
+        // Lấy images từ roomType thay vì room
+        const roomType = (firstDetail.room as any)?.roomType;
+        if (roomType?.images && Array.isArray(roomType.images) && roomType.images.length > 0) {
+            const primaryImage = roomType.images.find((img: any) => img.is_primary);
             if (primaryImage?.image_url) return primaryImage.image_url;
-            if (firstDetail.room.images[0]?.image_url) return firstDetail.room.images[0].image_url;
+            if (roomType.images[0]?.image_url) return roomType.images[0].image_url;
+        }
+        // Fallback: nếu vẫn có images trong room (backward compatibility)
+        const roomImages = (firstDetail.room as any)?.images;
+        if (roomImages && Array.isArray(roomImages) && roomImages.length > 0) {
+            const primaryImage = roomImages.find((img: any) => img.is_primary);
+            if (primaryImage?.image_url) return primaryImage.image_url;
+            if (roomImages[0]?.image_url) return roomImages[0].image_url;
         }
     }
     return '/img/bg-img/1.jpg'; // Fallback
@@ -168,12 +179,15 @@ const MyBookingsPage: React.FC = () => {
         completed: 0,
         cancelled: 0,
     });
-    const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-    const [checkoutBooking, setCheckoutBooking] = useState<BookingOrder | null>(null);
+    const [requestCheckoutModalVisible, setRequestCheckoutModalVisible] = useState(false);
+    const [requestCheckoutBooking, setRequestCheckoutBooking] = useState<BookingOrder | null>(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
     const [paymentInvoiceId, setPaymentInvoiceId] = useState<number | null>(null);
     const [paymentTotalAmount, setPaymentTotalAmount] = useState<number>(0);
     const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+    const [requestServiceModalVisible, setRequestServiceModalVisible] = useState(false);
+    const [requestServiceBooking, setRequestServiceBooking] = useState<BookingOrder | null>(null);
+    const [requestServiceDetail, setRequestServiceDetail] = useState<BookingDetail | null>(null);
     const [viewInvoiceId, setViewInvoiceId] = useState<number | null>(null);
 
     // Fetch booking counts
@@ -217,7 +231,7 @@ const MyBookingsPage: React.FC = () => {
                 per_page: 20, // Giảm từ 50 xuống 20 để tăng tốc độ
                 status: statusFilter,
                 sort: '-created_at',
-                include: 'details,details.room,details.room.images,invoices,invoices.payments,invoices.invoiceItems', // Thêm invoices, payments và invoiceItems để tính số tiền còn phải thanh toán
+                include: 'details,details.room,details.room.roomType,details.room.roomType.images,invoices,invoices.payments,invoices.invoiceItems', // Thêm invoices, payments và invoiceItems để tính số tiền còn phải thanh toán
             });
 
             setBookings(response.data || []);
@@ -320,7 +334,7 @@ const MyBookingsPage: React.FC = () => {
         setDetailLoading(true);
         try {
             // Fetch full booking details
-            const fullBooking = await getUserBooking(booking.id, 'details,details.room,details.room.images,details.guests');
+            const fullBooking = await getUserBooking(booking.id, 'details,details.room,details.room.property,details.room.roomType,details.room.roomType.images,details.guests');
             setSelectedBooking(fullBooking);
         } catch (error: any) {
             console.error("Error fetching booking detail:", error);
@@ -351,17 +365,16 @@ const MyBookingsPage: React.FC = () => {
     };
 
 
-    const handleCheckout = (booking: BookingOrder) => {
-        setCheckoutBooking(booking);
-        setCheckoutModalVisible(true);
+    const handleRequestCheckout = (booking: BookingOrder) => {
+        setRequestCheckoutBooking(booking);
+        setRequestCheckoutModalVisible(true);
     };
 
-    const handleCheckoutSuccess = () => {
+    const handleRequestCheckoutSuccess = () => {
         fetchBookingCounts();
         fetchBookings();
-        setCheckoutModalVisible(false);
-        setCheckoutBooking(null);
-        message.success('Check-out thành công! Hóa đơn đã được tạo. Admin/Staff sẽ kiểm tra và thêm phí dịch vụ/thiệt hại trước khi thanh toán.');
+        setRequestCheckoutModalVisible(false);
+        setRequestCheckoutBooking(null);
     };
 
     const handlePaymentSuccess = () => {
@@ -538,17 +551,36 @@ const MyBookingsPage: React.FC = () => {
                                         Xem hóa đơn
                                     </Button>
                                     {(booking.status === 'checked_in' || booking.status === 'partially_checked_in') && (
-                                        <Button
-                                            type="primary"
-                                            icon={<LogoutOutlined />}
-                                            onClick={() => handleCheckout(booking)}
-                                            style={{
-                                                backgroundColor: '#fa8c16',
-                                                borderColor: '#fa8c16',
-                                            }}
-                                        >
-                                            Check-out
-                                        </Button>
+                                        <>
+                                            <Button
+                                                type="default"
+                                                icon={<ShoppingOutlined />}
+                                                onClick={() => {
+                                                    // Chọn booking detail đầu tiên hoặc cho user chọn
+                                                    const firstDetail = booking.details?.[0];
+                                                    if (firstDetail) {
+                                                        setRequestServiceBooking(booking);
+                                                        setRequestServiceDetail(firstDetail);
+                                                        setRequestServiceModalVisible(true);
+                                                    } else {
+                                                        message.warning('Không tìm thấy thông tin phòng');
+                                                    }
+                                                }}
+                                            >
+                                                Yêu cầu dịch vụ
+                                            </Button>
+                                            <Button
+                                                type="primary"
+                                                icon={<LogoutOutlined />}
+                                                onClick={() => handleRequestCheckout(booking)}
+                                                style={{
+                                                    backgroundColor: '#fa8c16',
+                                                    borderColor: '#fa8c16',
+                                                }}
+                                            >
+                                                Yêu cầu checkout
+                                            </Button>
+                                        </>
                                     )}
                                     {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') && (
                                         <>
@@ -974,14 +1006,14 @@ const MyBookingsPage: React.FC = () => {
                 ) : null}
             </Modal>
 
-            <CheckoutModal
-                open={checkoutModalVisible}
-                booking={checkoutBooking}
+            <RequestCheckoutModal
+                open={requestCheckoutModalVisible}
+                booking={requestCheckoutBooking}
                 onCancel={() => {
-                    setCheckoutModalVisible(false);
-                    setCheckoutBooking(null);
+                    setRequestCheckoutModalVisible(false);
+                    setRequestCheckoutBooking(null);
                 }}
-                onSuccess={handleCheckoutSuccess}
+                onSuccess={handleRequestCheckoutSuccess}
             />
 
             <PaymentModal
@@ -1002,6 +1034,21 @@ const MyBookingsPage: React.FC = () => {
                 onCancel={() => {
                     setInvoiceModalVisible(false);
                     setViewInvoiceId(null);
+                }}
+            />
+
+            <RequestServiceModal
+                open={requestServiceModalVisible}
+                booking={requestServiceBooking}
+                bookingDetail={requestServiceDetail}
+                onCancel={() => {
+                    setRequestServiceModalVisible(false);
+                    setRequestServiceBooking(null);
+                    setRequestServiceDetail(null);
+                }}
+                onSuccess={() => {
+                    // Refresh bookings sau khi yêu cầu dịch vụ thành công
+                    fetchBookings();
                 }}
             />
         </div>

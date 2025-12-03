@@ -98,25 +98,7 @@ const roomService = {
     return response.data;
   },
 
-  /**
-   * Upload hình ảnh cho room
-   */
-  async uploadImages(roomId: number, formData: FormData): Promise<{ success: boolean; data: any }> {
-    const response = await axios.post(`${API_URL}/admin/rooms/${roomId}/upload-images`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
-  /**
-   * Xóa hình ảnh room
-   */
-  async deleteImage(imageId: number): Promise<{ success: boolean; message: string }> {
-    const response = await axios.delete(`${API_URL}/admin/room-images/${imageId}`);
-    return response.data;
-  },
+  // Images đã chuyển sang room type images
 };
 
 export default roomService;

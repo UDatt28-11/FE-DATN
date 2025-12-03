@@ -586,6 +586,56 @@ export async function rejectCheckInRequest(id: number, rejectionReason: string) 
   return data.data as CheckInRequest;
 }
 
+// Checkout Requests
+export type CheckoutRequest = {
+  id: number;
+  booking_order_id: number;
+  booking_detail_id: number;
+  notes?: string | null;
+  status: "pending" | "approved" | "rejected";
+  rejection_reason?: string | null;
+  reviewed_by?: number | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at?: string;
+  booking_order?: BookingOrder;
+  booking_detail?: any;
+  reviewer?: any;
+};
+
+export type ListCheckoutRequestsParams = {
+  page?: number;
+  per_page?: number;
+  status?: "pending" | "approved" | "rejected" | "all";
+  booking_id?: number;
+};
+
+export async function getCheckoutRequests(params?: ListCheckoutRequestsParams) {
+  const { data } = await api.get("/admin/checkout-requests", {
+    params: {
+      ...params,
+      _t: Date.now(),
+    },
+  });
+  
+  return {
+    data: Array.isArray(data.data) ? (data.data as CheckoutRequest[]) : [],
+    pagination: data.meta?.pagination,
+  };
+}
+
+export async function approveCheckoutRequest(id: number) {
+  const { data } = await api.post(`/admin/checkout-requests/${id}/approve`);
+  return data.data as CheckoutRequest;
+}
+
+export async function rejectCheckoutRequest(id: number, rejectionReason: string) {
+  const { data } = await api.post(`/admin/checkout-requests/${id}/reject`, {
+    rejection_reason: rejectionReason,
+  });
+  return data.data as CheckoutRequest;
+}
+
 export async function checkInDirect(
   bookingId: number,
   checkInData: CheckInData
@@ -622,6 +672,26 @@ export async function checkInDirect(
     return data.data as BookingOrder;
   } catch (error: any) {
     console.error("Error checking in booking directly:", error);
+    throw error;
+  }
+}
+
+/**
+ * User gửi yêu cầu checkout
+ */
+export async function requestCheckOut(
+  bookingId: number,
+  bookingDetailIds: number[],
+  notes?: string
+): Promise<{ success: boolean; message: string; data?: any }> {
+  try {
+    const response = await api.post(`/user/bookings/${bookingId}/request-checkout`, {
+      booking_detail_ids: bookingDetailIds,
+      notes,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error requesting checkout:', error);
     throw error;
   }
 }
@@ -722,4 +792,59 @@ export async function getCheckedInGuests(params?: {
     data: Array.isArray(data.data) ? data.data : [],
     pagination: data.meta?.pagination,
   };
+}
+
+// Request service for a booking
+export async function requestService(
+  bookingId: number,
+  serviceData: {
+    booking_detail_id: number;
+    service_id: number;
+    quantity: number;
+    notes?: string;
+  }
+) {
+  const { data } = await api.post(`/user/bookings/${bookingId}/request-service`, serviceData);
+  return data;
+}
+
+// Admin: Get service requests
+export async function getServiceRequests(params?: {
+  status?: 'pending' | 'approved' | 'rejected';
+  booking_id?: number;
+  page?: number;
+  per_page?: number;
+}) {
+  const { data } = await api.get('/admin/service-requests', {
+    params: {
+      ...params,
+      _t: Date.now(),
+    },
+  });
+  return {
+    data: Array.isArray(data.data) ? data.data : [],
+    pagination: data.meta?.pagination,
+  };
+}
+
+// Admin: Approve service request
+export async function approveServiceRequest(
+  serviceRequestId: number,
+  adminNotes?: string
+) {
+  const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/approve`, {
+    admin_notes: adminNotes,
+  });
+  return data;
+}
+
+// Admin: Reject service request
+export async function rejectServiceRequest(
+  serviceRequestId: number,
+  rejectionReason: string
+) {
+  const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/reject`, {
+    rejection_reason: rejectionReason,
+  });
+  return data;
 }

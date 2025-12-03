@@ -69,10 +69,21 @@ const ListCheckInRequests: React.FC = () => {
                 if (req.type === 'ready_booking' || req.status === 'ready_for_checkin') {
                     const booking = req.booking_order || req.bookingOrder;
                     if (booking && booking.details) {
-                        booking.details = booking.details.map((detail: any) => ({
-                            ...detail,
-                            guests: detail.guests || detail.checkedInGuests || [],
-                        }));
+                        booking.details = booking.details.map((detail: any) => {
+                            // Đảm bảo guests được map đúng từ checkedInGuests
+                            const guests = detail.guests || detail.checkedInGuests || [];
+                            // Nếu guests là array rỗng nhưng có checkedInGuests, sử dụng checkedInGuests
+                            const finalGuests = Array.isArray(guests) && guests.length > 0 
+                                ? guests 
+                                : (Array.isArray(detail.checkedInGuests) ? detail.checkedInGuests : []);
+                            
+                            return {
+                                ...detail,
+                                guests: finalGuests,
+                                // Giữ lại checkedInGuests để fallback
+                                checkedInGuests: finalGuests,
+                            };
+                        });
                         req.booking_order = booking;
                     }
                 }
@@ -100,10 +111,19 @@ const ListCheckInRequests: React.FC = () => {
                         // Clone record làm đại diện cho booking này
                         // Đảm bảo map guests từ checkedInGuests
                         const clonedDetails = Array.isArray(booking?.details)
-                            ? booking.details.map((detail: any) => ({
-                                ...detail,
-                                guests: detail.guests || detail.checkedInGuests || [],
-                            }))
+                            ? booking.details.map((detail: any) => {
+                                // Đảm bảo guests được map đúng từ checkedInGuests
+                                const guests = detail.guests || detail.checkedInGuests || [];
+                                const finalGuests = Array.isArray(guests) && guests.length > 0 
+                                    ? guests 
+                                    : (Array.isArray(detail.checkedInGuests) ? detail.checkedInGuests : []);
+                                
+                                return {
+                                    ...detail,
+                                    guests: finalGuests,
+                                    checkedInGuests: finalGuests,
+                                };
+                            })
                             : [];
                         
                         const clone = {
@@ -348,25 +368,6 @@ const ListCheckInRequests: React.FC = () => {
                             >
                                 Xem
                             </Button>
-                            {/* Nút này sẽ bị ẩn khi có expandable row, nhưng giữ lại để tương thích */}
-                            <Button
-                                type="primary"
-                                icon={<LoginOutlined />}
-                                onClick={() => {
-                                    // Lấy booking_order từ record
-                                    const booking = record.booking_order || record.bookingOrder;
-                                    if (booking) {
-                                        setSelectedBookingForCheckIn(booking);
-                                        setSelectedBookingDetailId(undefined); // Check-in phòng đầu tiên
-                                        setCheckInModalVisible(true);
-                                    } else {
-                                        message.error('Không tìm thấy thông tin booking');
-                                    }
-                                }}
-                                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                            >
-                                Check-in tất cả
-                            </Button>
                         </Space>
                     );
                 }
@@ -589,9 +590,10 @@ const ListCheckInRequests: React.FC = () => {
                                 <Table
                                     columns={roomColumns}
                                     dataSource={details}
-                                    rowKey="id"
+                                    rowKey={(detail) => `detail-${detail.id}`}
                                     pagination={false}
                                     size="small"
+                                    key={`rooms-${booking?.id}-${details.length}-${details.reduce((acc: number, d: any) => acc + (d.guests?.length || d.checkedInGuests?.length || 0), 0)}`}
                                 />
                             );
                         },
@@ -768,10 +770,11 @@ const ListCheckInRequests: React.FC = () => {
                     setCheckInModalVisible(false);
                     setSelectedBookingForCheckIn(null);
                     setSelectedBookingDetailId(undefined);
-                    // Đợi một chút để backend kịp cập nhật, rồi fetch lại dữ liệu
+                    // Đợi một chút để backend kịp commit transaction và serialize dữ liệu
+                    // Tăng timeout để đảm bảo backend đã hoàn tất tất cả các bước
                     setTimeout(() => {
                         fetchData(pagination?.page || 1, statusFilter);
-                    }, 500);
+                    }, 1500);
                 }}
             />
         </div>
