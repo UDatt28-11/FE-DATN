@@ -3,6 +3,10 @@
     position: relative;
     z-index: 1;
     top: -87px;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .book-now-form form {
@@ -10,6 +14,42 @@
     align-items: center;
     flex-wrap: wrap;
     width: 100%;
+}
+
+@media only screen and (max-width: 767px) {
+    .book-now-form {
+        top: 0 !important;
+        flex-direction: column !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        margin-left: calc(-50vw + 50%) !important;
+        margin-right: calc(-50vw + 50%) !important;
+    }
+    
+    .book-now-form form {
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .book-now-form .ant-form-item.form-group,
+    .book-now-form .form-group {
+        flex: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .book-now-form .form-submit {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
 }
 
 /* Override Ant Design Form.Item default margin */
@@ -53,10 +93,18 @@
 
     .book-now-form .form-group,
     .book-now-form .form-submit {
-        padding: 0 20px;
+        flex: 0 0 50%;
+        max-width: 50%;
+        width: 50%;
+        height: 120px;
+        padding: 0 15px;
     }
 
     .book-now-form .form-submit {
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+        height: 60px;
         padding: 0 !important;
     }
 }
@@ -65,16 +113,25 @@
 
     .book-now-form .form-group,
     .book-now-form .form-submit {
-        flex: 0 0 100%;
-        max-width: 100%;
-        width: 100%;
-        height: 100px;
-        border-bottom: 0 solid transparent;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 80px;
+        border-left: 2px solid #cb8670;
         border-right: 2px solid #cb8670;
+        border-top: 2px solid #cb8670;
+        border-bottom: none;
+        padding: 10px 20px;
+    }
+    
+    .book-now-form .form-group:last-of-type {
+        border-bottom: none;
     }
 
     .book-now-form .form-submit {
-        padding: 0 !important;
+        padding: 15px !important;
+        height: 60px;
+        border-bottom: 2px solid #cb8670;
     }
 }
 
@@ -114,10 +171,7 @@
     width: 20%;
     height: 174px;
     background-color: #cb8670;
-    border-left: 2px solid #cb8670;
-    border-top: 2px solid #cb8670;
-    border-bottom: 2px solid #cb8670;
-    border-right: 2px solid #cb8670;
+    border: 2px solid #cb8670;
     margin-bottom: 0;
     padding: 0;
     font-size: 16px;
@@ -128,6 +182,16 @@
     outline: none;
     font-weight: 400;
     letter-spacing: 1px;
+}
+
+@media only screen and (max-width: 767px) {
+    .book-now-form .form-submit {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 60px !important;
+        font-size: 14px;
+    }
 }
 
 .book-now-form .form-submit:hover,
@@ -244,6 +308,36 @@
 }
 
 @media only screen and (max-width: 767px) {
+    /* Chuyển layout horizontal sang vertical trên mobile */
+    .book-now-form .ant-form-item-row {
+        flex-direction: column !important;
+    }
+    
+    .book-now-form .ant-form-item-label,
+    .book-now-form .ant-form-item-control {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+    }
+    
+    .book-now-form .ant-form-item-label {
+        text-align: center !important;
+    }
+    
+    /* Căn giữa ô nhập số */
+    .book-now-form .form-group .ant-form-item-control-input,
+    .book-now-form .form-group .ant-form-item-control-input-content {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .book-now-form .ant-input-number {
+        width: 150px !important;
+        min-width: 150px !important;
+    }
+    
     .book-now-form .ant-input-number .ant-input-number-input {
         font-size: 18px !important;
     }

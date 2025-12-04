@@ -329,12 +329,60 @@
   position: relative;
   z-index: 100;
   margin-bottom: 15px;
+  width: 100%;
+  padding: 0 15px;
+}
+
+@media only screen and (max-width: 767px) {
+  .book-now-area {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+  }
+  
+  .book-now-area .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .book-now-area .ant-row {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+  
+  .book-now-area .ant-col {
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    width: 100% !important;
+  }
+  
+  .book-now-area .book-now-form {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 
 .book-now-form {
   position: relative;
   z-index: 1;
   top: -87px;
+  width: 100%;
+}
+
+@media only screen and (max-width: 767px) {
+  .book-now-form {
+    top: 0;
+    margin-top: -50px;
+  }
 }
 
 .book-now-form form {
@@ -342,6 +390,12 @@
   align-items: center;
   flex-wrap: wrap;
   width: 100%;
+}
+
+@media only screen and (max-width: 767px) {
+  .book-now-form form {
+    flex-direction: column;
+  }
 }
 
 /* Override Ant Design Form.Item default margin */
@@ -385,11 +439,49 @@
 
   .book-now-form .form-group,
   .book-now-form .form-submit {
-    padding: 0 20px;
+    flex: 0 0 50%;
+    max-width: 50%;
+    width: 50%;
+    height: 120px;
+    padding: 0 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .book-now-form .form-submit {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 60px !important;
     padding: 0 !important;
+  }
+  
+  /* Fix layout form item cho tablet */
+  .book-now-form .ant-form-item-row {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .book-now-form .ant-form-item-label,
+  .book-now-form .ant-form-item-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    text-align: center !important;
+  }
+  
+  /* InputNumber căn giữa */
+  .book-now-form .ant-form-item-control-input,
+  .book-now-form .ant-form-item-control-input-content {
+    display: flex !important;
+    justify-content: center !important;
+  }
+  
+  .book-now-form .ant-input-number {
+    width: 120px !important;
+    min-width: 120px !important;
   }
 }
 
@@ -397,16 +489,25 @@
 
   .book-now-form .form-group,
   .book-now-form .form-submit {
-    flex: 0 0 100%;
-    max-width: 100%;
-    width: 100%;
-    height: 100px;
-    border-bottom: 0 solid transparent;
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 80px;
+    border-left: 2px solid #cb8670;
     border-right: 2px solid #cb8670;
+    border-top: 2px solid #cb8670;
+    border-bottom: none;
+    padding: 10px 20px;
+  }
+  
+  .book-now-form .form-group:last-of-type {
+    border-bottom: none;
   }
 
   .book-now-form .form-submit {
-    padding: 0 !important;
+    padding: 15px !important;
+    height: 60px;
+    border-bottom: 2px solid #cb8670;
   }
 }
 
@@ -446,10 +547,7 @@
   width: 20%;
   height: 174px;
   background-color: #cb8670;
-  border-left: 2px solid #cb8670;
-  border-top: 2px solid #cb8670;
-  border-bottom: 2px solid #cb8670;
-  border-right: 2px solid #cb8670;
+  border: 2px solid #cb8670;
   margin-bottom: 0;
   padding: 0;
   font-size: 16px;
@@ -460,6 +558,16 @@
   outline: none;
   font-weight: 400;
   letter-spacing: 1px;
+}
+
+@media only screen and (max-width: 767px) {
+  .book-now-form .form-submit {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 60px !important;
+    font-size: 14px;
+  }
 }
 
 .book-now-form .form-submit:hover,
@@ -634,6 +742,36 @@
 }
 
 @media only screen and (max-width: 767px) {
+  /* Chuyển layout horizontal sang vertical trên mobile */
+  .book-now-form .ant-form-item-row {
+    flex-direction: column !important;
+  }
+  
+  .book-now-form .ant-form-item-label,
+  .book-now-form .ant-form-item-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+  
+  .book-now-form .ant-form-item-label {
+    text-align: center !important;
+  }
+  
+  /* Căn giữa ô nhập số */
+  .book-now-form .form-group .ant-form-item-control-input,
+  .book-now-form .form-group .ant-form-item-control-input-content {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  .book-now-form .ant-input-number {
+    width: 150px !important;
+    min-width: 150px !important;
+  }
+  
   .book-now-form .ant-input-number .ant-input-number-input {
     font-size: 18px !important;
   }

@@ -250,7 +250,8 @@ const authService = {
     async getGoogleLoginUrl(role: 'user' | 'admin' | 'staff' = 'user'): Promise<string> {
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            const response = await fetch(`${API_URL}/${role}/google/redirect`, {
+            // Backend route: /api/google/redirect/{role}
+            const response = await fetch(`${API_URL}/google/redirect/${role}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -258,6 +259,10 @@ const authService = {
             });
 
             const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Không thể lấy URL Google');
+            }
             
             // Lưu role để dùng khi callback
             localStorage.setItem('google_login_role', role);
@@ -276,7 +281,8 @@ const authService = {
     async handleGoogleCallback(code: string, role: 'user' | 'admin' | 'staff' = 'user'): Promise<AuthResponse> {
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            const response = await fetch(`${API_URL}/${role}/google/callback?code=${code}`, {
+            // Backend route: /api/google/callback/{role}
+            const response = await fetch(`${API_URL}/google/callback/${role}?code=${code}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',

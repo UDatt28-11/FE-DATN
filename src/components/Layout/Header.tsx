@@ -285,6 +285,7 @@ const Header: React.FC = () => {
                             <Avatar
                               size={40}
                               icon={<UserOutlined />}
+                              src={user?.avatar_url || user?.avatar}
                               style={{ backgroundColor: '#d89070' }}
                             />
                             <span className="user-menu-name">

@@ -1,0 +1,103 @@
+/* Services Page Styles */
+
+/* Hero Section */
+.services-hero {
+    position: relative;
+    z-index: 1;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.services-hero-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: -1;
+}
+
+.services-hero-content {
+    text-align: center;
+    color: #fff;
+    z-index: 1;
+    padding: 0 20px;
+}
+
+.services-hero-title {
+    color: #fff !important;
+    font-size: 3rem;
+    margin-bottom: 1rem !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 767px) {
+    .services-hero {
+        height: 280px;
+    }
+    
+    .services-hero-title {
+        font-size: 1.75rem !important;
+        line-height: 1.3 !important;
+    }
+    
+    .services-hero .ant-breadcrumb {
+        font-size: 13px;
+    }
+    
+    /* Section titles */
+    .services-section-title {
+        font-size: 1.5rem !important;
+    }
+    
+    .services-section-desc {
+        font-size: 14px !important;
+    }
+    
+    /* Service cards */
+    .services-card {
+        margin-bottom: 16px;
+    }
+    
+    .services-card .anticon {
+        font-size: 36px !important;
+    }
+    
+    .services-card h4 {
+        font-size: 16px !important;
+    }
+    
+    .services-card p {
+        font-size: 13px !important;
+    }
+    
+    /* Section padding */
+    .services-section {
+        padding: 50px 0 30px !important;
+    }
+    
+    .services-section .container {
+        padding: 0 12px !important;
+    }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 991px) {
+    .services-hero {
+        height: 320px;
+    }
+    
+    .services-hero-title {
+        font-size: 2.25rem !important;
+    }
+    
+    .services-section-title {
+        font-size: 2rem !important;
+    }
+}
+

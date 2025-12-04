@@ -117,6 +117,42 @@
         display: flex;
         flex-direction: column;
     }
+    
+    .payment-page .ant-row {
+        flex-direction: column;
+    }
+    
+    .payment-page .ant-col {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .payment-page .container {
+        padding: 0 12px;
+    }
+    
+    .payment-page .ant-card-body {
+        padding: 16px !important;
+    }
+    
+    .payment-page .ant-card-head-title {
+        font-size: 16px;
+    }
+    
+    .payment-page .ant-btn {
+        width: 100%;
+    }
+    
+    .payment-page .ant-space {
+        flex-direction: column !important;
+        width: 100%;
+    }
+    
+    .payment-page .ant-space-item {
+        width: 100%;
+    }
 }
 
 @media (max-width: 576px) {
@@ -127,6 +163,10 @@
     .payment-page .payment-method-card .ant-space {
         flex-direction: column;
         align-items: flex-start !important;
+    }
+    
+    .payment-page .ant-steps-item-title {
+        font-size: 13px;
     }
 }
 

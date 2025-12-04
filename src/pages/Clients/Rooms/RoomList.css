@@ -7,11 +7,175 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 15px;
+    width: 100%;
 }
 
 .room-list-page .breadcrumb-wrapper {
     background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
     border-bottom: 1px solid #e0e0e0;
+}
+
+/* ========== SEARCH ACTIONS ========== */
+.search-actions-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.date-picker-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.date-range-picker {
+    width: 100% !important;
+    max-width: 280px;
+}
+
+.booking-cart-btn {
+    background-color: #cb8670 !important;
+    border-color: #cb8670 !important;
+}
+
+/* ========== FILTER SORT BAR ========== */
+.filter-sort-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #f8f8f8;
+    border-radius: 10px;
+}
+
+.filter-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.sort-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-label {
+    white-space: nowrap;
+    color: #666;
+}
+
+.sort-select {
+    min-width: 120px;
+}
+
+/* Mobile responsive header */
+@media (max-width: 767px) {
+    .room-list-page {
+        padding-top: 8px;
+    }
+    
+    .room-list-page .container {
+        padding: 0 12px;
+    }
+    
+    /* Header section layout */
+    .room-list-page .ant-row[justify="space-between"] {
+        flex-direction: column !important;
+        gap: 10px;
+        margin-bottom: 12px !important;
+    }
+    
+    .room-list-page .ant-row[justify="space-between"] > .ant-col {
+        width: 100% !important;
+        flex: none !important;
+    }
+    
+    /* Title styling */
+    .room-list-page h2.ant-typography {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .room-list-page .ant-typography-secondary {
+        font-size: 12px !important;
+        color: #666 !important;
+    }
+    
+    /* ========== SEARCH ACTIONS MOBILE ========== */
+    .search-actions-wrapper {
+        width: 100% !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+    }
+    
+    .search-actions-wrapper > .ant-space-item {
+        margin-right: 0 !important;
+    }
+    
+    .date-picker-wrapper {
+        flex: 1 !important;
+    }
+    
+    .date-range-picker {
+        max-width: none !important;
+        height: 40px !important;
+        border-radius: 8px !important;
+    }
+    
+    .date-range-picker .ant-picker-input input {
+        font-size: 11px !important;
+    }
+    
+    .booking-cart-badge {
+        flex-shrink: 0 !important;
+    }
+    
+    .booking-cart-btn {
+        height: 40px !important;
+        padding: 0 12px !important;
+        border-radius: 8px !important;
+        min-width: 40px !important;
+    }
+    
+    .booking-cart-btn .btn-text {
+        display: none !important;
+    }
+    
+    /* ========== FILTER SORT BAR MOBILE ========== */
+    .filter-sort-bar {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .filter-btn {
+        height: 36px !important;
+        padding: 0 12px !important;
+        font-size: 13px !important;
+    }
+    
+    .sort-section {
+        gap: 6px !important;
+    }
+    
+    .sort-label {
+        font-size: 12px !important;
+    }
+    
+    .sort-select {
+        min-width: 80px !important;
+        height: 36px !important;
+    }
+    
+    .sort-select .ant-select-selector {
+        height: 36px !important;
+        border-radius: 8px !important;
+        padding: 0 8px !important;
+        font-size: 12px !important;
+    }
 }
 
 /* Card phòng */
@@ -96,14 +260,137 @@
 
     .room-card .ant-col {
         width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
     }
 
     .room-list-page .ant-card {
         margin-bottom: 16px;
+        border-radius: 12px !important;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
     }
     
     .room-card-buttons {
         flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .room-card-buttons .ant-btn {
+        border-radius: 8px !important;
+        height: 44px !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Filter section mobile */
+    .room-list-page div[style*="justify-content: space-between"] {
+        flex-direction: column !important;
+        gap: 12px;
+    }
+    
+    /* Select dropdown full width */
+    .room-list-page .ant-select {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+    
+    /* Room card image */
+    .room-card .ant-image {
+        width: 100% !important;
+        height: 180px !important;
+    }
+    
+    .room-card .ant-image img {
+        width: 100% !important;
+        height: 180px !important;
+        object-fit: cover !important;
+    }
+    
+    /* Room card content */
+    .room-card .ant-card-body {
+        padding: 16px !important;
+    }
+    
+    /* Room name */
+    .room-card h4.ant-typography {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        margin-bottom: 4px !important;
+        color: #333 !important;
+    }
+    
+    /* Room type/location */
+    .room-card .ant-typography-secondary {
+        font-size: 13px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Room description */
+    .room-card p.ant-typography {
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+        color: #666 !important;
+        margin-bottom: 12px !important;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Price badge */
+    .room-card .ant-tag {
+        font-size: 11px !important;
+        padding: 2px 8px !important;
+        border-radius: 4px !important;
+    }
+    
+    /* Room info icons */
+    .room-card .ant-space-item {
+        font-size: 12px !important;
+    }
+    
+    /* Available rooms badge */
+    .room-card .ant-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+    
+    /* Pagination */
+    .room-list-page .ant-pagination {
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    
+    .room-list-page .ant-pagination-item {
+        min-width: 36px !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        border-radius: 8px !important;
+    }
+    
+    /* Booking cart badge */
+    .room-list-page .ant-badge-count {
+        font-size: 10px !important;
+        min-width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+    }
+    
+    /* Divider spacing */
+    .room-list-page .ant-divider {
+        margin: 12px 0 !important;
+    }
+    
+    /* Empty state */
+    .room-list-page .ant-empty {
+        padding: 40px 20px;
+    }
+    
+    .room-list-page .ant-empty-description {
+        font-size: 14px !important;
+        color: #999 !important;
     }
 }
 

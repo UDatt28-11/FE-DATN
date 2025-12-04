@@ -108,11 +108,56 @@
         display: flex;
         flex-direction: column;
     }
+    
+    .booking-info-page .ant-row {
+        flex-direction: column;
+    }
+    
+    .booking-info-page .ant-col {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .booking-info-page .container {
+        padding: 0 12px;
+    }
+    
+    .booking-info-page .ant-card-body {
+        padding: 16px !important;
+    }
+    
+    .booking-info-page .ant-card-head-title {
+        font-size: 16px;
+    }
+    
+    .booking-info-page .ant-btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .booking-info-page .ant-space {
+        flex-direction: column !important;
+        width: 100%;
+    }
+    
+    .booking-info-page .ant-space-item {
+        width: 100%;
+    }
 }
 
 @media (max-width: 576px) {
     .booking-info-page .ant-steps-item-description {
         display: none;
+    }
+    
+    .booking-info-page .ant-steps-item-title {
+        font-size: 13px;
+    }
+    
+    .booking-info-page .ant-form-item {
+        margin-bottom: 16px;
     }
 }
 
