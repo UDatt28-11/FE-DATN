@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Row, Col, Form, Input, Button, Typography, Breadcrumb, Card } from 'antd';
 import { HomeOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import './Contact.css';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -18,31 +19,14 @@ const Contact: React.FC = () => {
     <div>
       {/* Breadcrumb Section */}
       <section
+        className="contact-hero"
         style={{
-          position: 'relative',
-          zIndex: 1,
-          height: '400px',
           backgroundImage: "url('/img/bg-img/19.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            top: 0,
-            left: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: -1,
-          }}
-        />
-        <div style={{ textAlign: 'center', color: '#fff', zIndex: 1 }}>
-          <Title level={1} style={{ color: '#fff', fontSize: '3rem', marginBottom: '1rem' }} data-aos="fade-up">
+        <div className="contact-hero-overlay" />
+        <div className="contact-hero-content">
+          <Title level={1} className="contact-hero-title" data-aos="fade-up">
             Contact Us
           </Title>
           <Breadcrumb

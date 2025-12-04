@@ -54,7 +54,7 @@ const Profile: React.FC = () => {
                 email: user.email,
                 phone_number: user.phone_number
             });
-            setAvatarUrl(user.avatar || '');
+            setAvatarUrl(user.avatar_url || user.avatar || '');
         }
     }, [user, profileForm]);
 
@@ -93,8 +93,6 @@ const Profile: React.FC = () => {
 
     const uploadProps: UploadProps = {
         name: 'avatar',
-        listType: 'picture-card',
-        className: 'avatar-uploader',
         showUploadList: false,
         beforeUpload: (file) => {
             const isImage = file.type.startsWith('image/');

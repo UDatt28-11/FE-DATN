@@ -693,10 +693,9 @@ const RoomList: React.FC = () => {
                         </Space>
                             </Col>
                             <Col>
-                                    <Space>
+                                    <Space className="search-actions-wrapper">
                                     {/* DatePicker cho ngày check-in/check-out */}
-                                    <Space>
-                                        <CalendarOutlined style={{ color: '#cb8670' }} />
+                                    <div className="date-picker-wrapper">
                                         <RangePicker
                                             format="DD/MM/YYYY"
                                             placeholder={['Nhận phòng', 'Trả phòng']}
@@ -704,21 +703,18 @@ const RoomList: React.FC = () => {
                                             onChange={handleDateChange}
                                             disabledDate={disabledDate}
                                             allowClear
-                                            style={{ width: 280 }}
+                                            className="date-range-picker"
                                         />
-                                    </Space>
+                                    </div>
                                     {/* Booking Cart Button */}
-                                    <Badge count={selectedRoomTypes?.length || 0} showZero={false}>
+                                    <Badge count={selectedRoomTypes?.length || 0} showZero={false} className="booking-cart-badge">
                                         <Button
                                             type="primary"
                                             icon={<ShoppingCartOutlined />}
                                             onClick={() => setCartVisible(true)}
-                                            style={{
-                                                backgroundColor: '#cb8670',
-                                                borderColor: '#cb8670',
-                                            }}
+                                            className="booking-cart-btn"
                                         >
-                                            Booking Cart {(selectedRoomTypes?.length || 0) > 0 && `(${selectedRoomTypes.length})`}
+                                            <span className="btn-text">Giỏ hàng</span>
                                         </Button>
                                     </Badge>
                                                 </Space>
@@ -727,15 +723,14 @@ const RoomList: React.FC = () => {
                                     </div>
 
                     {/* Button mở Filter Modal - Thay thế sidebar */}
-                    <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-                        <Space>
-                            <Button
-                                type="default"
-                                icon={<FilterOutlined />}
-                                onClick={() => setFilterModalVisible(true)}
-                                size="large"
-                            >
-                                Bộ lọc
+                    <div className="filter-sort-bar">
+                        <Button
+                            type="default"
+                            icon={<FilterOutlined />}
+                            onClick={() => setFilterModalVisible(true)}
+                            className="filter-btn"
+                        >
+                            Bộ lọc
                                 {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 || 
                                   (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
                                   (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
@@ -747,35 +742,21 @@ const RoomList: React.FC = () => {
                                            offset={[8, 0]} />
                                 )}
                             </Button>
-                            {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 || 
-                              (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
-                              (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
-                              maxAdults > 1 || maxChildren > 0) && (
-                                <Button type="link" onClick={handleResetFilters} size="small">
-                                    Xóa bộ lọc
-                                </Button>
-                            )}
-                                        </Space>
-                                                <Space>
-                                <Text type="secondary">
-                                Hiển thị {roomTypes.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, totalRoomTypes)} trong tổng số {totalRoomTypes} loại phòng
-                                </Text>
-                                <Space>
-                                    <Text>Sắp xếp theo:</Text>
+                        <div className="sort-section">
+                                <Text className="sort-label">Sắp xếp:</Text>
                                     <Select
-                                        style={{ width: 200 }}
                                         value={getSortDisplayValue()}
                                         onChange={handleSortChange}
+                                        className="sort-select"
                                     >
                                         <Option value="default">Mặc định</Option>
-                                    <Option value="best-seller">Bán chạy nhất</Option>
-                                        <Option value="price-asc">Giá: Thấp đến cao</Option>
-                                        <Option value="price-desc">Giá: Cao đến thấp</Option>
-                                        <Option value="rating">Đánh giá cao nhất</Option>
+                                    <Option value="best-seller">Bán chạy</Option>
+                                        <Option value="price-asc">Giá ↑</Option>
+                                        <Option value="price-desc">Giá ↓</Option>
+                                        <Option value="rating">Đánh giá</Option>
                                         <Option value="name">Tên A-Z</Option>
                                     </Select>
-                            </Space>
-                                </Space>
+                            </div>
                             </div>
 
                     {/* Danh sách phòng - Full width */}

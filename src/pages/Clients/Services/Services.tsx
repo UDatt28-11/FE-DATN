@@ -14,6 +14,7 @@ import {
   GiftOutlined,
   SmileOutlined,
 } from '@ant-design/icons';
+import './Services.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -94,31 +95,14 @@ const Services: React.FC = () => {
     <div>
       {/* Breadcrumb Section */}
       <section
+        className="services-hero"
         style={{
-          position: 'relative',
-          zIndex: 1,
-          height: '400px',
           backgroundImage: "url('/img/bg-img/18.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            top: 0,
-            left: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: -1,
-          }}
-        />
-        <div style={{ textAlign: 'center', color: '#fff', zIndex: 1 }}>
-          <Title level={1} style={{ color: '#fff', fontSize: '3rem', marginBottom: '1rem' }} data-aos="fade-up">
+        <div className="services-hero-overlay" />
+        <div className="services-hero-content">
+          <Title level={1} className="services-hero-title" data-aos="fade-up">
             Dịch Vụ Của Chúng Tôi
           </Title>
           <Breadcrumb

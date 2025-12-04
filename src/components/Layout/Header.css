@@ -365,8 +365,8 @@
   cursor: pointer;
   padding: 20px !important;
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 15px;
+  right: 20px;
   z-index: 10;
   border: none !important;
   background: transparent !important;
@@ -489,48 +489,70 @@
     font-size: 15px;
   }
 
-  .classynav ul li .dropdown {
-    position: static;
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-    box-shadow: none;
-    background-color: rgba(0, 0, 0, 0.1);
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
-    padding: 0;
+  /* Mobile dropdown - must override desktop styles */
+  .classynav ul li .dropdown,
+  .classynav ul li:hover .dropdown {
+    position: static !important;
+    display: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    box-shadow: none !important;
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    width: 100% !important;
+    min-width: unset !important;
+    left: unset !important;
+    top: unset !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
   }
 
-  .classynav ul li.dropdown-active .dropdown {
-    max-height: 500px;
-    padding: 10px 0;
+  .classynav ul li.dropdown-active .dropdown,
+  .classynav ul li.has-down.dropdown-active .dropdown {
+    display: block !important;
+    padding: 5px 0 !important;
+  }
+
+  .classynav ul li .dropdown li {
+    border-bottom: none !important;
+    width: 100% !important;
   }
 
   .classynav ul li .dropdown li a {
-    color: #ffffff;
-    padding: 8px 15px 8px 30px;
+    color: #ffffff !important;
+    padding: 10px 15px 10px 20px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+  }
+  
+  .classynav ul li .dropdown li a:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
   }
 
   .classynav ul li .megamenu {
-    position: static;
+    position: static !important;
+    display: none;
     opacity: 1;
     visibility: visible;
     transform: none;
     box-shadow: none;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.15);
     width: 100%;
     grid-template-columns: 1fr;
     gap: 0;
     padding: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
+    border-radius: 8px;
+    min-width: unset !important;
+    left: 0 !important;
+    top: auto !important;
   }
 
   .classynav ul li.megamenu-active .megamenu {
-    max-height: 1000px;
-    padding: 10px 0;
+    display: block;
+    padding: 5px 0;
   }
 
   .megamenu .single-mega {
@@ -634,10 +656,17 @@
 /* Responsive for user menu */
 @media only screen and (max-width: 767px) {
   .user-menu-avatar {
-    padding: 5px;
+    padding: 8px 12px;
+    flex-direction: row;
+    gap: 10px;
   }
 
   .user-menu-name {
-    display: none;
+    display: block;
+    font-size: 14px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
