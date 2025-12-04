@@ -368,13 +368,94 @@ export async function confirmVietQRTransfer(
 /**
  * User hủy booking của mình
  */
-export async function cancelUserBooking(bookingId: number) {
+/**
+ * Lấy chính sách hủy phòng
+ * - Hủy trước 7 ngày: hoàn 100% tiền cọc
+ * - Hủy trong vòng 3-6 ngày: hoàn 50% tiền cọc
+ * - Hủy trong vòng 0-2 ngày: mất 100% tiền cọc
+ */
+export interface CancellationPolicy {
+  days_until_checkin: number;
+  refund_percentage: number;
+  refund_amount: number;
+  deposit_amount: number;
+  forfeited_amount: number;
+  policy_text: string;
+  check_in_date: string;
+  can_cancel: boolean;
+  booking_status: string;
+  cancel_reason?: string;
+}
+
+export async function getCancellationPolicy(bookingId: number): Promise<CancellationPolicy> {
   try {
-    const { data } = await api.post(`/user/bookings/${bookingId}/cancel`);
-    return data.data as BookingOrder;
+    const { data } = await api.get(`/user/bookings/${bookingId}/cancellation-policy`);
+    return data.data as CancellationPolicy;
+  } catch (error: any) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error fetching cancellation policy:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function cancelUserBooking(bookingId: number, reason?: string) {
+  try {
+    const { data } = await api.post(`/user/bookings/${bookingId}/cancel`, {
+      reason: reason || null,
+    });
+    return {
+      booking: data.data as BookingOrder,
+      message: data.message as string,
+      refund_info: data.refund_info as CancellationPolicy,
+    };
   } catch (error: any) {
     if (error.response?.status !== 401 && error.response?.status !== 403) {
       console.error("Error cancelling booking:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Đổi ngày đặt phòng (1 lần miễn phí)
+ */
+export interface DateChangeInfo {
+  old_total_amount: number;
+  new_total_amount: number;
+  difference: number;
+  new_check_in_date: string;
+  new_check_out_date: string;
+  nights: number;
+  date_changes_remaining: number;
+}
+
+export async function changeDates(
+  bookingId: number,
+  newCheckInDate: string,
+  newCheckOutDate: string
+) {
+  try {
+    const { data } = await api.post(`/user/bookings/${bookingId}/change-dates`, {
+      new_check_in_date: newCheckInDate,
+      new_check_out_date: newCheckOutDate,
+    });
+    return {
+      booking: data.data as BookingOrder,
+      message: data.message as string,
+      change_info: data.change_info as DateChangeInfo,
+    };
+  } catch (error: any) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error changing dates:", {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -773,6 +854,61 @@ export async function getUserInvoice(invoiceId: number) {
   }
 }
 
+/**
+ * Tạo PayOS payment link cho invoice (thanh toán sau checkout)
+ */
+export async function createPayOSInvoicePaymentLink(
+  invoiceId: number,
+  amount: number,
+  description?: string
+) {
+  try {
+    const { data } = await api.post('/user/payos/create-invoice-payment-link', {
+      invoice_id: invoiceId,
+      amount: amount,
+      description: description,
+    });
+    
+    // Log response để debug
+    console.log('PayOS createInvoicePaymentLink response:', {
+      success: data.success,
+      has_data: !!data.data,
+      data_keys: data.data ? Object.keys(data.data) : [],
+      checkout_url: data.data?.checkoutUrl || data.data?.checkout_url,
+    });
+    
+    // Kiểm tra response format
+    if (!data.success) {
+      throw new Error(data.message || 'Không thể tạo link thanh toán PayOS');
+    }
+    
+    // PayOS có thể trả về checkoutUrl hoặc checkout_url
+    const checkoutUrl = data.data?.checkoutUrl || data.data?.checkout_url || data.data?.payment_link;
+    
+    if (!checkoutUrl) {
+      console.error('PayOS response missing checkoutUrl:', data);
+      throw new Error('PayOS không trả về link thanh toán');
+    }
+    
+    return {
+      checkoutUrl: checkoutUrl,
+      payment_link_id: data.data?.payment_link_id || data.data?.paymentLinkId,
+      order_code: data.data?.order_code || data.data?.orderCode,
+      invoice_id: invoiceId,
+    };
+  } catch (error: any) {
+    // Không log error cho 401/403 vì axios interceptor sẽ xử lý redirect
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error creating PayOS invoice payment link:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+    }
+    throw error;
+  }
+}
+
 // Get checked-in guests (Quản lý lưu trú)
 export async function getCheckedInGuests(params?: {
   page?: number;
@@ -845,6 +981,76 @@ export async function rejectServiceRequest(
 ) {
   const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/reject`, {
     rejection_reason: rejectionReason,
+  });
+  return data;
+}
+
+// =========================================================================
+// AMENITY REQUESTS - Yêu cầu tiện ích
+// =========================================================================
+
+// User: Request amenity for a booking
+export async function requestAmenity(
+  bookingId: number,
+  amenityData: {
+    booking_detail_id: number;
+    amenity_id: number;
+    quantity: number;
+    notes?: string;
+  }
+) {
+  const { data } = await api.post(`/user/bookings/${bookingId}/request-amenity`, amenityData);
+  return data;
+}
+
+// Admin: Get amenity requests
+export async function getAmenityRequests(params?: {
+  status?: 'pending' | 'approved' | 'rejected' | 'completed';
+  booking_id?: number;
+  page?: number;
+  per_page?: number;
+}) {
+  const { data } = await api.get('/admin/amenity-requests', {
+    params: {
+      ...params,
+      _t: Date.now(),
+    },
+  });
+  return {
+    data: Array.isArray(data.data) ? data.data : [],
+    pagination: data.meta?.pagination,
+  };
+}
+
+// Admin: Approve amenity request
+export async function approveAmenityRequest(
+  amenityRequestId: number,
+  adminNotes?: string
+) {
+  const { data } = await api.post(`/admin/amenity-requests/${amenityRequestId}/approve`, {
+    admin_notes: adminNotes,
+  });
+  return data;
+}
+
+// Admin: Reject amenity request
+export async function rejectAmenityRequest(
+  amenityRequestId: number,
+  adminNotes?: string
+) {
+  const { data } = await api.post(`/admin/amenity-requests/${amenityRequestId}/reject`, {
+    admin_notes: adminNotes,
+  });
+  return data;
+}
+
+// Admin: Complete amenity request
+export async function completeAmenityRequest(
+  amenityRequestId: number,
+  adminNotes?: string
+) {
+  const { data } = await api.post(`/admin/amenity-requests/${amenityRequestId}/complete`, {
+    admin_notes: adminNotes,
   });
   return data;
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Result, Button, Spin, Card, Typography, Space, Divider } from 'antd';
 import { CheckCircleOutlined, HomeOutlined, FileTextOutlined } from '@ant-design/icons';
-import { getUserBooking } from '../../../service/bookingService';
+import { getUserBooking, getUserInvoice } from '../../../service/bookingService';
 import { useBookingCart } from '../../../context/BookingCartContext';
 import type { BookingOrder } from '../../../types/booking/booking';
 
@@ -14,39 +14,59 @@ const PaymentSuccessPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [booking, setBooking] = useState<BookingOrder | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isInvoicePayment, setIsInvoicePayment] = useState(false);
     const { clearCart } = useBookingCart();
 
     const bookingId = searchParams.get('booking_id');
+    const invoiceId = searchParams.get('invoice_id');
     const orderCode = searchParams.get('orderCode');
     const status = searchParams.get('status');
 
     useEffect(() => {
-        const fetchBooking = async () => {
-            if (!bookingId) {
-                setError('Không tìm thấy thông tin đơn đặt phòng');
-                setLoading(false);
-                return;
-            }
-
+        const fetchData = async () => {
             try {
-                const bookingData = await getUserBooking(Number(bookingId));
-                setBooking(bookingData);
-                
-                // Clear cart khi thanh toán cọc thành công và đã có invoice
-                // Kiểm tra payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
-                if (bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') {
-                    clearCart();
+                // Nếu có invoice_id, đây là thanh toán invoice sau checkout
+                if (invoiceId) {
+                    setIsInvoicePayment(true);
+                    const invoice = await getUserInvoice(Number(invoiceId));
+                    
+                    console.log('Invoice data:', invoice);
+                    
+                    // Invoice có thể có booking_order_id trực tiếp hoặc qua bookingOrder relationship
+                    const bookingOrderId = invoice.booking_order_id || (invoice.bookingOrder && invoice.bookingOrder.id);
+                    
+                    if (bookingOrderId) {
+                        const bookingData = await getUserBooking(bookingOrderId);
+                        setBooking(bookingData);
+                    } else {
+                        setError('Không tìm thấy thông tin đơn đặt phòng từ hóa đơn');
+                    }
+                } 
+                // Nếu có booking_id, đây là thanh toán cọc
+                else if (bookingId) {
+                    setIsInvoicePayment(false);
+                    const bookingData = await getUserBooking(Number(bookingId));
+                    setBooking(bookingData);
+                    
+                    // Clear cart khi thanh toán cọc thành công và đã có invoice
+                    // Kiểm tra payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
+                    if (bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') {
+                        clearCart();
+                    }
+                } else {
+                    setError('Không tìm thấy thông tin đơn đặt phòng');
                 }
             } catch (err: any) {
-                console.error('Error fetching booking:', err);
-                setError('Không thể tải thông tin đơn đặt phòng');
+                console.error('Error fetching data:', err);
+                setError('Không thể tải thông tin đơn đặt phòng: ' + (err.response?.data?.message || err.message || 'Lỗi không xác định'));
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchBooking();
-    }, [bookingId, clearCart]);
+        fetchData();
+    }, [bookingId, invoiceId, clearCart]);
+
 
     if (loading) {
         return (
@@ -83,11 +103,14 @@ const PaymentSuccessPage: React.FC = () => {
             <Result
                 status="success"
                 icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                title="Thanh toán thành công!"
+                title={isInvoicePayment ? "Thanh toán hóa đơn thành công!" : "Thanh toán thành công!"}
                 subTitle={
                     <Space direction="vertical" size="small" style={{ marginTop: 16 }}>
                         <Paragraph>
-                            Cảm ơn bạn đã thanh toán. Đơn đặt phòng của bạn đã được xác nhận.
+                            {isInvoicePayment 
+                                ? "Cảm ơn bạn đã thanh toán hóa đơn. Đơn đặt phòng của bạn đã được hoàn tất."
+                                : "Cảm ơn bạn đã thanh toán. Đơn đặt phòng của bạn đã được xác nhận."
+                            }
                         </Paragraph>
                         {orderCode && (
                             <Paragraph>
@@ -108,20 +131,20 @@ const PaymentSuccessPage: React.FC = () => {
                 extra={[
                     <Button
                         type="primary"
+                        key="bookings"
+                        icon={<FileTextOutlined />}
+                        onClick={() => navigate(isInvoicePayment ? '/my-bookings?tab=paid' : '/my-bookings')}
+                        size="large"
+                    >
+                        {isInvoicePayment ? 'Xem đơn đã thanh toán' : 'Xem đơn đặt phòng'}
+                    </Button>,
+                    <Button
                         key="home"
                         icon={<HomeOutlined />}
                         onClick={() => navigate('/')}
                         size="large"
                     >
                         Về trang chủ
-                    </Button>,
-                    <Button
-                        key="bookings"
-                        icon={<FileTextOutlined />}
-                        onClick={() => navigate('/my-bookings')}
-                        size="large"
-                    >
-                        Xem đơn đặt phòng
                     </Button>,
                 ]}
             />

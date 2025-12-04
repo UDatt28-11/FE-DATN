@@ -33,6 +33,7 @@ import {
   IdcardOutlined,
   CustomerServiceOutlined,
   LoginOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -123,10 +124,22 @@ const AdminLayout: React.FC = () => {
       path: "/admin/service-requests",
     },
     {
+      key: "amenity-requests",
+      icon: <AppstoreOutlined />,
+      label: "Yêu cầu tiện ích",
+      path: "/admin/amenity-requests",
+    },
+    {
       key: "promotionManagement",
       icon: <DollarOutlined />,
-      label: "Quản lí mã giảm giá",
+      label: "Quản lí Khuyến mãi",
       path: "/admin/promotion",
+    },
+    {
+      key: "voucherManagement",
+      icon: <GiftOutlined />,
+      label: "Quản lý Voucher",
+      path: "/admin/vouchers",
     },
     {
       key: "reviewManagement",

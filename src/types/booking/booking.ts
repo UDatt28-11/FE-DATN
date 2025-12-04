@@ -35,12 +35,20 @@ export type BookingDetail = {
     roomType?: {
       id: number;
       name: string;
+      description?: string;
+      max_adults?: number;
+      max_children?: number;
+      price_per_night?: number;
+      images?: Array<{
+        id: number;
+        image_url: string;
+        is_primary: boolean;
+      }>;
+      property?: {
+        id: number;
+        name: string;
+      };
     };
-    images?: Array<{
-      id: number;
-      image_url: string;
-      is_primary: boolean;
-    }>;
     property?: {
       id: number;
       name: string;
@@ -53,6 +61,14 @@ export type BookingDetail = {
   sub_total: number;
   status: "active" | "cancelled" | "checked_in" | "checked_out";
   guests?: CheckedInGuest[];
+  review?: {
+    id: number;
+    rating: number;
+    title?: string | null;
+    comment?: string | null;
+    status: "pending" | "approved" | "rejected";
+    created_at?: string;
+  } | null;
 };
 
 export type CheckedInGuest = {
@@ -108,9 +124,26 @@ export type BookingOrder = {
   };
   details?: BookingDetail[];
   check_in_requests?: CheckInRequest[]; // Yêu cầu check-in từ user
+  checkout_requests?: Array<{
+    id: number;
+    booking_order_id: number;
+    booking_detail_id: number;
+    status: 'pending' | 'approved' | 'rejected';
+    notes?: string | null;
+    rejection_reason?: string | null;
+    reviewed_by?: number | null;
+    reviewed_at?: string | null;
+    created_at: string;
+    updated_at?: string;
+  }>; // Yêu cầu checkout từ user
   paid_amount?: number; // Tiền đã thanh toán
   deposit_amount?: number; // Tiền cọc
   payment_status?: string; // Trạng thái thanh toán
+  // Thông tin hủy/đổi ngày
+  date_change_count?: number; // Số lần đã đổi ngày (1 lần miễn phí)
+  refund_amount?: number; // Số tiền hoàn lại khi hủy
+  cancellation_reason?: string | null; // Lý do hủy
+  cancelled_at?: string | null; // Thời gian hủy
   invoices?: Array<{
     id: number;
     total_amount: number;

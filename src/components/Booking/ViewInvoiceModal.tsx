@@ -163,15 +163,17 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             key: 'item_type',
             width: 120,
             render: (type: string) => {
-                const typeMap: Record<string, string> = {
-                    room_charge: 'Phí phòng',
-                    service_charge: 'Dịch vụ',
-                    damage_fee: 'Thiệt hại',
-                    penalty: 'Phạt',
-                    deposit: 'Tiền cọc',
-                    other: 'Khác',
+                const typeMap: Record<string, { label: string; color: string }> = {
+                    room_charge: { label: 'Phí phòng', color: '' },
+                    service_charge: { label: 'Dịch vụ', color: 'blue' },
+                    damage_fee: { label: 'Thiệt hại', color: 'red' },
+                    penalty: { label: 'Phạt', color: 'red' },
+                    deposit: { label: 'Tiền cọc', color: 'orange' },
+                    voucher_discount: { label: 'Giảm giá', color: 'green' },
+                    other: { label: 'Khác', color: '' },
                 };
-                return <Tag color={type === 'deposit' ? 'orange' : undefined}>{typeMap[type] || type}</Tag>;
+                const config = typeMap[type] || { label: type, color: '' };
+                return <Tag color={config.color || undefined}>{config.label}</Tag>;
             },
         },
         {
@@ -255,11 +257,11 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                         </Col>
                         <Col>
                             <Tag
-                                icon={getStatusConfig(invoice.payment_status || invoice.invoice_status).icon}
-                                color={getStatusConfig(invoice.payment_status || invoice.invoice_status).color}
+                                icon={getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).icon}
+                                color={getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).color}
                                 style={{ fontSize: 14, padding: '4px 12px' }}
                             >
-                                {getStatusConfig(invoice.payment_status || invoice.invoice_status).text}
+                                {getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).text}
                             </Tag>
                         </Col>
                     </Row>

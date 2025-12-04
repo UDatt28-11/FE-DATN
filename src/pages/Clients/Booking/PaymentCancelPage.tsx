@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Result, Button, Spin, Card, Typography, Space, Modal, App } from 'antd';
+import { Result, Button, Spin, Card, Typography, Space } from 'antd';
 import { CloseCircleOutlined, HomeOutlined, ReloadOutlined } from '@ant-design/icons';
-import { getUserBooking, cancelUserBooking } from '../../../service/bookingService';
+import { getUserBooking } from '../../../service/bookingService';
 import type { BookingOrder } from '../../../types/booking/booking';
 
 const { Title, Text, Paragraph } = Typography;
 
 const PaymentCancelPage: React.FC = () => {
     const navigate = useNavigate();
-    const { message } = App.useApp();
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [booking, setBooking] = useState<BookingOrder | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [cancelling, setCancelling] = useState(false);
 
     const bookingId = searchParams.get('booking_id');
     const orderCode = searchParams.get('orderCode');
@@ -30,26 +28,6 @@ const PaymentCancelPage: React.FC = () => {
             try {
                 const bookingData = await getUserBooking(Number(bookingId));
                 setBooking(bookingData);
-                
-                // Tự động hủy booking nếu chưa thanh toán gì (payment_status === 'unpaid')
-                // và status là 'pending' (chưa được confirm)
-                if (bookingData.payment_status === 'unpaid' && bookingData.status === 'pending') {
-                    // Tự động hủy booking mà không hỏi (tiết kiệm dữ liệu)
-                    try {
-                        setCancelling(true);
-                        await cancelUserBooking(Number(bookingId));
-                        message.success('Đã tự động hủy đơn đặt phòng do hủy thanh toán');
-                        // Redirect về trang chủ sau 2 giây
-                        setTimeout(() => {
-                            navigate('/');
-                        }, 2000);
-                    } catch (err: any) {
-                        console.error('Error cancelling booking:', err);
-                        message.error('Không thể hủy đơn đặt phòng');
-                    } finally {
-                        setCancelling(false);
-                    }
-                }
             } catch (err: any) {
                 console.error('Error fetching booking:', err);
                 setError('Không thể tải thông tin đơn đặt phòng');
@@ -59,7 +37,7 @@ const PaymentCancelPage: React.FC = () => {
         };
 
         fetchBooking();
-    }, [bookingId, navigate, message]);
+    }, [bookingId]);
 
     if (loading) {
         return (

@@ -42,7 +42,7 @@ import dayjs from "dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
 import { LoginModal, RegisterModal } from "../../../components/Auth";
-import { getRoomById, getRoomReviews, getRooms } from "../../../service/room";
+import { getRoomById, getRoomReviews, getRooms, checkRoomAvailability } from "../../../service/room";
 import reviewService from "../../../service/reviewService";
 import { getUserBookings } from "../../../service/bookingService";
 import type { Room, Review } from "../../../types/room/room";
@@ -327,6 +327,15 @@ const RoomDetailPage: React.FC = () => {
 
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
         const newRange = dates as [Dayjs | null, Dayjs | null] | null;
+        
+        // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+        if (newRange && newRange[0] && newRange[1]) {
+            if (newRange[0].isSame(newRange[1], 'day')) {
+                message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                return; // Không cập nhật state
+            }
+        }
+        
         // Cập nhật trực tiếp vào context (sẽ tự động sync với localStorage)
         setCartDateRange(newRange);
     };
@@ -381,7 +390,9 @@ const RoomDetailPage: React.FC = () => {
 
     // Không cần sync nữa vì đã dùng trực tiếp từ context
 
-    const handleAddToCart = () => {
+    const [addingToCart, setAddingToCart] = useState(false);
+    
+    const handleAddToCart = async () => {
         if (!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1]) {
             message.warning('Vui lòng chọn ngày nhận và trả phòng!');
             return;
@@ -395,18 +406,36 @@ const RoomDetailPage: React.FC = () => {
             return;
         }
 
-        const checkIn = effectiveDateRange[0].format('DD/MM/YYYY');
-        const checkOut = effectiveDateRange[1].format('DD/MM/YYYY');
+        const checkInFormatted = effectiveDateRange[0].format('DD/MM/YYYY');
+        const checkOutFormatted = effectiveDateRange[1].format('DD/MM/YYYY');
+        const checkInAPI = effectiveDateRange[0].format('YYYY-MM-DD');
+        const checkOutAPI = effectiveDateRange[1].format('YYYY-MM-DD');
         const nights = effectiveDateRange[1].diff(effectiveDateRange[0], 'day');
 
-        // Thêm vào booking cart
-        addToCart(
-            currentRoom,
-            checkIn,
-            checkOut,
-            nights,
-            totalPrice
-        );
+        // Kiểm tra phòng còn trống không trước khi thêm vào cart
+        setAddingToCart(true);
+        try {
+            const availability = await checkRoomAvailability(currentRoom.id, checkInAPI, checkOutAPI);
+            
+            if (!availability.available) {
+                message.error(`Phòng "${currentRoom.name}" đã được đặt trong khoảng thời gian ${checkInFormatted} - ${checkOutFormatted}. Vui lòng chọn ngày khác!`);
+                return;
+            }
+
+            // Thêm vào booking cart
+            addToCart(
+                currentRoom,
+                checkInFormatted,
+                checkOutFormatted,
+                nights,
+                totalPrice
+            );
+        } catch (error) {
+            console.error('Error checking room availability:', error);
+            message.error('Không thể kiểm tra tình trạng phòng. Vui lòng thử lại!');
+        } finally {
+            setAddingToCart(false);
+        }
     };
 
     // Loading state
@@ -850,7 +879,8 @@ const RoomDetailPage: React.FC = () => {
                                             size="large"
                                             block
                                             onClick={handleAddToCart}
-                                            disabled={!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1] || isInCart(currentRoom?.id || 0)}
+                                            loading={addingToCart}
+                                            disabled={!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1] || isInCart(currentRoom?.id || 0) || addingToCart}
                                             style={{
                                                 backgroundColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
                                                 borderColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
@@ -859,7 +889,7 @@ const RoomDetailPage: React.FC = () => {
                                                 fontWeight: 'bold'
                                             }}
                                         >
-                                            {isInCart(currentRoom?.id || 0) ? 'Đã thêm vào booking cart' : 'Thêm vào booking cart'}
+                                            {addingToCart ? 'Đang kiểm tra...' : isInCart(currentRoom?.id || 0) ? 'Đã thêm vào booking cart' : 'Thêm vào booking cart'}
                                         </Button>
 
                                         <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>

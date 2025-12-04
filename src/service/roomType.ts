@@ -151,14 +151,21 @@ export async function getRoomTypesWithDetails(params?: {
  * Lấy chi tiết RoomType theo ID với đầy đủ thông tin
  * @param id RoomType ID
  */
-export async function getRoomTypeByIdWithDetails(id: number | string): Promise<{
+export async function getRoomTypeByIdWithDetails(
+    id: number | string,
+    options?: { check_in?: string; check_out?: string }
+): Promise<{
     success: boolean;
     data?: RoomTypeWithDetails;
     message?: string;
 }> {
     try {
         // Gọi endpoint riêng để lấy chi tiết một RoomType (tối ưu hơn)
-        const response = await api.get(`/public/room-types/${id}`);
+        const params: Record<string, string> = {};
+        if (options?.check_in) params.check_in = options.check_in;
+        if (options?.check_out) params.check_out = options.check_out;
+        
+        const response = await api.get(`/public/room-types/${id}`, { params });
         
         if (response.data.success && response.data.data) {
             return {

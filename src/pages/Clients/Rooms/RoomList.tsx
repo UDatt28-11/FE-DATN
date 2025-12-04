@@ -464,6 +464,15 @@ const RoomList: React.FC = () => {
     // Xử lý chọn ngày
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
         const newRange = dates as [Dayjs | null, Dayjs | null] | null;
+        
+        // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+        if (newRange && newRange[0] && newRange[1]) {
+            if (newRange[0].isSame(newRange[1], 'day')) {
+                message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                return; // Không cập nhật state
+            }
+        }
+        
         setDateRange(newRange);
         
         // Note: Cart sẽ tự động cập nhật khi dateRange thay đổi

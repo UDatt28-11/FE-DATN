@@ -16,12 +16,16 @@ import {
     ArrowLeftOutlined,
     CreditCardOutlined,
     SafetyOutlined,
+    GiftOutlined,
+    DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     createPayOSPaymentLink,
     createUserBooking,
 } from '../../../service/bookingService';
+import VoucherSelectModal from '../../../components/Booking/VoucherSelectModal';
+import type { ApplyVoucherResult } from '../../../service/voucherService';
 import './PaymentPage.css';
 
 // Nếu cần tính số đêm từ ngày checkin/checkout, có thể dùng dayjs sau này
@@ -74,6 +78,8 @@ const PaymentPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [payOSLoading, setPayOSLoading] = useState(false);
+    const [voucherModalVisible, setVoucherModalVisible] = useState(false);
+    const [appliedVoucher, setAppliedVoucher] = useState<ApplyVoucherResult | null>(null);
 
     const locationState = location.state as BookingData | null;
     const bookingData: BookingData = locationState || {};
@@ -91,18 +97,17 @@ const PaymentPage: React.FC = () => {
         totalPrice: bookingData.totalPrice || bookingData.price || 0,
     }] : []);
     
-    // Tính tổng tiền
-    const totalAmount = bookingData.totalPrice || 
+    // Tính tổng tiền gốc
+    const originalTotalAmount = bookingData.totalPrice || 
         (rooms.length > 0 ? rooms.reduce((sum, room) => 
             sum + (room.totalPrice || (room.price || 0) * (room.nights || 1)), 0
         ) : 0) || 0;
 
-    // Tính số đêm đơn giản từ room đầu tiên (nếu có trường nights)
-    const firstRoomNights = rooms.length > 0 ? (rooms[0].nights || 1) : (bookingData.nights || 1);
-    const nights = firstRoomNights && firstRoomNights > 0 ? firstRoomNights : 1;
+    // Tính tổng tiền sau khi áp dụng voucher
+    const discountAmount = appliedVoucher?.discount_amount || 0;
+    const totalAmount = Math.max(0, originalTotalAmount - discountAmount);
 
     // Xác định đơn giá trị thấp: cần thanh toán toàn bộ
-    let suggestedDeposit = 0;
     const isLowValue = totalAmount > 0 && totalAmount < 1_000_000;
 
     // Cho phép khách chọn chính sách cọc: 50% hoặc 100% (với đơn >= 1tr)
@@ -146,7 +151,18 @@ const PaymentPage: React.FC = () => {
             // Nếu chưa có booking, tạo booking trước khi thanh toán
             if (!bookingId && bookingData.bookingPayload) {
                 try {
-                    const createdBooking = await createUserBooking(bookingData.bookingPayload);
+                    // Thêm thông tin voucher vào payload nếu có
+                    const bookingPayloadWithVoucher = {
+                        ...bookingData.bookingPayload,
+                        ...(appliedVoucher && {
+                            voucher_id: appliedVoucher.voucher_id,
+                            discount_amount: appliedVoucher.discount_amount,
+                            original_total_amount: originalTotalAmount,
+                            total_amount: totalAmount, // Tổng tiền sau giảm giá
+                        }),
+                    };
+                    
+                    const createdBooking = await createUserBooking(bookingPayloadWithVoucher);
                     bookingId = createdBooking.id;
                     // Cập nhật state với bookingId mới
                     // (Không cần update state vì sẽ redirect ngay)
@@ -553,6 +569,64 @@ const PaymentPage: React.FC = () => {
 
                                     <Divider style={{ margin: '12px 0' }} />
 
+                                    {/* Mã giảm giá */}
+                                    <div style={{
+                                        padding: 12,
+                                        background: appliedVoucher ? '#f6ffed' : '#fafafa',
+                                        borderRadius: 8,
+                                        border: appliedVoucher ? '1px solid #b7eb8f' : '1px solid #e8e8e8'
+                                    }}>
+                                        {appliedVoucher ? (
+                                            <Row justify="space-between" align="middle">
+                                                <Col>
+                                                    <Space>
+                                                        <GiftOutlined style={{ color: '#52c41a' }} />
+                                                        <div>
+                                                            <Text strong style={{ color: '#52c41a' }}>
+                                                                {appliedVoucher.voucher_code}
+                                                            </Text>
+                                                            <br />
+                                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                Giảm {appliedVoucher.discount_amount.toLocaleString('vi-VN')} VNĐ
+                                                            </Text>
+                                                        </div>
+                                                    </Space>
+                                                </Col>
+                                                <Col>
+                                                    <Button
+                                                        type="text"
+                                                        danger
+                                                        size="small"
+                                                        icon={<DeleteOutlined />}
+                                                        onClick={() => setAppliedVoucher(null)}
+                                                    >
+                                                        Bỏ
+                                                    </Button>
+                                                </Col>
+                                            </Row>
+                                        ) : (
+                                            <Row justify="space-between" align="middle">
+                                                <Col>
+                                                    <Space>
+                                                        <GiftOutlined style={{ color: '#eb2f96' }} />
+                                                        <Text>Mã giảm giá</Text>
+                                                    </Space>
+                                                </Col>
+                                                <Col>
+                                                    <Button
+                                                        type="link"
+                                                        onClick={() => setVoucherModalVisible(true)}
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        Chọn mã
+                                                    </Button>
+                                                </Col>
+                                            </Row>
+                                        )}
+                                    </div>
+
+                                    <Divider style={{ margin: '12px 0' }} />
+
                                     {/* Chi tiết thanh toán */}
                                     <div>
                                         <Row justify="space-between" style={{ marginBottom: 8 }}>
@@ -560,12 +634,36 @@ const PaymentPage: React.FC = () => {
                                                 <Text>Tổng tiền phòng</Text>
                                             </Col>
                                             <Col>
-                                                <Text>{(totalAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
+                                                <Text>{(originalTotalAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
                                             </Col>
                                         </Row>
+                                        {appliedVoucher && (
+                                            <Row justify="space-between" style={{ marginBottom: 8 }}>
+                                                <Col>
+                                                    <Text style={{ color: '#52c41a' }}>Giảm giá voucher</Text>
+                                                </Col>
+                                                <Col>
+                                                    <Text style={{ color: '#52c41a' }}>
+                                                        -{discountAmount.toLocaleString('vi-VN')} VNĐ
+                                                    </Text>
+                                                </Col>
+                                            </Row>
+                                        )}
+                                        {appliedVoucher && (
+                                            <Row justify="space-between" style={{ marginBottom: 8 }}>
+                                                <Col>
+                                                    <Text strong>Thành tiền</Text>
+                                                </Col>
+                                                <Col>
+                                                    <Text strong style={{ color: '#cb8670' }}>
+                                                        {(totalAmount || 0).toLocaleString('vi-VN')} VNĐ
+                                                    </Text>
+                                                </Col>
+                                            </Row>
+                                        )}
                                         <Row justify="space-between" style={{ marginBottom: 8 }}>
                                             <Col>
-                                                <Text type="secondary">Tiền cọc (30%)</Text>
+                                                <Text type="secondary">Tiền cọc ({depositOption === 'half' ? '50%' : '100%'})</Text>
                                             </Col>
                                             <Col>
                                                 <Text type="secondary">{(depositAmount || 0).toLocaleString('vi-VN')} VNĐ</Text>
@@ -646,6 +744,16 @@ const PaymentPage: React.FC = () => {
                 </div>
             </Content>
 
+            {/* Voucher Selection Modal */}
+            <VoucherSelectModal
+                open={voucherModalVisible}
+                orderAmount={originalTotalAmount}
+                onCancel={() => setVoucherModalVisible(false)}
+                onSelect={(result) => {
+                    setAppliedVoucher(result);
+                    setVoucherModalVisible(false);
+                }}
+            />
         </div>
     );
 };

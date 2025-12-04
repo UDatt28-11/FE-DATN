@@ -217,12 +217,13 @@ const RequestServiceModal: React.FC<RequestServiceModalProps> = ({
                         loading={loadingServices}
                         onChange={handleServiceChange}
                         showSearch
-                        filterOption={(input, option) =>
-                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                        }
+                        filterOption={(input, option) => {
+                            const service = services.find(s => s.id === option?.value);
+                            return service?.name.toLowerCase().includes(input.toLowerCase()) ?? false;
+                        }}
                     >
                         {services.map(service => (
-                            <Select.Option key={service.id} value={service.id} label={service.name}>
+                            <Select.Option key={service.id} value={service.id}>
                                 <Space>
                                     <span>{service.name}</span>
                                     <Text type="secondary">-</Text>

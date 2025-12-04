@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Dropdown, Avatar, message } from 'antd';
-import { UserOutlined, LogoutOutlined, SettingOutlined, DashboardOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, SettingOutlined, DashboardOutlined, GiftOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import LoginModal from '../Auth/LoginModal';
 import RegisterModal from '../Auth/RegisterModal';
 import ForgotPasswordModal from '../Auth/ForgotPasswordModal';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api/axios';
-import type { RoomType } from '../../types/roomtype/roomtype';
 import { getUserBookingCounts } from '../../service/bookingService';
 import './Header.css';
 
@@ -18,12 +16,9 @@ const Header: React.FC = () => {
   const { isLoggedIn, user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] = useState(false);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [loadingRoomTypes, setLoadingRoomTypes] = useState(false);
   const [bookingCounts, setBookingCounts] = useState<{
     active: number;
     all: number;
@@ -41,40 +36,6 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  // Fetch room types for dropdown menu - chỉ hiển thị 4 loại phòng ngẫu nhiên
-  useEffect(() => {
-    const fetchRoomTypes = async () => {
-      setLoadingRoomTypes(true);
-      try {
-        const response = await api.get('/public/room-types', {
-          params: { 
-            status: 'active',
-            per_page: 20 
-          }
-        });
-        if (response.data.success && response.data.data) {
-          const allRoomTypes = response.data.data;
-          // Shuffle array và lấy 4 loại phòng đầu tiên
-          const shuffled = [...allRoomTypes].sort(() => Math.random() - 0.5);
-          setRoomTypes(shuffled.slice(0, 4));
-        } else if (Array.isArray(response.data)) {
-          const allRoomTypes = response.data;
-          // Shuffle array và lấy 4 loại phòng đầu tiên
-          const shuffled = [...allRoomTypes].sort(() => Math.random() - 0.5);
-          setRoomTypes(shuffled.slice(0, 4));
-        }
-      } catch (error: any) {
-        if (import.meta.env.DEV) {
-          console.error('Error fetching room types:', error);
-        }
-        setRoomTypes([]);
-      } finally {
-        setLoadingRoomTypes(false);
-      }
-    };
-
-    fetchRoomTypes();
-  }, []);
 
   // Fetch booking counts for navbar
   useEffect(() => {
@@ -105,12 +66,8 @@ const Header: React.FC = () => {
 
   const closeMenu = () => {
     setIsMenuOpen(false);
-    setActiveDropdown(null);
   };
 
-  const toggleDropdown = (key: string) => {
-    setActiveDropdown(activeDropdown === key ? null : key);
-  };
 
   const isActive = (path: string) => {
     return location.pathname === path ? 'active' : '';
@@ -180,6 +137,15 @@ const Header: React.FC = () => {
       label: `Đơn đặt phòng${bookingCounts.active > 0 ? ` (${bookingCounts.active})` : ''}`,
       onClick: () => {
         navigate('/my-bookings');
+        closeMenu();
+      }
+    },
+    {
+      key: 'vouchers',
+      icon: <GiftOutlined />,
+      label: 'Kho mã giảm giá',
+      onClick: () => {
+        navigate('/my-vouchers');
         closeMenu();
       }
     },
@@ -292,39 +258,8 @@ const Header: React.FC = () => {
                       <li className={isActive('/about')}>
                         <Link to="/about" onClick={closeMenu}>About Us</Link>
                       </li>
-                      <li className={`has-down ${activeDropdown === 'pages' ? 'dropdown-active' : ''}`}>
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleDropdown('pages');
-                          }}
-                        >
-                          Phòng
-                        </a>
-                        <ul className="dropdown">
-                          <li><Link to="/rooms" onClick={closeMenu}>Tất cả phòng</Link></li>
-                          {roomTypes.length > 0 ? (
-                            roomTypes.map((roomType) => (
-                              <li key={roomType.id}>
-                                <Link 
-                                  to={`/rooms?room_type_id=${roomType.id}`} 
-                                  onClick={closeMenu}
-                                >
-                                  {roomType.name}
-                                </Link>
-                              </li>
-                            ))
-                          ) : (
-                            !loadingRoomTypes && (
-                              <>
-                                <li><Link to="/rooms?category=deluxe" onClick={closeMenu}>Phòng Deluxe</Link></li>
-                                <li><Link to="/rooms?category=suite" onClick={closeMenu}>Phòng Suite</Link></li>
-                                <li><Link to="/rooms?category=single" onClick={closeMenu}>Phòng Đơn</Link></li>
-                              </>
-                            )
-                          )}
-                        </ul>
+                      <li className={isActive('/rooms')}>
+                        <Link to="/rooms" onClick={closeMenu}>Phòng</Link>
                       </li>
 
                       <li className={isActive('/services')}>

@@ -61,13 +61,22 @@ const AddBooking: React.FC = () => {
   };
 
   const handleDateChange = (dates: any) => {
-    if (dates && dates[0] && dates[1] && selectedRoom?.price_per_night) {
-      const nights = dates[1].diff(dates[0], "day");
-      const totalPrice = nights * selectedRoom.price_per_night;
-      form.setFieldsValue({
-        nights,
-        totalPrice,
-      });
+    // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+    if (dates && dates[0] && dates[1]) {
+      if (dates[0].isSame(dates[1], "day")) {
+        toast.warning("Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!");
+        form.setFieldsValue({ dates: null }); // Reset dates
+        return;
+      }
+      
+      if (selectedRoom?.price_per_night) {
+        const nights = dates[1].diff(dates[0], "day");
+        const totalPrice = nights * selectedRoom.price_per_night;
+        form.setFieldsValue({
+          nights,
+          totalPrice,
+        });
+      }
     }
   };
 

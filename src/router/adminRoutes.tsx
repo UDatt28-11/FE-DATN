@@ -54,7 +54,13 @@ import SupplyLogs from "../pages/Admin/quanlivattu/supplyLogs";
 import ListCheckInRequests from "../pages/Admin/quanlidatphong/listCheckInRequests";
 import ListCheckoutRequests from "../pages/Admin/quanlidatphong/listCheckoutRequests";
 import ListServiceRequests from "../pages/Admin/quanlidatphong/listServiceRequests";
+import ListAmenityRequests from "../pages/Admin/quanlidatphong/listAmenityRequests";
 import ListService from "../pages/Admin/quanlidichvu/ListService";
+
+// Quản lý voucher
+import ListVoucher from "../pages/Admin/quanlivoucher/ListVoucher";
+import AddVoucher from "../pages/Admin/quanlivoucher/AddVoucher";
+import EditVoucher from "../pages/Admin/quanlivoucher/EditVoucher";
 
 /**
  * Admin Routes - Được bảo vệ bởi RoleBasedRoute
@@ -90,6 +96,7 @@ export const adminRoutes: RouteObject[] = [
               { path: "check-in-requests", element: <ListCheckInRequests /> },
               { path: "checkout-requests", element: <ListCheckoutRequests /> },
               { path: "service-requests", element: <ListServiceRequests /> },
+              { path: "amenity-requests", element: <ListAmenityRequests /> },
 
       // Quản lý danh mục (Admin + Staff)
       { path: "category", element: <ListCategory /> },
@@ -165,6 +172,11 @@ export const adminRoutes: RouteObject[] = [
 
       // Quản lý dịch vụ (Admin + Staff)
       { path: "services", element: <ListService /> },
+
+      // Quản lý voucher (Admin + Staff)
+      { path: "vouchers", element: <ListVoucher /> },
+      { path: "vouchers/add", element: <AddVoucher /> },
+      { path: "vouchers/edit/:id", element: <EditVoucher /> },
     ],
   },
 ];

@@ -17,7 +17,8 @@ import {
 import type { BookingOrder, BookingDetail } from '../../types/booking/booking';
 import { requestCheckOut } from '../../service/bookingService';
 
-const { Text, TextArea } = Typography;
+const { Text } = Typography;
+const { TextArea } = Input;
 
 interface RequestCheckoutModalProps {
     open: boolean;
@@ -62,10 +63,16 @@ const RequestCheckoutModal: React.FC<RequestCheckoutModalProps> = ({
 
     if (!booking) return null;
 
-    // Lấy danh sách phòng đã check-in
+    // Debug: Log booking details
+    console.log('RequestCheckoutModal - Booking details:', booking.details);
+    console.log('RequestCheckoutModal - Total details:', booking.details?.length || 0);
+
+    // Lấy danh sách phòng đã check-in (bao gồm cả partially_checked_in)
     const checkedInDetails = booking.details?.filter(
-        (detail: BookingDetail) => detail.status === 'checked_in'
+        (detail: BookingDetail) => detail.status === 'checked_in' || detail.status === 'partially_checked_in'
     ) || [];
+
+    console.log('RequestCheckoutModal - Checked in details:', checkedInDetails.length);
 
     if (checkedInDetails.length === 0) {
         return (

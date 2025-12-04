@@ -17,6 +17,7 @@ import PaymentPage from "../pages/Clients/Booking/PaymentPage";
 import PaymentSuccessPage from "../pages/Clients/Booking/PaymentSuccessPage";
 import PaymentCancelPage from "../pages/Clients/Booking/PaymentCancelPage";
 import MyBookingsPage from "../pages/Clients/Booking/MyBookingsPage";
+import MyVouchersPage from "../pages/Clients/Vouchers/MyVouchersPage";
 import Promotions from "../pages/Clients/Promotions/Promotions";
 import Blog from "../pages/Blog";
 import Contact from "../pages/Clients/Contact/Contact";
@@ -131,6 +132,16 @@ export const clientRoutes: RouteObject[] = [
       <ClientLayout>
         <ProtectedRoute>
           <MyBookingsPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/my-vouchers",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <MyVouchersPage />
         </ProtectedRoute>
       </ClientLayout>
     ),

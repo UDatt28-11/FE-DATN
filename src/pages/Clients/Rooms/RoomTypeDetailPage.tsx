@@ -128,6 +128,38 @@ const RoomTypeDetailPage: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
 
+    // Fetch room type detail với date range
+    const fetchRoomTypeWithDates = async (showLoading: boolean = true) => {
+        if (!id) return;
+        
+        if (showLoading) setLoading(true);
+        try {
+            // Tạo options với date range nếu có
+            const options: { check_in?: string; check_out?: string } = {};
+            if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
+                options.check_in = cartDateRange[0].format('YYYY-MM-DD');
+                options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+            }
+            
+            const roomTypeResponse = await getRoomTypeByIdWithDetails(id, options);
+
+            if (roomTypeResponse.success && roomTypeResponse.data) {
+                setRoomType(roomTypeResponse.data);
+            } else if (showLoading) {
+                message.error(roomTypeResponse.message || 'Không tìm thấy loại phòng');
+                navigate('/rooms');
+            }
+        } catch (error: any) {
+            console.error('Error fetching room type detail:', error);
+            if (showLoading) {
+                message.error('Không thể tải thông tin loại phòng');
+                navigate('/rooms');
+            }
+        } finally {
+            if (showLoading) setLoading(false);
+        }
+    };
+
     // Fetch room type detail và reviews song song để tối ưu thời gian load
     useEffect(() => {
         const fetchRoomTypeDetail = async () => {
@@ -135,9 +167,16 @@ const RoomTypeDetailPage: React.FC = () => {
             
             setLoading(true);
             try {
+                // Tạo options với date range nếu có
+                const options: { check_in?: string; check_out?: string } = {};
+                if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
+                    options.check_in = cartDateRange[0].format('YYYY-MM-DD');
+                    options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+                }
+                
                 // Load room type detail và reviews song song
                 const [roomTypeResponse, reviewsResponse] = await Promise.all([
-                    getRoomTypeByIdWithDetails(id),
+                    getRoomTypeByIdWithDetails(id, options),
                     getRoomTypeReviews(Number(id), { page: 1, per_page: 10 })
                 ]);
 
@@ -168,6 +207,13 @@ const RoomTypeDetailPage: React.FC = () => {
 
         fetchRoomTypeDetail();
     }, [id, navigate]);
+
+    // Re-fetch room type khi date range thay đổi để cập nhật available_count
+    useEffect(() => {
+        if (id && roomType && cartDateRange && cartDateRange[0] && cartDateRange[1]) {
+            fetchRoomTypeWithDates(false);
+        }
+    }, [cartDateRange?.[0]?.valueOf(), cartDateRange?.[1]?.valueOf()]);
 
     // Fetch reviews
     const fetchReviews = async (roomTypeId: number, page: number = 1) => {
@@ -215,6 +261,12 @@ const RoomTypeDetailPage: React.FC = () => {
         }
 
         if (!roomType) return;
+
+        // Kiểm tra phòng còn trống không
+        if ((roomType.available_count || 0) === 0) {
+            message.error(`Loại phòng "${roomType.name}" đã hết phòng trong khoảng thời gian này. Vui lòng chọn ngày khác!`);
+            return;
+        }
 
         const checkIn = cartDateRange[0].format('DD/MM/YYYY');
         const checkOut = cartDateRange[1].format('DD/MM/YYYY');

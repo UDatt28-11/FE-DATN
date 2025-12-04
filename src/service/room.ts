@@ -114,6 +114,45 @@ export async function getRoomReviews(
   return data;
 }
 
+/**
+ * Kiểm tra phòng có còn trống theo khoảng ngày không (public API)
+ * @param roomId Room ID
+ * @param checkIn Ngày check-in (format: YYYY-MM-DD)
+ * @param checkOut Ngày check-out (format: YYYY-MM-DD)
+ * @returns Promise<boolean> - true nếu phòng còn trống
+ */
+export async function checkRoomAvailability(
+  roomId: number | string,
+  checkIn: string,
+  checkOut: string
+): Promise<{ available: boolean; message?: string }> {
+  try {
+    // Lấy danh sách phòng với filter theo ngày và room_id
+    // Nếu phòng xuất hiện trong kết quả, nghĩa là còn trống
+    const response = await api.get<RoomsResponse>("/rooms", { 
+      params: {
+        check_in: checkIn,
+        check_out: checkOut,
+      }
+    });
+    
+    const rooms = response.data?.data || [];
+    const roomIdNum = typeof roomId === 'string' ? parseInt(roomId, 10) : roomId;
+    const isAvailable = rooms.some(room => room.id === roomIdNum);
+    
+    return {
+      available: isAvailable,
+      message: isAvailable ? undefined : 'Phòng đã được đặt trong khoảng thời gian này'
+    };
+  } catch (error) {
+    console.error("Error checking room availability:", error);
+    return {
+      available: false,
+      message: 'Không thể kiểm tra tình trạng phòng'
+    };
+  }
+}
+
 // ============================================
 // Legacy functions (giữ lại để tương thích)
 // ============================================

@@ -870,6 +870,7 @@ const ViewBooking: React.FC = () => {
                               },
                               penalty: { color: "red", text: "Phạt" },
                               deposit: { color: "orange", text: "Đặt cọc" },
+                              voucher_discount: { color: "green", text: "Giảm giá" },
                               other: { color: "default", text: "Khác" },
                             };
                             const conf = typeMap[type] || typeMap.other;
@@ -901,12 +902,16 @@ const ViewBooking: React.FC = () => {
                           dataIndex: "total",
                           key: "total",
                           align: "right" as const,
-                          render: (total: number, record: InvoiceItem) => (
-                            <Typography.Text strong style={{ color: record.total_line < 0 ? "#ff4d4f" : "#52c41a" }}>
-                              {record.total_line < 0 ? "-" : ""}
-                              {(total || record.total_line || 0).toLocaleString("vi-VN")}₫
-                            </Typography.Text>
-                          ),
+                          render: (total: number, record: InvoiceItem) => {
+                            const amount = total || record.total_line || 0;
+                            const isNegative = amount < 0;
+                            return (
+                              <Typography.Text strong style={{ color: isNegative ? "#ff4d4f" : "#52c41a" }}>
+                                {isNegative ? "-" : ""}
+                                {Math.abs(amount).toLocaleString("vi-VN")}₫
+                              </Typography.Text>
+                            );
+                          },
                         },
                         {
                           title: "Thao tác",
