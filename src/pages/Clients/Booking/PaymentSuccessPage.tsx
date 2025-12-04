@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Result, Button, Spin, Card, Typography, Space, Divider } from 'antd';
 import { CheckCircleOutlined, HomeOutlined, FileTextOutlined } from '@ant-design/icons';
 import { getUserBooking } from '../../../service/bookingService';
+import { useBookingCart } from '../../../context/BookingCartContext';
 import type { BookingOrder } from '../../../types/booking/booking';
 
 const { Title, Text, Paragraph } = Typography;
@@ -13,6 +14,7 @@ const PaymentSuccessPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [booking, setBooking] = useState<BookingOrder | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { clearCart } = useBookingCart();
 
     const bookingId = searchParams.get('booking_id');
     const orderCode = searchParams.get('orderCode');
@@ -29,6 +31,12 @@ const PaymentSuccessPage: React.FC = () => {
             try {
                 const bookingData = await getUserBooking(Number(bookingId));
                 setBooking(bookingData);
+                
+                // Clear cart khi thanh toán cọc thành công và đã có invoice
+                // Kiểm tra payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
+                if (bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') {
+                    clearCart();
+                }
             } catch (err: any) {
                 console.error('Error fetching booking:', err);
                 setError('Không thể tải thông tin đơn đặt phòng');
@@ -38,7 +46,7 @@ const PaymentSuccessPage: React.FC = () => {
         };
 
         fetchBooking();
-    }, [bookingId]);
+    }, [bookingId, clearCart]);
 
     if (loading) {
         return (

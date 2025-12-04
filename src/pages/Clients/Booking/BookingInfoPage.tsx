@@ -219,7 +219,8 @@ const BookingInfoPage: React.FC = () => {
             // Tính tổng tiền từ tất cả các phòng
             const totalAmount = details.reduce((sum, detail) => sum + detail.sub_total, 0);
 
-            // Tạo booking data
+            // KHÔNG tạo booking ở đây - sẽ tạo khi bấm nút thanh toán
+            // Lưu thông tin booking tạm thời để tạo sau khi bấm thanh toán
             const bookingPayload = {
                 customer_name: values.fullName,
                 customer_phone: values.phone,
@@ -230,15 +231,9 @@ const BookingInfoPage: React.FC = () => {
                 details: details
             };
 
-            // Gọi API tạo booking
-            const createdBooking = await createUserBooking(bookingPayload);
+            message.success('Vui lòng tiến hành thanh toán để hoàn tất đặt phòng.');
 
-            // Xóa cart sau khi tạo đơn thành công
-            clearCart();
-
-            message.success('Đặt phòng thành công! Vui lòng tiến hành thanh toán.');
-
-            // Chuyển sang trang thanh toán với thông tin đầy đủ
+            // Chuyển sang trang thanh toán với thông tin đầy đủ (chưa có bookingId)
             navigate('/booking/payment', {
                 state: {
                     rooms: rooms,
@@ -246,8 +241,9 @@ const BookingInfoPage: React.FC = () => {
                     checkOut: rooms[0]?.checkOut,
                     totalPrice: totalAmount,
                     guestInfo: values,
-                    bookingId: createdBooking.id,
-                    booking: createdBooking,
+                    bookingPayload: bookingPayload, // Lưu payload để tạo booking sau
+                    // bookingId: undefined, // Chưa có booking
+                    // booking: undefined,
                 }
             });
         } catch (error: any) {

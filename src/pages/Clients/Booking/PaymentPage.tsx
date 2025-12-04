@@ -20,6 +20,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     createPayOSPaymentLink,
+    createUserBooking,
 } from '../../../service/bookingService';
 import './PaymentPage.css';
 
@@ -64,6 +65,8 @@ interface BookingData {
     guestInfo?: GuestInfo;
     bookingId?: number;
     booking?: any;
+    // Payload để tạo booking khi bấm thanh toán
+    bookingPayload?: any;
 }
 
 const PaymentPage: React.FC = () => {
@@ -129,22 +132,42 @@ const PaymentPage: React.FC = () => {
 
     // Nếu không có thông tin, redirect về trang trước
     React.useEffect(() => {
-        if (!bookingData.guestInfo || !bookingData.bookingId || rooms.length === 0) {
+        if (!bookingData.guestInfo || rooms.length === 0) {
             message.warning('Thông tin đặt phòng không hợp lệ. Vui lòng thử lại!');
             navigate('/rooms');
         }
     }, [bookingData, rooms.length, navigate, message]);
 
     const handlePayWithPayOS = async () => {
-        if (!bookingData.bookingId) {
-            message.error('Không tìm thấy thông tin đặt phòng!');
-            return;
-        }
-
         setPayOSLoading(true);
         try {
+            let bookingId = bookingData.bookingId;
+            
+            // Nếu chưa có booking, tạo booking trước khi thanh toán
+            if (!bookingId && bookingData.bookingPayload) {
+                try {
+                    const createdBooking = await createUserBooking(bookingData.bookingPayload);
+                    bookingId = createdBooking.id;
+                    // Cập nhật state với bookingId mới
+                    // (Không cần update state vì sẽ redirect ngay)
+                } catch (error: any) {
+                    console.error('Error creating booking:', error);
+                    const errorMessage = error.response?.data?.message || 'Không thể tạo đơn đặt phòng';
+                    message.error(errorMessage);
+                    setPayOSLoading(false);
+                    return;
+                }
+            }
+            
+            if (!bookingId) {
+                message.error('Không tìm thấy thông tin đặt phòng!');
+                setPayOSLoading(false);
+                return;
+            }
+
+            // Tạo payment link PayOS
             const result = await createPayOSPaymentLink(
-                bookingData.bookingId,
+                bookingId,
                 depositAmount,
                 'Dat coc dat phong'
             );
@@ -154,12 +177,12 @@ const PaymentPage: React.FC = () => {
                 window.location.href = result.payment_link;
             } else {
                 message.error('Không nhận được link thanh toán PayOS');
+                setPayOSLoading(false);
             }
         } catch (error: any) {
             console.error('PayOS payment error:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Không thể tạo link thanh toán PayOS';
             message.error(errorMessage);
-        } finally {
             setPayOSLoading(false);
         }
     };
