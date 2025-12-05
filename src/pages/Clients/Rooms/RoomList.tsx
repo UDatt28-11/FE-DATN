@@ -45,7 +45,7 @@ import {
     SafetyOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
@@ -121,6 +121,7 @@ const useDebounce = (value: any, delay: number) => {
 
 const RoomList: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     // const [searchParams, setSearchParams] = useSearchParams(); // Không dùng nữa vì đã bỏ filter theo loại phòng
 
     // Sử dụng useAuth - nếu không có AuthProvider sẽ throw error
@@ -187,6 +188,40 @@ const RoomList: React.FC = () => {
 
     // Debounce search query
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+    // Đọc query params từ URL khi component mount hoặc location thay đổi
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        
+        // Đọc max_adults từ URL
+        const maxAdultsParam = searchParams.get('max_adults');
+        if (maxAdultsParam) {
+            const adultsValue = parseInt(maxAdultsParam, 10);
+            if (!isNaN(adultsValue) && adultsValue > 0) {
+                setMaxAdults(adultsValue);
+            }
+        }
+        
+        // Đọc max_children từ URL
+        const maxChildrenParam = searchParams.get('max_children');
+        if (maxChildrenParam) {
+            const childrenValue = parseInt(maxChildrenParam, 10);
+            if (!isNaN(childrenValue) && childrenValue >= 0) {
+                setMaxChildren(childrenValue);
+            }
+        }
+        
+        // Đọc check_in và check_out từ URL
+        const checkInParam = searchParams.get('check_in');
+        const checkOutParam = searchParams.get('check_out');
+        if (checkInParam && checkOutParam) {
+            const checkInDate = dayjs(checkInParam);
+            const checkOutDate = dayjs(checkOutParam);
+            if (checkInDate.isValid() && checkOutDate.isValid() && checkOutDate.isAfter(checkInDate)) {
+                setDateRange([checkInDate, checkOutDate]);
+            }
+        }
+    }, [location.search]);
 
     // Đã bỏ filter theo loại phòng, không cần lấy room_type_id từ URL nữa
 
@@ -275,17 +310,39 @@ const RoomList: React.FC = () => {
                     );
             }
 
-            // Guests filter
-            if (maxAdults > 1) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.max_adults || 0) >= maxAdults
-                    );
-            }
-            if (maxChildren > 0) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.max_children || 0) >= maxChildren
-                    );
+            // Guests filter - lọc phòng dựa trên số lượng phòng trống và sức chứa
+            const totalGuests = maxAdults + maxChildren;
+            if (totalGuests > 0) {
+                // 1. Lọc các phòng còn trống trước
+                const availableRoomTypes = filteredRoomTypes.filter(rt => {
+                    const availableCount = rt.available_count || 0;
+                    return availableCount > 0;
+                });
+                
+                // 2. Tính tổng sức chứa của TẤT CẢ các loại phòng còn trống
+                let totalCapacityAllRooms = 0;
+                availableRoomTypes.forEach(rt => {
+                    const maxAdultsCapacity = rt.max_adults || 0;
+                    const maxChildrenCapacity = rt.max_children || 0;
+                    const capacityPerRoom = maxAdultsCapacity + maxChildrenCapacity;
+                    const availableCount = rt.available_count || 0;
+                    totalCapacityAllRooms += capacityPerRoom * availableCount;
+                });
+                
+                // 3. Nếu tổng sức chứa của tất cả phòng >= tổng số khách → hiển thị tất cả phòng còn trống
+                //    Nếu không đủ → không hiển thị gì
+                if (totalCapacityAllRooms >= totalGuests) {
+                    filteredRoomTypes = availableRoomTypes;
+                } else {
+                    filteredRoomTypes = [];
                 }
+            } else {
+                // Nếu không có filter về số khách, vẫn phải lọc phòng trống
+                filteredRoomTypes = filteredRoomTypes.filter(rt => {
+                    const availableCount = rt.available_count || 0;
+                    return availableCount > 0;
+                });
+            }
 
                 // Amenities filter (general amenities)
                 if (selectedAmenityIds.length > 0) {
@@ -373,6 +430,16 @@ const RoomList: React.FC = () => {
 
                 setRoomTypes(paginatedRoomTypes);
                 setTotalRoomTypes(filteredRoomTypes.length);
+                
+                // Hiển thị thông báo nếu không tìm thấy phòng phù hợp với số lượng người
+                const totalGuestsCount = maxAdults + maxChildren;
+                if (totalGuestsCount > 0 && filteredRoomTypes.length === 0) {
+                    message.warning(
+                        `Không tìm thấy phòng phù hợp cho ${maxAdults} người lớn${maxChildren > 0 ? ` và ${maxChildren} trẻ em` : ''}. ` +
+                        `Vui lòng giảm số lượng người hoặc thử lại với ngày khác.`,
+                        5
+                    );
+                }
                 
                 // Cập nhật price range max nếu cần
                 if (response.data.length > 0) {
@@ -788,7 +855,24 @@ const RoomList: React.FC = () => {
                                 </div>
                             ) : roomTypes.length === 0 ? (
                                 <Empty
-                                    description="Không tìm thấy phòng phù hợp"
+                                    description={
+                                        <div>
+                                            <div style={{ marginBottom: 8, fontSize: 16, fontWeight: 500 }}>
+                                                Không tìm thấy phòng phù hợp
+                                            </div>
+                                            {(maxAdults > 0 || maxChildren > 0) && (
+                                                <div style={{ color: '#999', fontSize: 14, marginTop: 8 }}>
+                                                    {maxAdults > 0 && maxChildren > 0 ? (
+                                                        <>Không có phòng nào có thể chứa {maxAdults} người lớn và {maxChildren} trẻ em</>
+                                                    ) : maxAdults > 0 ? (
+                                                        <>Không có phòng nào có thể chứa {maxAdults} người lớn</>
+                                                    ) : (
+                                                        <>Không có phòng nào có thể chứa {maxChildren} trẻ em</>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    }
                                     style={{ padding: '60px 0' }}
                                 >
                                     <Button type="primary" onClick={handleResetFilters}>

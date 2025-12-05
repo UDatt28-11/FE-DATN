@@ -47,12 +47,6 @@ const Home: React.FC = () => {
     fetchRoomTypes();
   }, []);
 
-  const handleBookNow = (values: any) => {
-    if (import.meta.env.DEV) {
-      console.log('Booking:', values);
-    }
-  };
-
   const handleRoomTypeClick = (roomTypeId: number) => {
     navigate(`/rooms?room_type_id=${roomTypeId}`);
   };
@@ -131,7 +125,7 @@ const Home: React.FC = () => {
         <div className="container">
           <Row justify="center">
             <Col xs={24} lg={20}>
-              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+              <BookingFilter showButton={true} />
             </Col>
           </Row>
         </div>

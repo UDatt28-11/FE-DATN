@@ -25,10 +25,6 @@ const Rooms: React.FC = () => {
     });
   }, []);
 
-  const handleBookNow = (values: any) => {
-    console.log('Booking:', values);
-  };
-
   return (
     <div className="rooms-page">
       {/* Breadcrumb Area */}
@@ -43,7 +39,7 @@ const Rooms: React.FC = () => {
         <div className="container">
           <Row justify="center">
             <Col xs={24} lg={20}>
-              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+              <BookingFilter showButton={true} />
             </Col>
           </Row>
         </div>
