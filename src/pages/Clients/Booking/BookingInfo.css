@@ -1,0 +1,140 @@
+.booking-info-page {
+    background: #fff;
+    min-height: 100vh;
+}
+
+.booking-info-page .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Steps */
+.booking-info-page .ant-steps {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.booking-info-page .ant-steps-item-process .ant-steps-item-icon {
+    background-color: #cb8670;
+    border-color: #cb8670;
+}
+
+.booking-info-page .ant-steps-item-finish .ant-steps-item-icon {
+    border-color: #cb8670;
+}
+
+.booking-info-page .ant-steps-item-finish .ant-steps-item-icon>.ant-steps-icon {
+    color: #cb8670;
+}
+
+.booking-info-page .ant-steps-item-finish>.ant-steps-item-container>.ant-steps-item-tail::after {
+    background-color: #cb8670;
+}
+
+/* Cards */
+.booking-info-page .ant-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.booking-info-page .ant-card-head {
+    border-bottom: 2px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.booking-info-page .ant-card-head-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Form */
+.booking-info-page .ant-form-item-label>label {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.booking-info-page .ant-input-lg,
+.booking-info-page .ant-input-affix-wrapper-lg {
+    border-radius: 8px;
+}
+
+.booking-info-page .ant-input:focus,
+.booking-info-page .ant-input-focused,
+.booking-info-page .ant-input-affix-wrapper:focus,
+.booking-info-page .ant-input-affix-wrapper-focused {
+    border-color: #cb8670;
+    box-shadow: 0 0 0 2px rgba(203, 134, 112, 0.1);
+}
+
+/* Buttons */
+.booking-info-page .ant-btn-primary {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.booking-info-page .ant-btn-primary:hover {
+    background-color: #b57660 !important;
+    border-color: #b57660 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(203, 134, 112, 0.3);
+}
+
+.booking-info-page .ant-btn-default {
+    border-radius: 8px;
+}
+
+/* Booking Summary Card */
+.booking-info-page .booking-summary {
+    position: sticky;
+    top: 20px;
+}
+
+/* Divider */
+.booking-info-page .ant-divider {
+    margin: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .booking-info-page .booking-summary {
+        position: relative;
+        top: 0;
+        margin-top: 24px;
+    }
+
+    .booking-info-page .ant-steps {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 576px) {
+    .booking-info-page .ant-steps-item-description {
+        display: none;
+    }
+}
+
+/* Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.booking-info-page .ant-card {
+    animation: fadeInUp 0.5s ease;
+}
+
+/* Important Notes */
+.booking-info-page .ant-card:last-child {
+    background: #fffbf0;
+    border: 1px solid #ffe58f;
+}

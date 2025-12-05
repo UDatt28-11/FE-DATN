@@ -41,8 +41,7 @@ import dayjs, { Dayjs } from "dayjs";
 import type { BookingOrder } from "../../../types/booking/booking";
 import { useNavigate } from "react-router-dom";
 import { listBookings, updateBookingStatus } from "../../../service/bookingService";
-import invoiceService from "../../../service/invoiceService";
-import { Popconfirm } from "antd";
+import ViewInvoiceModal from "../../../components/Booking/ViewInvoiceModal";
 
 
 const { Search } = Input;
@@ -62,13 +61,19 @@ const ListBooking: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [bookingToUpdate, setBookingToUpdate] = useState<BookingOrder | null>(null);
   const [newStatus, setNewStatus] = useState<'confirmed' | 'completed' | 'cancelled'>('confirmed');
-  const [creatingInvoiceId, setCreatingInvoiceId] = useState<number | null>(null);
+  
+  // State cho modal xem hóa đơn
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
   async function fetchData() {
     setLoading(true);
     try {
-      // Include invoice để kiểm tra đã có hóa đơn chưa
-      const { data } = await listBookings({ include: "invoice" } as any);
+      // Include invoices để biết booking có hóa đơn hay không
+      // Lưu ý: Backend chỉ hỗ trợ include 'invoices', không hỗ trợ nested relationships
+      const { data } = await listBookings({ 
+        include: 'invoices' 
+      } as any);
       setRows(data);
       applyFilters(searchText, statusFilter, dateRange, data);
     } catch (e) {
@@ -251,41 +256,6 @@ const ListBooking: React.FC = () => {
     }, 1000);
   };
 
-  /**
-   * Tạo hóa đơn tạm tính từ booking
-   */
-  const handleCreateInvoice = async (bookingId: number) => {
-    setCreatingInvoiceId(bookingId);
-    try {
-      const response: any = await invoiceService.createFromBooking(bookingId);
-      
-      // Xử lý response có thể có nhiều dạng
-      let newInvoiceId: number | null = null;
-      if (response?.id) {
-        newInvoiceId = response.id;
-      } else if (response?.data?.id) {
-        newInvoiceId = response.data.id;
-      } else if (response?.data?.data?.id) {
-        newInvoiceId = response.data.data.id;
-      }
-      
-      if (newInvoiceId) {
-        toast.success("Tạo hóa đơn tạm tính thành công!");
-        // Tự động chuyển đến trang xem hóa đơn
-        navigate(`/admin/invoice/view/${newInvoiceId}`);
-      } else {
-        toast.success("Tạo hóa đơn thành công!");
-        // Refresh danh sách
-        fetchData();
-      }
-    } catch (error: any) {
-      console.error("Lỗi khi tạo hóa đơn:", error);
-      toast.error(error.response?.data?.message || "Không thể tạo hóa đơn!");
-    } finally {
-      setCreatingInvoiceId(null);
-    }
-  };
-
   // ============================================
   // HÀM LẤY CẤU HÌNH HIỂN THỊ TRẠNG THÁI
   // ============================================
@@ -304,13 +274,37 @@ const ListBooking: React.FC = () => {
       pending: {
         color: "warning",
         icon: <ClockCircleOutlined />,
-        label: "Đang chờ",
+        label: "Chờ xác nhận",
       },
       // Đã xác nhận - màu xanh dương
       confirmed: {
         color: "processing",
-        icon: <ExclamationCircleOutlined />,
+        icon: <CheckCircleOutlined />,
         label: "Đã xác nhận",
+      },
+      // Đã check-in - màu xanh lá
+      checked_in: {
+        color: "success",
+        icon: <CheckCircleOutlined />,
+        label: "Đã check-in",
+      },
+      // Check-in một phần - màu cam
+      partially_checked_in: {
+        color: "orange",
+        icon: <ExclamationCircleOutlined />,
+        label: "Check-in một phần",
+      },
+      // Đã check-out - màu xanh dương
+      checked_out: {
+        color: "blue",
+        icon: <ClockCircleOutlined />,
+        label: "Đã check-out",
+      },
+      // Check-out một phần - màu cyan
+      partially_checked_out: {
+        color: "cyan",
+        icon: <ExclamationCircleOutlined />,
+        label: "Check-out một phần",
       },
       // Hoàn thành - màu xanh lá
       completed: {
@@ -332,6 +326,38 @@ const ListBooking: React.FC = () => {
         color: "default",
         icon: <ClockCircleOutlined />,
         label: status,
+      }
+    );
+  };
+
+  /**
+   * Trả về cấu hình màu sắc và label cho trạng thái thanh toán
+   * @param paymentStatus - Trạng thái thanh toán (unpaid, partial, paid)
+   * @returns Object chứa color, label
+   */
+  const getPaymentStatusConfig = (paymentStatus?: string | null) => {
+    const statusMap: Record<
+      string,
+      { color: string; label: string }
+    > = {
+      unpaid: {
+        color: "error",
+        label: "Chưa thanh toán",
+      },
+      partial: {
+        color: "warning",
+        label: "Đã cọc",
+      },
+      paid: {
+        color: "success",
+        label: "Đã thanh toán",
+      },
+    };
+
+    return (
+      statusMap[paymentStatus || 'unpaid'] ?? {
+        color: "default",
+        label: paymentStatus || "N/A",
       }
     );
   };
@@ -401,7 +427,22 @@ const ListBooking: React.FC = () => {
       },
     },
     
-    // Cột 6: Tổng tiền (căn phải, format VNĐ)
+    // Cột 6: Trạng thái thanh toán
+    {
+      title: "Thanh toán",
+      dataIndex: "payment_status",
+      key: "payment_status",
+      render: (paymentStatus?: string | null, record?: BookingOrder) => {
+        const cfg = getPaymentStatusConfig(paymentStatus);
+        return (
+          <Tag color={cfg.color}>
+            {cfg.label}
+          </Tag>
+        );
+      },
+    },
+    
+    // Cột 7: Tổng tiền (căn phải, format VNĐ)
     {
       title: "Tổng tiền",
       dataIndex: "total_amount",
@@ -410,36 +451,11 @@ const ListBooking: React.FC = () => {
       render: (v: number) => `${(v || 0).toLocaleString("vi-VN")} đ`,
     },
     
-    // Cột 7: Hóa đơn
-    {
-      title: "Hóa đơn",
-      key: "invoice",
-      width: 100,
-      render: (_: any, record: BookingOrder) => {
-        const hasInvoice = (record as any).invoice && 
-          ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
-           (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
-        
-        if (hasInvoice) {
-          const invoiceId = Array.isArray((record as any).invoice) 
-            ? (record as any).invoice[0].id 
-            : (record as any).invoice.id;
-          return (
-            <Tag color="success" icon={<FileTextOutlined />}>
-              <a onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)} style={{ cursor: "pointer" }}>
-                Đã có
-              </a>
-            </Tag>
-          );
-        }
-        return <Tag color="default">Chưa có</Tag>;
-      },
-    },
-    
     // Cột 8: Các nút hành động
     {
       title: "Hành động",
       key: "action",
+      width: 200,
       render: (_: any, record: BookingOrder) => (
         <Space>
           {/* Nút xem chi tiết booking */}
@@ -459,6 +475,20 @@ const ListBooking: React.FC = () => {
             />
           </Tooltip>
           
+          {/* Nút xem hóa đơn */}
+          {record.invoices && record.invoices.length > 0 && (
+            <Tooltip title="Xem hóa đơn">
+              <Button
+                type="default"
+                icon={<FileTextOutlined />}
+                onClick={() => {
+                  setSelectedInvoiceId(record.invoices![0].id);
+                  setInvoiceModalVisible(true);
+                }}
+              />
+            </Tooltip>
+          )}
+          
           {/* 
             Nút đổi trạng thái
             CHỈ HIỂN THỊ KHI: 
@@ -475,51 +505,6 @@ const ListBooking: React.FC = () => {
               />
             </Tooltip>
           )}
-
-          {/* Nút tạo hóa đơn tạm tính hoặc xem hóa đơn */}
-          {record.status !== 'cancelled' && (() => {
-            const hasInvoice = (record as any).invoice && 
-              ((Array.isArray((record as any).invoice) && (record as any).invoice.length > 0) ||
-               (typeof (record as any).invoice === 'object' && (record as any).invoice.id));
-            const invoiceId = hasInvoice 
-              ? (Array.isArray((record as any).invoice) 
-                  ? (record as any).invoice[0].id 
-                  : (record as any).invoice.id)
-              : null;
-
-            if (invoiceId) {
-              return (
-                <Tooltip title="Xem hóa đơn">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<FileTextOutlined />}
-                    onClick={() => navigate(`/admin/invoice/view/${invoiceId}`)}
-                  />
-                </Tooltip>
-              );
-            }
-
-            return (
-              <Popconfirm
-                title="Tạo hóa đơn tạm tính"
-                description={`Tạo hóa đơn tạm tính cho đặt phòng ${record.code || record.id}?`}
-                onConfirm={() => handleCreateInvoice(record.id)}
-                okText="Tạo"
-                cancelText="Hủy"
-                okType="primary"
-              >
-                <Tooltip title="Tạo hóa đơn tạm tính">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<FileTextOutlined />}
-                    loading={creatingInvoiceId === record.id}
-                  />
-                </Tooltip>
-              </Popconfirm>
-            );
-          })()}
         </Space>
       ),
     },
@@ -709,6 +694,17 @@ const ListBooking: React.FC = () => {
           </div>
         )}
       </Modal>
+      
+      {/* Modal xem hóa đơn */}
+      <ViewInvoiceModal
+        open={invoiceModalVisible}
+        invoiceId={selectedInvoiceId}
+        isAdmin={true}
+        onCancel={() => {
+          setInvoiceModalVisible(false);
+          setSelectedInvoiceId(null);
+        }}
+      />
     </div>
   );
 };

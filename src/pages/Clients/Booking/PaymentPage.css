@@ -1,0 +1,162 @@
+.payment-page {
+    background: #fff;
+    min-height: 100vh;
+}
+
+.payment-page .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Steps */
+.payment-page .ant-steps {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.payment-page .ant-steps-item-process .ant-steps-item-icon {
+    background-color: #cb8670;
+    border-color: #cb8670;
+}
+
+.payment-page .ant-steps-item-finish .ant-steps-item-icon {
+    border-color: #cb8670;
+}
+
+.payment-page .ant-steps-item-finish .ant-steps-item-icon>.ant-steps-icon {
+    color: #cb8670;
+}
+
+.payment-page .ant-steps-item-finish>.ant-steps-item-container>.ant-steps-item-tail::after {
+    background-color: #cb8670;
+}
+
+/* Cards */
+.payment-page .ant-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.payment-page .ant-card-head {
+    border-bottom: 2px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.payment-page .ant-card-head-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Payment Methods */
+.payment-page .ant-radio-group {
+    width: 100%;
+}
+
+.payment-page .ant-card.payment-method-active {
+    border: 2px solid #cb8670;
+    background: #fffbf5;
+}
+
+.payment-page .ant-radio-wrapper {
+    width: 100%;
+}
+
+.payment-page .ant-radio-checked .ant-radio-inner {
+    border-color: #cb8670;
+    background-color: #cb8670;
+}
+
+.payment-page .ant-radio:hover .ant-radio-inner {
+    border-color: #cb8670;
+}
+
+/* Buttons */
+.payment-page .ant-btn-primary {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.payment-page .ant-btn-primary:hover {
+    background-color: #b57660 !important;
+    border-color: #b57660 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(203, 134, 112, 0.3);
+}
+
+.payment-page .ant-btn-default {
+    border-radius: 8px;
+}
+
+/* Summary Card */
+.payment-page .summary-card {
+    position: sticky;
+    top: 20px;
+}
+
+/* Divider */
+.payment-page .ant-divider {
+    margin: 16px 0;
+}
+
+/* Result Modal */
+.payment-page .ant-result-success .ant-result-icon>.anticon {
+    color: #cb8670;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .payment-page .summary-card {
+        position: relative;
+        top: 0;
+        margin-top: 24px;
+    }
+
+    .payment-page .ant-steps {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 576px) {
+    .payment-page .ant-steps-item-description {
+        display: none;
+    }
+
+    .payment-page .payment-method-card .ant-space {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+}
+
+/* Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.payment-page .ant-card {
+    animation: fadeInUp 0.5s ease;
+}
+
+.payment-page .ant-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.payment-page .ant-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+/* Hover Effects */
+.payment-page .ant-card:not(.payment-method-active):hover {
+    border-color: #cb8670;
+    box-shadow: 0 4px 12px rgba(203, 134, 112, 0.15);
+}

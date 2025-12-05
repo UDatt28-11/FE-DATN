@@ -53,7 +53,16 @@ const ListUser: React.FC = () => {
         role: roleFilter !== "all" ? roleFilter : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
       });
-      setUsers(result.data);
+      // Xử lý response có thể có nhiều dạng
+      if (result.success && result.data) {
+        setUsers(Array.isArray(result.data) ? result.data : []);
+      } else if (Array.isArray(result)) {
+        setUsers(result);
+      } else if (result.data && Array.isArray(result.data)) {
+        setUsers(result.data);
+      } else {
+        setUsers([]);
+      }
     } catch (error: any) {
       console.error("Lỗi khi tải danh sách:", error);
       toast.error("Không thể tải danh sách người dùng!");

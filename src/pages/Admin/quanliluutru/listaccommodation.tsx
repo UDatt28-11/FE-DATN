@@ -1,175 +1,207 @@
-import React, { useState } from "react";
-import { Table, Button, Space, Input, Select, Tag, Modal, Form, Card, Row, Col, Statistic, Avatar, Badge } from "antd";
-import { toast } from "react-toastify";
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, HomeOutlined, UserOutlined, SearchOutlined, DollarOutlined, CheckCircleOutlined, ClockCircleOutlined, ToolOutlined, CalendarOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
+import { Table, Button, Space, Input, Select, Tag, Card, Avatar, Badge, message } from "antd";
+import { HomeOutlined, UserOutlined, CalendarOutlined, IdcardOutlined, PhoneOutlined, SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { Accommodation } from "../../../types/accommodation/accommodation";
-import AddAccommodation from "./addaccommodation";
-import EditAccommodation from "./editaccommodation";
-import ViewAccommodation from "./viewaccommodation";
+import dayjs from "dayjs";
+import { getCheckedInGuests } from "../../../service/bookingService";
 
-
-// Mẫu dữ liệu mock
-const mockData: Accommodation[] = [
-    {
-        id: 1,
-        name: "Homestay Đà Lạt View Núi",
-        status: "Trống",
-        price: 1200000,
-        type: "Phòng đôi",
-        manager: "Nguyễn Văn A",
-        updatedAt: "2025-10-20",
-        address: "123 Đường Trần Phú, Đà Lạt",
-        capacity: 2,
-        description: "Phòng view núi đẹp, yên tĩnh",
-        amenities: ["WiFi", "Điều hòa", "TV"],
-    },
-    {
-        id: 2,
-        name: "Villa Biển Nha Trang",
-        status: "Đã đặt",
-        price: 3500000,
-        type: "Villa",
-        manager: "Trần Thị B",
-        updatedAt: "2025-10-22",
-        address: "456 Đường Trần Phú, Nha Trang",
-        capacity: 6,
-        description: "Villa cao cấp view biển",
-        amenities: ["WiFi", "Bể bơi", "BBQ", "Điều hòa"],
-    },
-    {
-        id: 3,
-        name: "Căn hộ Hồ Tây",
-        status: "Bảo trì",
-        price: 1800000,
-        type: "Căn hộ",
-        manager: "Lê Văn C",
-        updatedAt: "2025-10-25",
-        address: "789 Đường Âu Cơ, Hà Nội",
-        capacity: 4,
-        description: "Căn hộ hiện đại, view hồ",
-        amenities: ["WiFi", "Điều hòa", "Bếp"],
-    },
-    {
-        id: 4,
-        name: "Phòng Studio Quận 1",
-        status: "Đang dùng",
-        price: 900000,
-        type: "Studio",
-        manager: "Phạm Thị D",
-        updatedAt: "2025-10-26",
-        address: "321 Nguyễn Huệ, Q1, TP.HCM",
-        capacity: 2,
-        description: "Studio tiện nghi trung tâm thành phố",
-        amenities: ["WiFi", "Điều hòa"],
-    },
-    {
-        id: 5,
-        name: "Homestay Hội An Cổ Kính",
-        status: "Trống",
-        price: 1500000,
-        type: "Phòng gia đình",
-        manager: "Hoàng Văn E",
-        updatedAt: "2025-10-27",
-        address: "567 Phố Cổ, Hội An",
-        capacity: 5,
-        description: "Không gian truyền thống Hội An",
-        amenities: ["WiFi", "Xe đạp", "Tour"],
-    },
-];
+interface CheckedInGuest {
+    id: number;
+    full_name: string;
+    date_of_birth?: string;
+    identity_type?: string;
+    identity_number?: string;
+    identity_image_url?: string;
+    check_in_time?: string;
+    booking?: {
+        id: number;
+        order_code: string;
+        customer_name?: string;
+        customer_phone?: string;
+    };
+    room?: {
+        id: number;
+        name: string;
+        room_type?: string;
+    };
+    check_in_date?: string;
+    check_out_date?: string;
+}
 
 const ListAccommodation: React.FC = () => {
-    const [data, setData] = useState<Accommodation[]>(mockData);
-    const [filteredData, setFilteredData] = useState<Accommodation[]>(mockData);
+    const [data, setData] = useState<CheckedInGuest[]>([]);
+    const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [addModal, setAddModal] = useState(false);
-    const [editModal, setEditModal] = useState(false);
-    const [viewModal, setViewModal] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<Accommodation | null>(null);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        per_page: 15,
+        total: 0,
+        last_page: 1,
+    });
 
-    // Bộ lọc dữ liệu
-    const applyFilters = (search: string, status: string) => {
-        let filtered = data;
-        if (search) filtered = filtered.filter(item => item.name.toLowerCase().includes(search.toLowerCase()) || item.address?.toLowerCase().includes(search.toLowerCase()));
-        if (status !== "all") filtered = filtered.filter(item => item.status === status);
-        setFilteredData(filtered);
+    const fetchData = async (page = 1, search?: string) => {
+        setLoading(true);
+        try {
+            const result = await getCheckedInGuests({
+                page,
+                per_page: 15,
+                search: search || undefined,
+            });
+            setData(result.data);
+            setPagination(result.pagination || {
+                page: 1,
+                per_page: 15,
+                total: 0,
+                last_page: 1,
+            });
+        } catch (error: any) {
+            console.error('Error fetching checked-in guests:', error);
+            message.error('Không thể tải danh sách khách lưu trú');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSearch = (value: string) => { setSearchText(value); applyFilters(value, statusFilter); };
-    const handleStatusChange = (value: string) => { setStatusFilter(value); applyFilters(searchText, value); };
+    useEffect(() => {
+        fetchData(1);
+    }, []);
 
-    const handleDelete = (id: number) => {
-        Modal.confirm({
-            title: "Xác nhận xóa",
-            content: "Bạn có chắc chắn muốn xóa phòng này không?",
-            okText: "Xóa",
-            okType: "danger",
-            cancelText: "Hủy",
-            onOk: () => {
-                const updatedData = data.filter((item) => item.id !== id);
-                setData(updatedData);
-                applyFilters(searchText, statusFilter);
-                toast.success("Đã xóa phòng thành công!");
-            },
-        });
+    const handleSearch = (value: string) => {
+        setSearchText(value);
+        fetchData(1, value);
     };
 
-    const columns: ColumnsType<Accommodation> = [
-        { title: "Mã", dataIndex: "id", key: "id", width: 70, sorter: (a, b) => a.id - b.id, render: id => `#${id}` },
-        { title: "Tên phòng", dataIndex: "name", key: "name", render: (name, record) => <Space><Avatar icon={<HomeOutlined />} />{name}</Space> },
-        { title: "Loại", dataIndex: "type", key: "type", render: type => <Tag color="blue">{type}</Tag> },
-        { title: "Trạng thái", dataIndex: "status", key: "status", render: status => {
-            const config: Record<string, { color: string; icon: any }> = {
-                Trống: { color: "success", icon: <CheckCircleOutlined /> },
-                "Đã đặt": { color: "processing", icon: <ClockCircleOutlined /> },
-                "Đang dùng": { color: "warning", icon: <CalendarOutlined /> },
-                "Bảo trì": { color: "error", icon: <ToolOutlined /> },
-            };
-            return <Tag color={config[status].color} icon={config[status].icon}>{status}</Tag>;
-        }},
-        { title: "Giá/đêm", dataIndex: "price", key: "price", render: price => `${price.toLocaleString("vi-VN")}₫` },
-        { title: "Sức chứa", dataIndex: "capacity", key: "capacity", render: cap => cap || "N/A" },
-        { title: "Hành động", key: "action", render: (_, record) => (
-            <Space>
-                <Button icon={<EyeOutlined />} onClick={() => { setSelectedItem(record); setViewModal(true); }} />
-                <Button icon={<EditOutlined />} onClick={() => { setSelectedItem(record); setEditModal(true); }} />
-                <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
-            </Space>
-        ) },
+    const handleTableChange = (page: number) => {
+        fetchData(page, searchText);
+    };
+
+    const columns: ColumnsType<CheckedInGuest> = [
+        {
+            title: "Khách hàng",
+            key: "guest",
+            render: (_, record) => (
+                <Space direction="vertical" size="small">
+                    <div>
+                        <UserOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                        <strong>{record.full_name}</strong>
+                    </div>
+                    {record.date_of_birth && (
+                        <div style={{ fontSize: 12, color: '#999' }}>
+                            Sinh: {dayjs(record.date_of_birth).format('DD/MM/YYYY')}
+                        </div>
+                    )}
+                    {record.identity_number && (
+                        <div style={{ fontSize: 12, color: '#999' }}>
+                            <IdcardOutlined style={{ marginRight: 4 }} />
+                            {record.identity_type === 'cccd' ? 'CCCD/CMND' : 'Hộ chiếu'}: {record.identity_number}
+                        </div>
+                    )}
+                </Space>
+            ),
+        },
+        {
+            title: "Mã đặt phòng",
+            key: "booking",
+            render: (_, record) => (
+                record.booking ? (
+                    <Space direction="vertical" size="small">
+                        <Tag color="blue">#{record.booking.order_code}</Tag>
+                        {record.booking.customer_phone && (
+                            <div style={{ fontSize: 12, color: '#999' }}>
+                                <PhoneOutlined style={{ marginRight: 4 }} />
+                                {record.booking.customer_phone}
+                            </div>
+                        )}
+                    </Space>
+                ) : 'N/A'
+            ),
+        },
+        {
+            title: "Phòng",
+            key: "room",
+            render: (_, record) => (
+                record.room ? (
+                    <Space direction="vertical" size="small">
+                        <div>
+                            <HomeOutlined style={{ marginRight: 8, color: '#52c41a' }} />
+                            <strong>{record.room.name}</strong>
+                        </div>
+                        {record.room.room_type && (
+                            <Tag color="cyan">{record.room.room_type}</Tag>
+                        )}
+                    </Space>
+                ) : 'N/A'
+            ),
+        },
+        {
+            title: "Thời gian lưu trú",
+            key: "stay_period",
+            render: (_, record) => (
+                <Space direction="vertical" size="small">
+                    {record.check_in_date && (
+                        <div>
+                            <CalendarOutlined style={{ marginRight: 4, color: '#52c41a' }} />
+                            Check-in: {dayjs(record.check_in_date).format('DD/MM/YYYY')}
+                        </div>
+                    )}
+                    {record.check_out_date && (
+                        <div>
+                            <CalendarOutlined style={{ marginRight: 4, color: '#ff4d4f' }} />
+                            Check-out: {dayjs(record.check_out_date).format('DD/MM/YYYY')}
+                        </div>
+                    )}
+                </Space>
+            ),
+        },
+        {
+            title: "Thời gian check-in",
+            key: "check_in_time",
+            render: (_, record) => (
+                record.check_in_time ? (
+                    <div>
+                        <Badge status="success" />
+                        {dayjs(record.check_in_time).format('DD/MM/YYYY HH:mm')}
+                    </div>
+                ) : 'N/A'
+            ),
+        },
     ];
 
     return (
         <div style={{ padding: 24 }}>
-            <Space style={{ marginBottom: 16 }}>
-                <Input.Search placeholder="Tìm kiếm tên, địa chỉ..." allowClear onSearch={handleSearch} />
-                <Select value={statusFilter} onChange={handleStatusChange}>
-                    <Select.Option value="all">Tất cả</Select.Option>
-                    <Select.Option value="Trống">Trống</Select.Option>
-                    <Select.Option value="Đã đặt">Đã đặt</Select.Option>
-                    <Select.Option value="Đang dùng">Đang dùng</Select.Option>
-                    <Select.Option value="Bảo trì">Bảo trì</Select.Option>
-                </Select>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModal(true)}>Thêm phòng</Button>
-            </Space>
-            <Table rowKey="id" columns={columns} dataSource={filteredData} pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10,20,50] }} />
-
-            <AddAccommodation
-                visible={addModal}
-                onCancel={() => setAddModal(false)}
-                onAdd={(newData) => { setData([...data, newData]); applyFilters(searchText, statusFilter); }}
-            />
-            <EditAccommodation
-                visible={editModal}
-                accommodation={selectedItem}
-                onCancel={() => setEditModal(false)}
-                onUpdate={(updated) => { setData(data.map(d => d.id === updated.id ? updated : d)); applyFilters(searchText, statusFilter); }}
-            />
-            <ViewAccommodation
-                visible={viewModal}
-                accommodation={selectedItem}
-                onCancel={() => setViewModal(false)}
-            />
+            <Card>
+                <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+                    <Space>
+                        <Input.Search
+                            placeholder="Tìm kiếm tên khách, số CMND/CCCD, mã đặt phòng..."
+                            allowClear
+                            onSearch={handleSearch}
+                            style={{ width: 400 }}
+                            enterButton={<SearchOutlined />}
+                        />
+                    </Space>
+                    <Button
+                        icon={<ReloadOutlined />}
+                        onClick={() => fetchData(pagination.page, searchText)}
+                    >
+                        Làm mới
+                    </Button>
+                </Space>
+                <Table
+                    rowKey="id"
+                    columns={columns}
+                    dataSource={data}
+                    loading={loading}
+                    pagination={{
+                        current: pagination.page,
+                        pageSize: pagination.per_page,
+                        total: pagination.total,
+                        onChange: handleTableChange,
+                        showSizeChanger: false,
+                        showTotal: (total) => `Tổng ${total} khách đang lưu trú`,
+                    }}
+                />
+            </Card>
         </div>
     );
 };

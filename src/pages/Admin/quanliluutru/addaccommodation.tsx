@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Form, Input, Select, Row, Col } from "antd";
 import { toast } from "react-toastify";
-import { Accommodation } from "../../../types/accommodation/accommodation";
+import type { Accommodation } from "../../../types/accommodation/accommodation";
 
 
 interface Props {

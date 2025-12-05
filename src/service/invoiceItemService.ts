@@ -1,4 +1,4 @@
-import api from "../ApiFromBE/axios";
+import api from "../api/axios";
 import type { InvoiceItem } from "../types/invoice/invoice";
 
 /**
@@ -16,7 +16,8 @@ const invoiceItemService = {
    */
   async getAll(params?: Record<string, any>): Promise<InvoiceItem[]> {
     const res = await api.get("/invoice-items", { params });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -38,7 +39,8 @@ const invoiceItemService = {
    */
   async getByInvoice(invoiceId: number | string): Promise<InvoiceItem[]> {
     const res = await api.get(`/invoices/${invoiceId}/items`);
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -47,7 +49,8 @@ const invoiceItemService = {
    */
   async getPenaltyItems(invoiceId: number | string): Promise<InvoiceItem[]> {
     const res = await api.get(`/invoices/${invoiceId}/items/penalties`);
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -56,7 +59,8 @@ const invoiceItemService = {
    */
   async getRegularItems(invoiceId: number | string): Promise<InvoiceItem[]> {
     const res = await api.get(`/invoices/${invoiceId}/items/regular`);
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // ============================================
@@ -113,7 +117,8 @@ const invoiceItemService = {
    */
   async bulkCreate(items: Partial<InvoiceItem>[]): Promise<InvoiceItem[]> {
     const res = await api.post("/invoice-items/bulk/create", { items });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // ============================================
@@ -124,7 +129,10 @@ const invoiceItemService = {
    * PUT /invoice-items/{id}
    * Cập nhật mục hóa đơn
    */
-  async update(id: number | string, data: Partial<InvoiceItem>): Promise<InvoiceItem> {
+  async update(
+    id: number | string,
+    data: Partial<InvoiceItem>
+  ): Promise<InvoiceItem> {
     const res = await api.put(`/invoice-items/${id}`, data);
     return res.data.data || res.data;
   },
@@ -153,6 +161,3 @@ const invoiceItemService = {
 };
 
 export default invoiceItemService;
-
-
-

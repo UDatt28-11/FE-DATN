@@ -14,17 +14,28 @@ import {
   Spin,
   Select,
   Popconfirm,
+  Modal,
+  Form,
+  InputNumber,
+  Input,
+  message,
 } from "antd";
 import {
   ArrowLeftOutlined,
   PrinterOutlined,
   CheckCircleOutlined,
   FilePdfOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  ShoppingOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import invoiceService from "../../../service/invoiceService";
+import serviceService, { type Service } from "../../../service/serviceService";
+import supplyService, { type Supply } from "../../../service/supplyService";
 import type { Invoice, InvoiceItem } from "../../../types/invoice/invoice";
 
 const { Title, Text } = Typography;
@@ -34,18 +45,59 @@ const ViewInvoice: React.FC = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
+  const [addServiceModalVisible, setAddServiceModalVisible] = useState(false);
+  const [addDamageModalVisible, setAddDamageModalVisible] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [supplies, setSupplies] = useState<Supply[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingSupplies, setLoadingSupplies] = useState(false);
+  const [serviceForm] = Form.useForm();
+  const [damageForm] = Form.useForm();
 
   useEffect(() => {
     if (id) {
       fetchInvoice();
+      fetchServices();
+      fetchSupplies();
     }
   }, [id]);
+
+  const fetchServices = async () => {
+    try {
+      setLoadingServices(true);
+      // Chỉ fetch services cần thiết, không cần tất cả
+      const data = await serviceService.getAll({ property_id: invoice?.property_id });
+      setServices(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error("Error fetching services:", error);
+      }
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const fetchSupplies = async () => {
+    try {
+      setLoadingSupplies(true);
+      // Chỉ fetch supplies cần thiết
+      const data = await supplyService.getAll();
+      setSupplies(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error("Error fetching supplies:", error);
+      }
+    } finally {
+      setLoadingSupplies(false);
+    }
+  };
 
   const fetchInvoice = async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const response: any = await invoiceService.getById(id);
+      // Gọi API với include parameter để load invoiceItems
+      const response: any = await invoiceService.getById(id, 'bookingOrder,bookingOrder.guest,invoiceItems');
       // Xử lý response có thể có nhiều dạng
       let invoiceData: Invoice;
       if (response?.data?.data) {
@@ -57,29 +109,34 @@ const ViewInvoice: React.FC = () => {
       } else {
         throw new Error("Không nhận được dữ liệu từ server");
       }
-
-      // Xử lý items: backend có thể trả về `invoice_items`, `invoiceItems` hoặc `items`
-      if (!invoiceData.items) {
-        if ((invoiceData as any).invoice_items) {
-          invoiceData.items = (invoiceData as any).invoice_items;
-        } else if ((invoiceData as any).invoiceItems) {
-          invoiceData.items = (invoiceData as any).invoiceItems;
-        } else {
-          invoiceData.items = [];
-        }
+      
+      // Map invoice_items từ backend (snake_case) thành items cho frontend
+      if ((invoiceData as any).invoice_items && !invoiceData.items) {
+        invoiceData.items = (invoiceData as any).invoice_items;
       }
-
-      // Đảm bảo items là mảng và có dữ liệu hợp lệ
-      if (!Array.isArray(invoiceData.items)) {
-        invoiceData.items = [];
+      // Hoặc nếu backend trả về invoiceItems (camelCase)
+      if ((invoiceData as any).invoiceItems && !invoiceData.items) {
+        invoiceData.items = (invoiceData as any).invoiceItems;
       }
-
+      
+      // Map status từ backend thành invoice_status và payment_status nếu chưa có
+      if (!invoiceData.invoice_status && (invoiceData as any).status) {
+        const status = (invoiceData as any).status;
+        const statusMap: Record<string, { invoice_status: string; payment_status: string }> = {
+          'pending': { invoice_status: 'sent', payment_status: 'pending' },
+          'paid': { invoice_status: 'paid', payment_status: 'paid' },
+          'overdue': { invoice_status: 'sent', payment_status: 'overdue' },
+          'cancelled': { invoice_status: 'cancelled', payment_status: 'cancelled' },
+        };
+        const mapped = statusMap[status] || { invoice_status: 'sent', payment_status: 'pending' };
+        invoiceData.invoice_status = mapped.invoice_status as any;
+        invoiceData.payment_status = mapped.payment_status as any;
+      }
+      
       setInvoice(invoiceData);
     } catch (error: any) {
       console.error("Lỗi khi tải hóa đơn:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể tải thông tin hóa đơn!"
-      );
+      toast.error(error.response?.data?.message || "Không thể tải thông tin hóa đơn!");
       navigate("/admin/invoice");
     } finally {
       setLoading(false);
@@ -121,9 +178,7 @@ const ViewInvoice: React.FC = () => {
       fetchInvoice();
     } catch (error: any) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể cập nhật trạng thái!"
-      );
+      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
     }
   };
 
@@ -155,6 +210,63 @@ const ViewInvoice: React.FC = () => {
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
+  const handleAddService = async (values: any) => {
+    if (!invoice || !id) return;
+    try {
+      await invoiceService.addService(id, {
+        service_id: Number(values.service_id),
+        quantity: Number(values.quantity),
+        description: values.description || undefined,
+      });
+      message.success("Đã thêm dịch vụ vào hóa đơn!");
+      setAddServiceModalVisible(false);
+      serviceForm.resetFields();
+      fetchInvoice();
+    } catch (error: any) {
+      console.error("Error adding service:", error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.service_id?.[0] ||
+                          error.response?.data?.errors?.quantity?.[0] ||
+                          "Không thể thêm dịch vụ!";
+      message.error(errorMessage);
+    }
+  };
+
+  const handleAddDamage = async (values: any) => {
+    if (!invoice || !id) return;
+    try {
+      await invoiceService.addDamage(id, {
+        supply_id: Number(values.supply_id),
+        quantity: Number(values.quantity),
+        description: values.description || undefined,
+        notes: values.notes || undefined,
+      });
+      message.success("Đã thêm thiệt hại vào hóa đơn!");
+      setAddDamageModalVisible(false);
+      damageForm.resetFields();
+      fetchInvoice();
+    } catch (error: any) {
+      console.error("Error adding damage:", error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.supply_id?.[0] ||
+                          error.response?.data?.errors?.quantity?.[0] ||
+                          "Không thể thêm thiệt hại!";
+      message.error(errorMessage);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: number) => {
+    if (!invoice || !id) return;
+    try {
+      await invoiceService.removeItem(id, itemId);
+      message.success("Đã xóa item khỏi hóa đơn!");
+      fetchInvoice();
+    } catch (error: any) {
+      console.error("Error removing item:", error);
+      message.error(error.response?.data?.message || "Không thể xóa item!");
+    }
+  };
+
   const itemColumns: ColumnsType<InvoiceItem> = [
     {
       title: "Mô tả",
@@ -168,8 +280,8 @@ const ViewInvoice: React.FC = () => {
       render: (type) => {
         const typeMap: Record<string, { color: string; text: string }> = {
           room_charge: { color: "blue", text: "Phí phòng" },
-          service_charge: { color: "cyan", text: "Phí dịch vụ" },
-          supply_charge: { color: "green", text: "Phí vật tư" },
+          service_charge: { color: "cyan", text: "Dịch vụ" },
+          damage_fee: { color: "red", text: "Thiệt hại" },
           penalty: { color: "red", text: "Phạt" },
           other: { color: "default", text: "Khác" },
         };
@@ -202,11 +314,41 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "total",
       key: "total",
       align: "right",
-      render: (total) => (
+      render: (total, record) => (
         <Text strong style={{ color: "#52c41a" }}>
-          {(total || 0).toLocaleString("vi-VN")}₫
+          {(total || record.total_line || 0).toLocaleString("vi-VN")}₫
         </Text>
       ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      align: "center",
+      render: (_, record) => {
+        // Chỉ cho phép xóa nếu invoice chưa thanh toán và không phải room_charge
+        if (invoice?.payment_status === "paid" || record.item_type === "room_charge") {
+          return null;
+        }
+        return (
+          <Popconfirm
+            title="Xác nhận xóa"
+            description="Bạn có chắc chắn muốn xóa item này?"
+            onConfirm={() => handleRemoveItem(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okType="danger"
+          >
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+            >
+              Xóa
+            </Button>
+          </Popconfirm>
+        );
+      },
     },
   ];
 
@@ -223,17 +365,14 @@ const ViewInvoice: React.FC = () => {
       {/* Header Actions */}
       <div style={{ marginBottom: 24 }}>
         <Space>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/admin/invoice")}
-          >
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/admin/invoice")}>
             Quay lại
           </Button>
           <Button icon={<PrinterOutlined />} onClick={handlePrint}>
             In hóa đơn
           </Button>
           <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
-
+          
           {/* Trạng thái hóa đơn */}
           <Select
             value={invoice.invoice_status}
@@ -248,32 +387,53 @@ const ViewInvoice: React.FC = () => {
             <Select.Option value="cancelled">Đã hủy</Select.Option>
           </Select>
 
-          {/* Đánh dấu đã thanh toán */}
-          {invoice.payment_status !== "paid" &&
-            invoice.invoice_status !== "cancelled" && (
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                onClick={handleMarkAsPaid}
-              >
-                Đánh dấu đã thanh toán
-              </Button>
-            )}
+          {/* Xác nhận sẵn sàng thanh toán (Admin/Staff) */}
+          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
+            <Button 
+              type="primary" 
+              icon={<CheckCircleOutlined />} 
+              onClick={async () => {
+                if (!invoice || !id) return;
+                try {
+                  await invoiceService.approveForPayment(id);
+                  message.success("Đã xác nhận hóa đơn sẵn sàng thanh toán!");
+                  fetchInvoice();
+                } catch (error: any) {
+                  message.error(error.response?.data?.message || "Không thể xác nhận!");
+                }
+              }}
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            >
+              Xác nhận sẵn sàng thanh toán
+            </Button>
+          )}
+
+          {/* Đánh dấu đã thanh toán (Admin/Staff) */}
+          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
+            <Button 
+              type="primary" 
+              icon={<CheckCircleOutlined />} 
+              onClick={handleMarkAsPaid}
+            >
+              Đánh dấu đã thanh toán
+            </Button>
+          )}
 
           {/* Hủy hóa đơn */}
-          {invoice.invoice_status !== "cancelled" &&
-            invoice.invoice_status !== "paid" && (
-              <Popconfirm
-                title="Xác nhận hủy hóa đơn"
-                description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
-                onConfirm={handleCancelInvoice}
-                okText="Hủy"
-                cancelText="Không"
-                okType="danger"
-              >
-                <Button danger>Hủy hóa đơn</Button>
-              </Popconfirm>
-            )}
+          {invoice.invoice_status !== "cancelled" && invoice.invoice_status !== "paid" && (
+            <Popconfirm
+              title="Xác nhận hủy hóa đơn"
+              description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
+              onConfirm={handleCancelInvoice}
+              okText="Hủy"
+              cancelText="Không"
+              okType="danger"
+            >
+              <Button danger>
+                Hủy hóa đơn
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       </div>
 
@@ -288,23 +448,17 @@ const ViewInvoice: React.FC = () => {
           </Col>
           <Col style={{ textAlign: "right" }}>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>
-                Trạng thái:
-              </Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>Trạng thái:</Text>
               {getInvoiceStatusTag(invoice.invoice_status)}
             </div>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>
-                Thanh toán:
-              </Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>Thanh toán:</Text>
               {getPaymentStatusTag(invoice.payment_status)}
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Ngày tạo:</Text>
               <br />
-              <Text strong>
-                {dayjs(invoice.issue_date).format("DD/MM/YYYY")}
-              </Text>
+              <Text strong>{dayjs(invoice.issue_date).format("DD/MM/YYYY")}</Text>
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Hạn thanh toán:</Text>
@@ -323,15 +477,9 @@ const ViewInvoice: React.FC = () => {
               <Descriptions.Item label="Tên">
                 <Text strong>{invoice.customer_name}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {invoice.customer_email || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Điện thoại">
-                {invoice.customer_phone || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Địa chỉ">
-                {invoice.customer_address || "-"}
-              </Descriptions.Item>
+              <Descriptions.Item label="Email">{invoice.customer_email || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Điện thoại">{invoice.customer_phone || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ">{invoice.customer_address || "-"}</Descriptions.Item>
             </Descriptions>
           </Col>
           <Col span={12}>
@@ -354,151 +502,81 @@ const ViewInvoice: React.FC = () => {
         <Divider />
 
         {/* Invoice Items */}
-        <Title level={4} style={{ marginBottom: 16 }}>
-          Chi tiết hóa đơn
-        </Title>
-        {invoice.items && invoice.items.length > 0 ? (
-          <Table
-            columns={itemColumns}
-            dataSource={invoice.items}
-            rowKey="id"
-            pagination={false}
-            size="middle"
-            bordered
-          />
-        ) : (
-          <div
-            style={{
-              padding: 40,
-              textAlign: "center",
-              background: "#fafafa",
-              borderRadius: 8,
-              border: "1px dashed #d9d9d9",
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 16 }}>
-              Không có chi tiết hóa đơn
-            </Text>
-          </div>
-        )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>Chi tiết hóa đơn</Title>
+          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
+            <Space>
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                onClick={() => setAddServiceModalVisible(true)}
+              >
+                Thêm dịch vụ
+              </Button>
+              <Button
+                type="primary"
+                danger
+                icon={<WarningOutlined />}
+                onClick={() => setAddDamageModalVisible(true)}
+              >
+                Thêm thiệt hại
+              </Button>
+            </Space>
+          )}
+        </div>
+        <Table
+          columns={itemColumns}
+          dataSource={
+            invoice.items || 
+            (invoice as any).invoice_items || 
+            (invoice as any).invoiceItems || 
+            []
+          }
+          rowKey="id"
+          pagination={false}
+          size="small"
+        />
 
         <Divider />
 
         {/* Summary */}
-        <Row justify="end" style={{ marginTop: 24 }}>
-          <Col span={10}>
-            <div
-              style={{
-                padding: 20,
-                background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-                borderRadius: 8,
-                border: "1px solid #e8e8e8",
-              }}
-            >
-              <Space
-                direction="vertical"
-                style={{ width: "100%" }}
-                size="middle"
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: 15 }}>Tổng phụ:</Text>
-                  <Text strong style={{ fontSize: 15 }}>
-                    {(invoice.subtotal || 0).toLocaleString("vi-VN")} ₫
-                  </Text>
+        <Row justify="end">
+          <Col span={8}>
+            <div style={{ padding: 16, background: "#fafafa", borderRadius: 8 }}>
+              <Space direction="vertical" style={{ width: "100%" }} size="small">
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <Text>Tổng phụ:</Text>
+                  <Text>{(invoice.subtotal || 0).toLocaleString("vi-VN")}₫</Text>
                 </div>
                 {(invoice.discount_amount || 0) > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      color: "#52c41a",
-                    }}
-                  >
-                    <Text style={{ fontSize: 15 }}>Giảm giá:</Text>
-                    <Text strong style={{ fontSize: 15 }}>
-                      -{(invoice.discount_amount || 0).toLocaleString("vi-VN")}{" "}
-                      ₫
-                    </Text>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
+                    <Text>Giảm giá:</Text>
+                    <Text>-{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫</Text>
                   </div>
                 )}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: 15 }}>
-                    Thuế ({Number(invoice.tax_rate || 0).toFixed(2)}%):
-                  </Text>
-                  <Text strong style={{ fontSize: 15 }}>
-                    {(invoice.tax_amount || 0).toLocaleString("vi-VN")} ₫
-                  </Text>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <Text>Thuế ({invoice.tax_rate || 0}%):</Text>
+                  <Text>{(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫</Text>
                 </div>
-                <Divider style={{ margin: "12px 0", borderColor: "#d9d9d9" }} />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px",
-                    background: "#fff",
-                    borderRadius: 6,
-                    border: "2px solid #1890ff",
-                  }}
-                >
-                  <Text strong style={{ fontSize: 17 }}>
+                <Divider style={{ margin: "8px 0" }} />
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <Text strong style={{ fontSize: 16 }}>
                     Tổng cộng:
                   </Text>
-                  <Text strong style={{ fontSize: 20, color: "#1890ff" }}>
-                    {(invoice.total_amount || 0).toLocaleString("vi-VN")} ₫
+                  <Text strong style={{ fontSize: 18, color: "#1890ff" }}>
+                    {(invoice.total_amount || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: 15 }}>Đã thanh toán:</Text>
-                  <Text strong style={{ fontSize: 15, color: "#52c41a" }}>
-                    {(invoice.paid_amount || 0).toLocaleString("vi-VN")} ₫
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <Text>Đã thanh toán:</Text>
+                  <Text style={{ color: "#52c41a" }}>
+                    {(invoice.paid_amount || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px",
-                    background:
-                      (invoice.balance || 0) > 0 ? "#fff1f0" : "#f6ffed",
-                    borderRadius: 6,
-                    border:
-                      (invoice.balance || 0) > 0
-                        ? "1px solid #ffccc7"
-                        : "1px solid #b7eb8f",
-                  }}
-                >
-                  <Text strong style={{ fontSize: 16 }}>
-                    Còn lại:
-                  </Text>
-                  <Text
-                    strong
-                    style={{
-                      fontSize: 18,
-                      color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a",
-                    }}
-                  >
-                    {(invoice.balance || 0).toLocaleString("vi-VN")} ₫
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <Text strong>Còn lại:</Text>
+                  <Text strong style={{ color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a" }}>
+                    {(invoice.balance || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
               </Space>
@@ -512,14 +590,7 @@ const ViewInvoice: React.FC = () => {
             <Divider />
             <div>
               <Text strong>Ghi chú:</Text>
-              <div
-                style={{
-                  marginTop: 8,
-                  padding: 12,
-                  background: "#f5f5f5",
-                  borderRadius: 4,
-                }}
-              >
+              <div style={{ marginTop: 8, padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
                 {invoice.notes}
               </div>
             </div>
@@ -539,8 +610,156 @@ const ViewInvoice: React.FC = () => {
           </>
         )}
       </Card>
+
+      {/* Modal thêm dịch vụ */}
+      <Modal
+        title={
+          <Space>
+            <ShoppingOutlined />
+            <span>Thêm dịch vụ vào hóa đơn</span>
+          </Space>
+        }
+        open={addServiceModalVisible}
+        onCancel={() => {
+          setAddServiceModalVisible(false);
+          serviceForm.resetFields();
+        }}
+        onOk={() => serviceForm.submit()}
+        okText="Thêm"
+        cancelText="Hủy"
+        width={600}
+      >
+        <Form
+          form={serviceForm}
+          layout="vertical"
+          onFinish={handleAddService}
+        >
+          <Form.Item
+            name="service_id"
+            label="Dịch vụ"
+            rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
+          >
+            <Select
+              placeholder="Chọn dịch vụ"
+              loading={loadingServices}
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {services.map((service) => (
+                <Select.Option key={service.id} value={service.id} label={service.name}>
+                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/{service.unit}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="quantity"
+            label="Số lượng"
+            rules={[
+              { required: true, message: "Vui lòng nhập số lượng" },
+              { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+            ]}
+          >
+            <InputNumber
+              min={1}
+              style={{ width: "100%" }}
+              placeholder="Nhập số lượng"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả (tùy chọn)"
+          >
+            <Input.TextArea rows={3} placeholder="Nhập mô tả nếu có" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal thêm thiệt hại */}
+      <Modal
+        title={
+          <Space>
+            <WarningOutlined />
+            <span>Thêm thiệt hại vật tư vào hóa đơn</span>
+          </Space>
+        }
+        open={addDamageModalVisible}
+        onCancel={() => {
+          setAddDamageModalVisible(false);
+          damageForm.resetFields();
+        }}
+        onOk={() => damageForm.submit()}
+        okText="Thêm"
+        cancelText="Hủy"
+        width={600}
+      >
+        <Form
+          form={damageForm}
+          layout="vertical"
+          onFinish={handleAddDamage}
+        >
+          <Form.Item
+            name="supply_id"
+            label="Vật tư bị thiệt hại"
+            rules={[{ required: true, message: "Vui lòng chọn vật tư" }]}
+          >
+            <Select
+              placeholder="Chọn vật tư"
+              loading={loadingSupplies}
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {supplies.map((supply) => (
+                <Select.Option key={supply.id} value={supply.id} label={supply.name}>
+                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/{supply.unit || "cái"}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="quantity"
+            label="Số lượng thiệt hại"
+            rules={[
+              { required: true, message: "Vui lòng nhập số lượng" },
+              { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+            ]}
+          >
+            <InputNumber
+              min={1}
+              style={{ width: "100%" }}
+              placeholder="Nhập số lượng thiệt hại"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả thiệt hại (tùy chọn)"
+          >
+            <Input.TextArea rows={2} placeholder="Mô tả chi tiết thiệt hại" />
+          </Form.Item>
+
+          <Form.Item
+            name="notes"
+            label="Ghi chú (tùy chọn)"
+          >
+            <Input.TextArea rows={2} placeholder="Ghi chú thêm về thiệt hại" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
 export default ViewInvoice;
+
+
+

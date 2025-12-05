@@ -1,0 +1,238 @@
+.room-detail-page {
+    background: #fff;
+}
+
+.room-detail-page .breadcrumb-wrapper {
+    background: #f5f5f5;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.room-detail-page .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Gallery Images */
+.room-detail-page .ant-image {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.room-detail-page .ant-image img {
+    transition: transform 0.3s ease;
+}
+
+.room-detail-page .ant-image:hover img {
+    transform: scale(1.05);
+}
+
+/* Card Styling */
+.room-detail-page .ant-card {
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.room-detail-page .ant-card-head {
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.room-detail-page .ant-card-head-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Rating Stars */
+.room-detail-page .ant-rate {
+    color: #cb8670;
+}
+
+/* Amenities Section */
+.room-detail-page .amenities-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.room-detail-page .amenities-item .anticon {
+    font-size: 20px;
+    color: #cb8670;
+    margin-right: 12px;
+}
+
+/* Reviews Section */
+.room-detail-page .ant-list-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 0;
+}
+
+.room-detail-page .ant-list-item:last-child {
+    border-bottom: none;
+}
+
+.room-detail-page .ant-avatar {
+    background-color: #cb8670;
+}
+
+/* Đảm bảo Row có align-items flex-start để sticky hoạt động */
+.room-detail-page .ant-row {
+    align-items: flex-start;
+}
+
+.room-detail-page .price-display {
+    font-size: 28px;
+    color: #cb8670;
+    font-weight: bold;
+}
+
+.room-detail-page .ant-picker {
+    border-radius: 8px;
+}
+
+.room-detail-page .ant-select-selector {
+    border-radius: 8px !important;
+}
+
+.room-detail-page .ant-btn-primary {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.room-detail-page .ant-btn-primary:hover {
+    background-color: #b57660 !important;
+    border-color: #b57660 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(203, 134, 112, 0.3);
+}
+
+/* Total Price Box */
+.room-detail-page .total-price-box {
+    background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+    border-left: 4px solid #cb8670;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .room-detail-page .ant-card[style*="position: sticky"] {
+        position: relative !important;
+        top: 0 !important;
+        margin-top: 24px;
+    }
+}
+
+/* Breadcrumb */
+.room-detail-page .ant-breadcrumb a {
+    color: #666;
+    transition: color 0.3s ease;
+}
+
+.room-detail-page .ant-breadcrumb a:hover {
+    color: #cb8670;
+}
+
+.room-detail-page .ant-breadcrumb-separator {
+    color: #999;
+}
+
+/* Info Cards */
+.room-detail-page .info-card {
+    background: #fafafa;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.room-detail-page .info-card .label {
+    display: block;
+    color: #999;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.room-detail-page .info-card .value {
+    display: block;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.room-detail-page .ant-card {
+    animation: fadeInUp 0.5s ease;
+}
+
+.room-detail-page .ant-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.room-detail-page .ant-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.room-detail-page .ant-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+/* Description Text */
+.room-detail-page .ant-typography {
+    color: #666;
+    line-height: 1.8;
+}
+
+/* Divider */
+.room-detail-page .ant-divider {
+    border-color: #f0f0f0;
+}
+
+/* Similar Rooms Section */
+.room-detail-page .similar-rooms-section {
+    margin-top: 60px;
+}
+
+.room-detail-page .similar-rooms-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.room-detail-page .similar-rooms-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.room-detail-page .similar-rooms-card .ant-card-cover {
+    overflow: hidden;
+}
+
+.room-detail-page .similar-rooms-card .ant-card-cover img {
+    transition: transform 0.4s ease;
+}
+
+.room-detail-page .similar-rooms-card:hover .ant-card-cover img {
+    transform: scale(1.1);
+}
+
+/* Back Button */
+.room-detail-page .back-button {
+    transition: all 0.3s ease;
+}
+
+.room-detail-page .back-button:hover {
+    color: #cb8670;
+    border-color: #cb8670;
+    transform: translateX(-5px);
+}

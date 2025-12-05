@@ -10,7 +10,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Promotion, PromotionStatus } from "../../../types/promotion/promotion";
+import type { Promotion, PromotionStatus } from "../../../types/promotion/promotion";
 import promotionService from "../../../service/promotionService";
 
 
@@ -32,8 +32,6 @@ const ListPromotion: React.FC = () => {
         setLoading(true);
         try {
             const response: any = await promotionService.getAll();
-            console.log("API Response:", response);
-            console.log("Type of response:", typeof response);
             
             // Xử lý response có thể có nhiều dạng
             let data: Promotion[] = [];
@@ -43,18 +41,14 @@ const ListPromotion: React.FC = () => {
                 data = response.data;
             } else if (response?.promotions && Array.isArray(response.promotions)) {
                 data = response.promotions;
-            } else {
-                console.warn("Unexpected response format:", response);
             }
-            
-            console.log("Processed data:", data);
-            console.log("First item:", data[0]);
             
             setPromotions(data);
             setFilteredPromotions(data);
         } catch (error: any) {
-            console.error("Lỗi khi tải danh sách:", error);
-            console.error("Error details:", error.response);
+            if (import.meta.env.DEV) {
+                console.error("Lỗi khi tải danh sách:", error);
+            }
             toast.error(error.response?.data?.message || "Không thể tải danh sách mã giảm giá!");
             // Set empty array để tránh lỗi
             setPromotions([]);
@@ -128,16 +122,16 @@ const ListPromotion: React.FC = () => {
             applyFilters(searchText, statusFilter);
             toast.success("Đã cập nhật trạng thái!");
         } catch (error: any) {
-            console.error("Lỗi cập nhật trạng thái:", error);
+            if (import.meta.env.DEV) {
+                console.error("Lỗi cập nhật trạng thái:", error);
+            }
             toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
         }
     };
 
     const handleDelete = async (id: number) => {
-        console.log("Đang xóa mã giảm giá ID:", id);
         try {
             const response = await promotionService.remove(id);
-            console.log("Phản hồi từ server:", response);
             
             const updated = promotions.filter((p) => p.id !== id);
             setPromotions(updated);
@@ -150,9 +144,9 @@ const ListPromotion: React.FC = () => {
                 fetchPromotions();
             }, 500);
         } catch (error: any) {
-            console.error("Lỗi xóa mã giảm giá:", error);
-            console.error("Chi tiết lỗi:", error.response);
-            
+            if (import.meta.env.DEV) {
+                console.error("Lỗi xóa mã giảm giá:", error);
+            }
             toast.error(error.response?.data?.message || error.message || "Không thể xóa mã giảm giá. Vui lòng thử lại.");
         }
     };
@@ -170,8 +164,9 @@ const ListPromotion: React.FC = () => {
             // Reload lại danh sách
             fetchPromotions();
         } catch (error: any) {
-            console.error("Lỗi xóa hàng loạt:", error);
-            
+            if (import.meta.env.DEV) {
+                console.error("Lỗi xóa hàng loạt:", error);
+            }
             toast.error(error.response?.data?.message || "Không thể xóa các mã giảm giá. Vui lòng thử lại.");
         }
     };

@@ -1,5 +1,5 @@
-import api from "../ApiFromBE/axios";
-import { Review } from "../types/review/review";
+import api from "../api/axios";
+import type { Review } from "../types/review/review";
 
 /**
  * 🎯 Service quản lý Review (Frontend)
@@ -64,7 +64,9 @@ const reviewService = {
    * Từ chối review
    */
   async reject(id: number | string, rejection_reason: string): Promise<any> {
-    const res = await api.post(`/reviews/${id}/reject`, { admin_notes: rejection_reason });
+    const res = await api.post(`/reviews/${id}/reject`, {
+      admin_notes: rejection_reason,
+    });
     return res.data.data;
   },
 
@@ -88,7 +90,10 @@ const reviewService = {
    * GET /reviews/property/{propertyId}
    * Lấy review theo property
    */
-  async getByProperty(propertyId: number | string, params?: Record<string, any>): Promise<any> {
+  async getByProperty(
+    propertyId: number | string,
+    params?: Record<string, any>
+  ): Promise<any> {
     const res = await api.get(`/reviews/property/${propertyId}`, { params });
     return res.data.data;
   },
@@ -97,7 +102,10 @@ const reviewService = {
    * GET /reviews/room/{roomId}
    * Lấy review theo room
    */
-  async getByRoom(roomId: number | string, params?: Record<string, any>): Promise<any> {
+  async getByRoom(
+    roomId: number | string,
+    params?: Record<string, any>
+  ): Promise<any> {
     const res = await api.get(`/reviews/room/${roomId}`, { params });
     return res.data.data;
   },
@@ -109,7 +117,7 @@ const reviewService = {
   async getStatistics(params?: Record<string, any>): Promise<any> {
     const res = await api.get("/reviews/statistics/overview", { params });
     return res.data.data;
-  }
+  },
 };
 
 export default reviewService;

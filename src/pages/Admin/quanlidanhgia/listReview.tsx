@@ -21,7 +21,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
-import { Review } from "../../../types/review/review";
+import type { Review } from "../../../types/review/review";
 import reviewService from "../../../service/reviewService";
 
 const { Option } = Select;

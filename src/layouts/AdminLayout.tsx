@@ -15,7 +15,6 @@ import type { MenuProps } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
-  AppstoreOutlined,
   HomeOutlined,
   RestOutlined,
   CalendarOutlined,
@@ -28,7 +27,8 @@ import {
   MenuUnfoldOutlined,
   StarOutlined,
   DollarOutlined,
-  TeamOutlined,
+  ShoppingOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -53,12 +53,6 @@ const AdminLayout: React.FC = () => {
       path: "/admin/dashboard",
     },
     {
-      key: "category",
-      icon: <AppstoreOutlined />,
-      label: "Quản lí danh mục",
-      path: "/admin/category",
-    },
-    {
       key: "user",
       icon: <UserOutlined />,
       label: "Quản lý người dùng",
@@ -79,20 +73,26 @@ const AdminLayout: React.FC = () => {
     {
       key: "accommodations",
       icon: <RestOutlined />,
-      label: "Quản lí lưu trú ",
+      label: "Quản lí lưu trú",
       path: "/admin/accommodations",
     },
     {
       key: "supplies",
-      icon: <AppstoreOutlined />,
+      icon: <ShoppingOutlined />,
       label: "Quản lý vật tư",
       path: "/admin/supplies",
     },
     {
       key: "booking",
       icon: <CalendarOutlined />,
-      label: "Quản lí đặt phòng ",
+      label: "Quản lí đặt phòng",
       path: "/admin/booking",
+    },
+    {
+      key: "invoice",
+      icon: <FileTextOutlined />,
+      label: "Quản lý hóa đơn",
+      path: "/admin/invoice",
     },
     {
       key: "promotionManagement",
@@ -112,13 +112,6 @@ const AdminLayout: React.FC = () => {
       label: "Quản lý bình luận",
       path: "/admin/message",
     },
-    {
-      key: "invoiceManagement",
-      icon: <DollarOutlined />,
-      label: "Quản lý hóa đơn",
-      path: "/admin/invoice",
-    },
-
     {
       key: "analytics",
       icon: <BarChartOutlined />,
@@ -142,7 +135,14 @@ const AdminLayout: React.FC = () => {
   const antdMenuItems: MenuProps["items"] = menuItems.map((item) => ({
     key: item.key,
     icon: item.icon,
-    label: <NavLink to={item.path}>{item.label}</NavLink>,
+    label: (
+      <NavLink
+        to={item.path}
+        style={{ textDecoration: "none" }}
+      >
+        {item.label}
+      </NavLink>
+    ),
   }));
 
   const userMenuItems: MenuProps["items"] = [
@@ -256,37 +256,6 @@ const AdminLayout: React.FC = () => {
           />
         </div>
 
-        {/* User Info at Bottom */}
-        {!collapsed && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: 20,
-              left: 0,
-              right: 0,
-              padding: "16px 24px",
-              background: "rgba(255, 255, 255, 0.1)",
-              backdropFilter: "blur(10px)",
-              margin: "0 12px",
-              borderRadius: 12,
-            }}
-          >
-            <Space>
-              <Avatar
-                size={48}
-                src="https://randomuser.me/api/portraits/men/1.jpg"
-              />
-              <div>
-                <Text strong style={{ color: "#fff", display: "block" }}>
-                  Nguyễn Văn A
-                </Text>
-                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
-                  Super Admin
-                </Text>
-              </div>
-            </Space>
-          </div>
-        )}
       </Sider>
 
       {/* Main Layout */}

@@ -1,7 +1,7 @@
 import React from "react";
 import { Table, Card, Button, Tag, message, Modal } from "antd";
 import { UnlockOutlined } from "@ant-design/icons";
-import { User } from "../../../types/user/user";
+import type { User } from "../../../types/user/user";
 interface Props {
   blockedUsers: User[];
   onUnblock: (keys: string[]) => void;

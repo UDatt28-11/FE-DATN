@@ -1,62 +1,182 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Checkbox, Row, Col, Space, Switch } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { Modal, Form, Input, Upload, Space, Switch, Select, Row, Col, Image, Popconfirm, Button, Tag, Spin, Checkbox } from "antd";
+import { PictureOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import { Amenity, Category } from "../../../types/category/category";
+import type { RoomType, RoomTypeImage } from "../../../types/roomtype/roomtype";
+import roomtypeService from "../../../service/roomtypeService";
+import { toast } from "react-toastify";
+import axios from "../../../service/axiosConfig";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 interface EditCategoryProps {
   visible: boolean;
-  category: Category | null;
+  roomType: RoomType | null;
   onCancel: () => void;
   onUpdate: (
     values: any,
     fileList: UploadFile[],
     selectedAmenities: number[]
   ) => void;
-  amenities: Amenity[];
 }
 
 const EditCategory: React.FC<EditCategoryProps> = ({
   visible,
-  category,
+  roomType,
   onCancel,
   onUpdate,
-  amenities,
 }) => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
+  const [existingImages, setExistingImages] = useState<RoomTypeImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedImageIds, setSelectedImageIds] = useState<number[]>([]);
   const [status, setStatus] = useState<"active" | "inactive">("active");
 
   useEffect(() => {
-    if (category) {
-      form.setFieldsValue(category);
-      setFileList([
-        {
-          uid: "-1",
-          name: "image.png",
-          status: "done",
-          url: category.image,
-        },
-      ]);
-      setSelectedAmenities([1, 2, 3]); // mock tiện ích có sẵn
-      setStatus(category.status as "active" | "inactive");
+    if (visible && roomType) {
+      loadRoomTypeImages();
+      form.setFieldsValue({
+        name: roomType.name,
+        description: roomType.description,
+        property_id: roomType.property_id,
+      });
+      setStatus(roomType.status);
     }
-  }, [category]);
+  }, [roomType, visible, form]);
 
-  const handleOk = () => {
-    form.validateFields().then((values) => {
+  useEffect(() => {
+    if (!visible) {
+      form.resetFields();
+      setFileList([]);
+      setExistingImages([]);
+      setSelectedImageIds([]);
+    }
+  }, [visible, form]);
+
+  const loadRoomTypeImages = async () => {
+    if (!roomType) return;
+    
+    setLoadingImages(true);
+    try {
+      const response = await axios.get(`${API_URL}/admin/room-types/${roomType.id}`);
+      if (response.data.success && response.data.data) {
+        const roomTypeData = response.data.data;
+        if (roomTypeData.images && Array.isArray(roomTypeData.images)) {
+          setExistingImages(roomTypeData.images);
+        } else {
+          setExistingImages([]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading room type images:", error);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    try {
+      const response = await roomtypeService.deleteImage(imageId);
+      if (response.success) {
+        toast.success("Đã xóa hình ảnh!");
+        setExistingImages(existingImages.filter(img => img.id !== imageId));
+        setSelectedImageIds(selectedImageIds.filter(id => id !== imageId));
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra khi xóa");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedImageIds.length === 0) {
+      toast.warning("Vui lòng chọn ít nhất một hình ảnh để xóa");
+      return;
+    }
+
+    try {
+      const response = await roomtypeService.bulkDeleteImages(selectedImageIds);
+      if (response.success) {
+        toast.success(`Đã xóa ${selectedImageIds.length} hình ảnh!`);
+        setExistingImages(existingImages.filter(img => !selectedImageIds.includes(img.id)));
+        setSelectedImageIds([]);
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra khi xóa");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
+    }
+  };
+
+  const handleSelectImage = (imageId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedImageIds([...selectedImageIds, imageId]);
+    } else {
+      setSelectedImageIds(selectedImageIds.filter(id => id !== imageId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedImageIds(existingImages.map(img => img.id));
+    } else {
+      setSelectedImageIds([]);
+    }
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
       const updatedValues = {
         ...values,
         status, // thêm trạng thái vào dữ liệu gửi ra ngoài
       };
-      onUpdate(updatedValues, fileList, selectedAmenities);
-    });
+      
+      // Upload images mới nếu có
+      if (fileList.length > 0 && roomType) {
+        setUploading(true);
+        try {
+          const formData = new FormData();
+          fileList.forEach((file) => {
+            if (file.originFileObj) {
+              formData.append('images[]', file.originFileObj);
+            }
+          });
+          
+          await roomtypeService.uploadImages(roomType.id, formData);
+          toast.success("Cập nhật loại phòng và upload hình ảnh thành công!");
+          // Reload images after upload
+          await loadRoomTypeImages();
+          // Clear fileList after successful upload
+          setFileList([]);
+        } catch (uploadError: any) {
+          console.error("Error uploading images:", uploadError);
+          if (uploadError.code === 'ECONNABORTED') {
+            toast.error("Upload ảnh bị timeout. Vui lòng thử lại với ít ảnh hơn hoặc ảnh nhỏ hơn.");
+          } else {
+            toast.warning("Loại phòng đã được cập nhật nhưng có lỗi khi upload hình ảnh: " + (uploadError.response?.data?.message || uploadError.message || "Lỗi không xác định"));
+          }
+        } finally {
+          setUploading(false);
+        }
+      }
+      
+      onUpdate(updatedValues, fileList, []);
+    } catch (error: any) {
+      if (error.errorFields) {
+        // Validation errors
+        return;
+      }
+      toast.error("Có lỗi xảy ra khi cập nhật");
+    }
   };
 
   return (
     <Modal
-      title="Chỉnh sửa danh mục"
+      title="Chỉnh sửa loại phòng"
       open={visible}
       onOk={handleOk}
       onCancel={() => {
@@ -64,43 +184,142 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         form.resetFields();
       }}
       okText="Cập nhật"
-      width={700}
+      width={900}
+      confirmLoading={uploading}
     >
       <Form form={form} layout="vertical">
-        {/* --- Tên danh mục --- */}
+        {/* --- Tên loại phòng --- */}
         <Form.Item
           name="name"
-          label="Tên danh mục"
-          rules={[{ required: true, message: "Vui lòng nhập tên danh mục!" }]}
+          label="Tên loại phòng"
+          rules={[{ required: true, message: "Vui lòng nhập tên loại phòng!" }]}
         >
-          <Input placeholder="VD: Nhà gỗ, Villa, Căn hộ..." size="large" />
+          <Input placeholder="VD: Phòng Standard, Phòng Deluxe..." size="large" />
         </Form.Item>
 
         {/* --- Mô tả --- */}
         <Form.Item
           name="description"
           label="Mô tả"
-          rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
         >
           <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết..." />
         </Form.Item>
 
-        {/* --- Hình ảnh --- */}
-        <Form.Item label="Hình ảnh">
+        {/* --- Property --- */}
+        <Form.Item
+          name="property_id"
+          label="Property (Tùy chọn)"
+        >
+          <Select
+            placeholder="Chọn property (không bắt buộc)"
+            allowClear
+          >
+            {/* Có thể thêm danh sách properties nếu cần */}
+          </Select>
+        </Form.Item>
+
+        {/* Hình ảnh hiện có */}
+        <Form.Item label="Hình ảnh hiện có">
+          <Spin spinning={loadingImages}>
+            {existingImages.length > 0 ? (
+              <>
+                <Space style={{ marginBottom: 12, width: '100%', justifyContent: 'space-between' }}>
+                  <Checkbox
+                    checked={selectedImageIds.length === existingImages.length && existingImages.length > 0}
+                    indeterminate={selectedImageIds.length > 0 && selectedImageIds.length < existingImages.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  >
+                    Chọn tất cả ({selectedImageIds.length}/{existingImages.length})
+                  </Checkbox>
+                  {selectedImageIds.length > 0 && (
+                    <Popconfirm
+                      title={`Xóa ${selectedImageIds.length} hình ảnh đã chọn?`}
+                      onConfirm={handleBulkDelete}
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      okType="danger"
+                    >
+                      <Button
+                        type="primary"
+                        danger
+                        icon={<DeleteOutlined />}
+                        size="small"
+                      >
+                        Xóa đã chọn ({selectedImageIds.length})
+                      </Button>
+                    </Popconfirm>
+                  )}
+                </Space>
+                <Row gutter={[8, 8]}>
+                  {existingImages.map((image) => (
+                    <Col key={image.id} span={6}>
+                      <div style={{ position: 'relative' }}>
+                        <Checkbox
+                          checked={selectedImageIds.includes(image.id)}
+                          onChange={(e) => handleSelectImage(image.id, e.target.checked)}
+                          style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 4 }}
+                        />
+                        <Image
+                          src={image.image_url}
+                          alt="Room type image"
+                          width="100%"
+                          height={100}
+                          style={{ objectFit: 'cover', borderRadius: 4 }}
+                          preview={false}
+                        />
+                        {image.is_primary && (
+                          <Tag color="gold" style={{ position: 'absolute', top: 4, right: 4, margin: 0 }}>
+                            Chính
+                          </Tag>
+                        )}
+                        <Popconfirm
+                          title="Xóa hình ảnh này?"
+                          onConfirm={() => handleDeleteImage(image.id)}
+                          okText="Xóa"
+                          cancelText="Hủy"
+                          okType="danger"
+                        >
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<DeleteOutlined />}
+                            size="small"
+                            style={{ position: 'absolute', bottom: 4, right: 4 }}
+                          />
+                        </Popconfirm>
+                      </div>
+                    </Col>
+                  ))}
+                </Row>
+              </>
+            ) : (
+              <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
+                Chưa có hình ảnh
+              </div>
+            )}
+          </Spin>
+        </Form.Item>
+
+        {/* Upload hình ảnh mới */}
+        <Form.Item label="Thêm hình ảnh mới">
           <Upload
             listType="picture-card"
             fileList={fileList}
             onChange={({ fileList }) => setFileList(fileList)}
-            maxCount={1}
             beforeUpload={() => false}
+            accept="image/*"
+            multiple
           >
-            {fileList.length === 0 && (
+            {(fileList.length + existingImages.length) >= 10 ? null : (
               <div>
-                <PictureOutlined />
+                <PlusOutlined />
                 <div style={{ marginTop: 8 }}>Upload</div>
               </div>
             )}
           </Upload>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+            Tải lên thêm hình ảnh cho loại phòng. Tối đa 10 hình ảnh tổng cộng.
+          </div>
         </Form.Item>
 
         {/* --- Trạng thái --- */}
@@ -114,28 +333,6 @@ const EditCategory: React.FC<EditCategoryProps> = ({
             />
             <span>{status === "active" ? "Đang kích hoạt" : "Đang khóa"}</span>
           </Space>
-        </Form.Item>
-
-        {/* --- Tiện ích liên quan --- */}
-        <Form.Item label="Tiện ích liên quan">
-          <Checkbox.Group
-            value={selectedAmenities}
-            onChange={(values) => setSelectedAmenities(values as number[])}
-            style={{ width: "100%" }}
-          >
-            <Row gutter={[16, 16]}>
-              {amenities.map((amenity) => (
-                <Col span={12} key={amenity.id}>
-                  <Checkbox value={amenity.id}>
-                    <Space>
-                      <span style={{ fontSize: 18 }}>{amenity.icon}</span>
-                      {amenity.name}
-                    </Space>
-                  </Checkbox>
-                </Col>
-              ))}
-            </Row>
-          </Checkbox.Group>
         </Form.Item>
       </Form>
     </Modal>

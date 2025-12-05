@@ -52,7 +52,7 @@ export interface Invoice {
 export interface InvoiceItem {
   id: number;
   invoice_id: number;
-  item_type: 'room_charge' | 'service_charge' | 'supply_charge' | 'penalty' | 'other';
+  item_type: 'room_charge' | 'service_charge' | 'penalty' | 'other';
   description: string;
   quantity: number;
   unit_price: number;
@@ -60,13 +60,11 @@ export interface InvoiceItem {
   tax_rate: number;
   tax_amount: number;
   total: number;
-  total_line?: number; // Giữ lại để tương thích
   
   // Related IDs
   booking_detail_id?: number;
   room_id?: number;
   service_id?: number;
-  supply_id?: number;
   
   // Timestamps
   created_at: string;

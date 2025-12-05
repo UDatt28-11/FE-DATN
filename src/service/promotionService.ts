@@ -1,5 +1,5 @@
-import api from "../ApiFromBE/axios";
-import { Promotion } from "../types/promotion/promotion";
+import api from "../api/axios";
+import type { Promotion } from "../types/promotion/promotion";
 
 /**
  * 🎁 Service quản lý Mã giảm giá (Promotions)
@@ -7,13 +7,14 @@ import { Promotion } from "../types/promotion/promotion";
  */
 const promotionService = {
   // --- 📍 Public API ---
-  
+
   /**
    * GET /promotions - Lấy danh sách tất cả khuyến mãi
    */
   async getAll(): Promise<Promotion[]> {
     const res = await api.get("/promotions");
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -21,7 +22,8 @@ const promotionService = {
    */
   async getActivePromotions(): Promise<Promotion[]> {
     const res = await api.get("/promotions/active");
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -37,7 +39,10 @@ const promotionService = {
    * @param code - Mã khuyến mãi cần kiểm tra
    * @param orderValue - Giá trị đơn hàng (optional)
    */
-  async validateCode(code: string, orderValue?: number): Promise<{
+  async validateCode(
+    code: string,
+    orderValue?: number
+  ): Promise<{
     valid: boolean;
     promotion?: Promotion;
     message?: string;
@@ -72,7 +77,10 @@ const promotionService = {
   /**
    * PUT /promotions/{id} - Cập nhật khuyến mãi
    */
-  async update(id: number | string, data: Partial<Promotion>): Promise<Promotion> {
+  async update(
+    id: number | string,
+    data: Partial<Promotion>
+  ): Promise<Promotion> {
     const res = await api.put(`/promotions/${id}`, data);
     return res.data.data || res.data;
   },

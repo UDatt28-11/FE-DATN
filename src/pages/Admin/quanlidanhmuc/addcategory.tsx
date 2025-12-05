@@ -1,34 +1,36 @@
-import React, { useState } from "react";
-import { Modal, Form, Input, Upload, Checkbox, Row, Col, Space, Button } from "antd";
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Input, Upload, Space, Button, Select } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import { Amenity } from "../../../types/category/category";
-
 
 interface AddCategoryProps {
     visible: boolean;
     onCancel: () => void;
     onAdd: (values: any, fileList: UploadFile[], selectedAmenities: number[]) => void;
-    amenities: Amenity[];
 }
 
-const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd, amenities }) => {
+const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) => {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
-    const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
 
     const handleOk = () => {
         form.validateFields().then((values) => {
-            onAdd(values, fileList, selectedAmenities);
+            onAdd(values, fileList, []);
             form.resetFields();
             setFileList([]);
-            setSelectedAmenities([]);
         });
     };
 
+    useEffect(() => {
+        if (!visible) {
+            form.resetFields();
+            setFileList([]);
+        }
+    }, [visible, form]);
+
     return (
         <Modal
-            title="Thêm danh mục mới"
+            title="Thêm loại phòng mới"
             open={visible}
             onOk={handleOk}
             onCancel={() => {
@@ -41,18 +43,29 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd, ame
             <Form form={form} layout="vertical">
                 <Form.Item
                     name="name"
-                    label="Tên danh mục"
-                    rules={[{ required: true, message: "Vui lòng nhập tên danh mục!" }]}
+                    label="Tên loại phòng"
+                    rules={[{ required: true, message: "Vui lòng nhập tên loại phòng!" }]}
                 >
-                    <Input placeholder="VD: Nhà gỗ, Villa, Căn hộ..." size="large" />
+                    <Input placeholder="VD: Phòng Standard, Phòng Deluxe..." size="large" />
                 </Form.Item>
 
                 <Form.Item
                     name="description"
                     label="Mô tả"
-                    rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
                 >
                     <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết..." />
+                </Form.Item>
+
+                <Form.Item
+                    name="property_id"
+                    label="Property (Tùy chọn)"
+                >
+                    <Select
+                        placeholder="Chọn property (không bắt buộc)"
+                        allowClear
+                    >
+                        {/* Có thể thêm danh sách properties nếu cần */}
+                    </Select>
                 </Form.Item>
 
                 <Form.Item label="Hình ảnh">
@@ -70,27 +83,6 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd, ame
                             </div>
                         )}
                     </Upload>
-                </Form.Item>
-
-                <Form.Item label="Tiện ích liên quan">
-                    <Checkbox.Group
-                        value={selectedAmenities}
-                        onChange={(values) => setSelectedAmenities(values as number[])}
-                        style={{ width: "100%" }}
-                    >
-                        <Row gutter={[16, 16]}>
-                            {amenities.map((amenity) => (
-                                <Col span={12} key={amenity.id}>
-                                    <Checkbox value={amenity.id}>
-                                        <Space>
-                                            <span style={{ fontSize: 18 }}>{amenity.icon}</span>
-                                            {amenity.name}
-                                        </Space>
-                                    </Checkbox>
-                                </Col>
-                            ))}
-                        </Row>
-                    </Checkbox.Group>
                 </Form.Item>
             </Form>
         </Modal>

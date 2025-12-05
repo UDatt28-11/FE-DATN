@@ -20,7 +20,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import { Message, MessageReply } from "../../../types/message/message";
+import type { Message, MessageReply } from "../../../types/message/message";
 
 
 const { TextArea } = Input;

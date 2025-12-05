@@ -1,7 +1,5 @@
-
-
-import api from "../ApiFromBE/axios";
-import { Supply } from "../types/supply/supplies";
+import api from "../api/axios";
+import type { Supply } from "../types/supply/supplies";
 
 /**
  * 🧩 Service quản lý Vật Tư (Supplies)
@@ -12,32 +10,20 @@ const supplyService = {
   // Lấy danh sách vật tư (public)
   async getAll(): Promise<Supply[]> {
     const res = await api.get("/supplies");
-    
-    // Laravel paginate trả về: {success: true, data: {data: [...], current_page: ..., total: ...}}
+    // API trả về paginated response: {success: true, data: {current_page: 1, data: [...], ...}}
     if (res.data?.success && res.data?.data) {
       // Nếu là paginated response
-      if (res.data.data.data && Array.isArray(res.data.data.data)) {
+      if (res.data.data?.data && Array.isArray(res.data.data.data)) {
         return res.data.data.data;
       }
-      // Nếu là array trực tiếp
+      // Nếu data là array trực tiếp
       if (Array.isArray(res.data.data)) {
         return res.data.data;
       }
     }
-    
-    // Fallback
-    if (Array.isArray(res.data?.data?.data)) {
-      return res.data.data.data;
-    }
-    if (Array.isArray(res.data?.data)) {
-      return res.data.data;
-    }
-    if (Array.isArray(res.data)) {
-      return res.data;
-    }
-    
-    console.warn("Unexpected response structure in getAll():", res.data);
-    return [];
+    // Fallback: thử lấy từ res.data trực tiếp
+    const data = res.data?.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // Lấy chi tiết 1 vật tư
@@ -46,17 +32,30 @@ const supplyService = {
     return res.data?.data || res.data || res;
   },
 
+  // Lấy vật tư theo room_id
+  async getByRoom(roomId: number | string): Promise<Supply[]> {
+    try {
+      const res = await api.get(`/supplies/room/${roomId}`);
+      const data = res.data.data || res.data;
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
   // --- 🔒 Protected API (cần token + role: staff/admin) ---
   // Vật tư sắp hết hàng
   async getLowStock(): Promise<Supply[]> {
     const res = await api.get("/supplies/low-stock/items");
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // Vật tư hết hàng
   async getOutOfStock(): Promise<Supply[]> {
     const res = await api.get("/supplies/out-of-stock/items");
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // Thống kê vật tư
@@ -88,37 +87,6 @@ const supplyService = {
   async adjustStock(id: number | string, amount: number): Promise<Supply> {
     const res = await api.post(`/supplies/${id}/adjust-stock`, { amount });
     return res.data;
-  },
-
-  // Lấy danh sách vật tư theo room_id
-  async getByRoom(roomId: number | string): Promise<Supply[]> {
-    const res = await api.get("/supplies", { params: { room_id: roomId } });
-    
-    // Laravel paginate trả về: {success: true, data: {data: [...], current_page: ..., total: ...}}
-    if (res.data?.success && res.data?.data) {
-      // Nếu là paginated response
-      if (res.data.data.data && Array.isArray(res.data.data.data)) {
-        return res.data.data.data;
-      }
-      // Nếu là array trực tiếp
-      if (Array.isArray(res.data.data)) {
-        return res.data.data;
-      }
-    }
-    
-    // Fallback: thử các cấu trúc khác
-    if (Array.isArray(res.data?.data?.data)) {
-      return res.data.data.data;
-    }
-    if (Array.isArray(res.data?.data)) {
-      return res.data.data;
-    }
-    if (Array.isArray(res.data)) {
-      return res.data;
-    }
-    
-    console.warn("Unexpected response structure:", res.data);
-    return [];
   },
 };
 

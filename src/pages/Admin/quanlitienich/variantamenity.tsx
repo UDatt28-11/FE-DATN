@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "antd";
-import { Amenity } from "../../../types/category/category";
+import type { Amenity } from "../../../types/category/category";
 
 
 interface Props {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, Row, Col, Tag } from "antd";
-import { Accommodation } from "../../../types/accommodation/accommodation";
+import type { Accommodation } from "../../../types/accommodation/accommodation";
 
 
 interface Props {

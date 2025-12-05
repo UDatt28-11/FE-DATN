@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Descriptions, Tag, Spin } from "antd";
 import { toast } from "react-toastify";
-import { Supply, statusMapToFrontend, SupplyStatusBackend } from "../../../types/supply/supplies";
+import type { Supply, SupplyStatusBackend } from "../../../types/supply/supplies";
+import { statusMapToFrontend } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
 
 interface ViewSupplyProps {

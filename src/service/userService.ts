@@ -1,200 +1,92 @@
-import api from "../ApiFromBE/axios";
-import type { User } from "./authService";
+import api from '@/api/axios';
+import type { User } from '@/types/user/user';
 
-/**
- * 👥 User Service - Quản lý Người dùng
- * Gọi API tới Laravel backend
- */
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-export interface UserListParams {
-  page?: number;
-  per_page?: number;
-  search?: string;
-  role?: string;
-  status?: string;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
-
-export interface UpdateUserData {
-  name?: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-  status?: string;
-  password?: string;
-  password_confirmation?: string;
-}
-
-export interface UserStatistics {
-  total_users: number;
-  active_users: number;
-  blocked_users: number;
-  new_users_this_month: number;
-  by_role: {
-    [key: string]: number;
-  };
+interface GetAllUsersParams {
+    search?: string;
+    role?: string;
+    status?: string;
+    page?: number;
+    per_page?: number;
 }
 
 const userService = {
-  /**
-   * GET /users
-   * Lấy danh sách người dùng (admin only)
-   */
-  async getAll(params?: UserListParams): Promise<{ data: User[]; total: number }> {
-    const res = await api.get("/users", { params });
-    return {
-      data: res.data.data || res.data,
-      total: res.data.meta?.total || res.data.total || 0,
-    };
-  },
+    // Get all users (admin)
+    async getAll(params?: GetAllUsersParams) {
+        const response = await api.get(`${API_URL}/admin/users`, { params });
+        return response.data;
+    },
 
-  /**
-   * GET /users/{id}
-   * Lấy chi tiết người dùng
-   */
-  async getById(id: number | string): Promise<User> {
-    const res = await api.get(`/users/${id}`);
-    return res.data.data || res.data;
-  },
+    // Get all users (legacy - giữ lại để tương thích)
+    async getUsers() {
+        const response = await api.get(`${API_URL}/admin/users`);
+        return response.data;
+    },
 
-  /**
-   * POST /users
-   * Tạo người dùng mới (admin only)
-   */
-  async create(data: {
-    name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-    phone?: string;
-    role?: string;
-  }): Promise<User> {
-    const res = await api.post("/users", data);
-    return res.data.data || res.data;
-  },
+    // Get user statistics (tính toán từ getAll nếu không có endpoint riêng)
+    async getStatistics() {
+        try {
+            // Thử gọi endpoint statistics nếu có
+            const response = await api.get(`${API_URL}/admin/users/statistics`);
+            return response.data;
+        } catch (error: any) {
+            // Nếu không có endpoint, tính toán từ getAll
+            if (error.response?.status === 404) {
+                const allUsers = await this.getAll({ per_page: 1000 });
+                const users = Array.isArray(allUsers.data) ? allUsers.data : (Array.isArray(allUsers) ? allUsers : []);
+                
+                // Tính toán statistics
+                const stats = {
+                    total: users.length,
+                    active: users.filter((u: any) => u.status === 'active').length,
+                    inactive: users.filter((u: any) => u.status === 'inactive').length,
+                    locked: users.filter((u: any) => u.locked || u.status === 'locked').length,
+                    byRole: users.reduce((acc: any, u: any) => {
+                        const role = u.role || 'unknown';
+                        acc[role] = (acc[role] || 0) + 1;
+                        return acc;
+                    }, {}),
+                };
+                
+                return {
+                    success: true,
+                    data: stats,
+                };
+            }
+            throw error;
+        }
+    },
 
-  /**
-   * PUT /users/{id}
-   * Cập nhật thông tin người dùng
-   */
-  async update(id: number | string, data: UpdateUserData): Promise<User> {
-    const res = await api.put(`/users/${id}`, data);
-    return res.data.data || res.data;
-  },
+    // Get user by ID
+    async getUserById(id: string | number) {
+        const response = await api.get(`${API_URL}/admin/users/${id}`);
+        return response.data;
+    },
 
-  /**
-   * DELETE /users/{id}
-   * Xóa người dùng (admin only)
-   */
-  async remove(id: number | string): Promise<void> {
-    await api.delete(`/users/${id}`);
-  },
+    // Create new user
+    async createUser(userData: Partial<User>) {
+        const response = await api.post(`${API_URL}/admin/users`, userData);
+        return response.data;
+    },
 
-  /**
-   * POST /users/{id}/block
-   * Khóa tài khoản người dùng
-   */
-  async block(id: number | string, reason?: string): Promise<User> {
-    const res = await api.post(`/users/${id}/block`, { reason });
-    return res.data.data || res.data;
-  },
+    // Update user
+    async updateUser(id: string | number, userData: Partial<User>) {
+        const response = await api.put(`${API_URL}/admin/users/${id}`, userData);
+        return response.data;
+    },
 
-  /**
-   * POST /users/{id}/unblock
-   * Mở khóa tài khoản người dùng
-   */
-  async unblock(id: number | string): Promise<User> {
-    const res = await api.post(`/users/${id}/unblock`);
-    return res.data.data || res.data;
-  },
+    // Delete user
+    async deleteUser(id: string | number) {
+        const response = await api.delete(`${API_URL}/admin/users/${id}`);
+        return response.data;
+    },
 
-  /**
-   * PUT /users/{id}/change-password
-   * Đổi mật khẩu người dùng
-   */
-  async changePassword(
-    id: number | string,
-    data: {
-      current_password?: string;
-      new_password: string;
-      new_password_confirmation: string;
+    // Toggle user status
+    async toggleUserStatus(id: string | number) {
+        const response = await api.patch(`${API_URL}/admin/users/${id}/status`);
+        return response.data;
     }
-  ): Promise<void> {
-    await api.put(`/users/${id}/change-password`, data);
-  },
-
-  /**
-   * PUT /users/{id}/update-role
-   * Cập nhật vai trò người dùng (admin only)
-   */
-  async updateRole(id: number | string, role: string): Promise<User> {
-    const res = await api.put(`/users/${id}/update-role`, { role });
-    return res.data.data || res.data;
-  },
-
-  /**
-   * GET /users/statistics
-   * Lấy thống kê người dùng (admin only)
-   */
-  async getStatistics(): Promise<UserStatistics> {
-    const res = await api.get("/users/statistics");
-    return res.data.data || res.data;
-  },
-
-  /**
-   * GET /users/blocked
-   * Lấy danh sách người dùng bị khóa
-   */
-  async getBlocked(params?: UserListParams): Promise<{ data: User[]; total: number }> {
-    const res = await api.get("/users/blocked", { params });
-    return {
-      data: res.data.data || res.data,
-      total: res.data.meta?.total || res.data.total || 0,
-    };
-  },
-
-  /**
-   * GET /users/search
-   * Tìm kiếm người dùng
-   */
-  async search(keyword: string, params?: UserListParams): Promise<User[]> {
-    const res = await api.get("/users/search", {
-      params: { ...params, keyword },
-    });
-    return res.data.data || res.data;
-  },
-
-  /**
-   * POST /users/bulk-delete
-   * Xóa nhiều người dùng cùng lúc
-   */
-  async bulkDelete(userIds: number[]): Promise<void> {
-    await api.post("/users/bulk-delete", { user_ids: userIds });
-  },
-
-  /**
-   * POST /users/bulk-update-status
-   * Cập nhật trạng thái nhiều người dùng
-   */
-  async bulkUpdateStatus(userIds: number[], status: string): Promise<void> {
-    await api.post("/users/bulk-update-status", {
-      user_ids: userIds,
-      status,
-    });
-  },
-
-  /**
-   * GET /users/by-role/{role}
-   * Lấy người dùng theo vai trò
-   */
-  async getByRole(role: string, params?: UserListParams): Promise<User[]> {
-    const res = await api.get(`/users/by-role/${role}`, { params });
-    return res.data.data || res.data;
-  },
 };
 
 export default userService;
-
-
-

@@ -1,41 +1,174 @@
-import { RouteObject } from "react-router-dom";
-import AppLayout from "../components/Layout/AppLayout";
-import HomePage from "../pages/Client/Home/HomePage";
-import AboutPage from "../pages/Client/About/AboutPage";
-import HomestayListPage from "../pages/Client/Homestay/HomestayListPage";
-import PromotionsPage from "../pages/Client/Promotions/PromotionsPage";
-import ContactPage from "../pages/Client/Contact/ContactPage";
-import HomestayDetailPage from "../pages/Client/Homestay/HomestayDetailPage";
-import LoginPage from "../pages/Client/Auth/LoginPage";
-import RegisterPage from "../pages/Client/Auth/RegisterPage";
+import type { RouteObject } from "react-router-dom";
+import { Layout } from "antd";
+import { ProtectedRoute } from "../components/Auth";
+import Header from "../components/Layout/Header";
+import Footer from "../components/Layout/Footer";
+import ScrollToTop from "../components/shared/ScrollToTop";
 
-// 🏠 Trang người dùng
+// Pages
+import Home from "../pages/Clients/Home";
+import About from "../pages/About";
+import Services from "../pages/Clients/Services/Services";
+import RoomList from "../pages/Clients/Rooms/RoomList";
+import RoomDetailPage from "../pages/Clients/Rooms/RoomDetailPage";
+import RoomTypeDetailPage from "../pages/Clients/Rooms/RoomTypeDetailPage";
+import BookingInfoPage from "../pages/Clients/Booking/BookingInfoPage";
+import PaymentPage from "../pages/Clients/Booking/PaymentPage";
+import PaymentSuccessPage from "../pages/Clients/Booking/PaymentSuccessPage";
+import PaymentCancelPage from "../pages/Clients/Booking/PaymentCancelPage";
+import MyBookingsPage from "../pages/Clients/Booking/MyBookingsPage";
+import Promotions from "../pages/Clients/Promotions/Promotions";
+import Blog from "../pages/Blog";
+import Contact from "../pages/Clients/Contact/Contact";
+import Profile from "../pages/Clients/Profile";
+import Settings from "../pages/Clients/Settings";
+import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
+import AdminLoginPage from "../pages/Admin/AdminLoginPage";
+import GoogleCallback from "../pages/Auth/GoogleCallback";
 
+const { Content } = Layout;
 
+/**
+ * Client Layout Wrapper
+ * Bọc tất cả client routes với Header + Footer
+ */
+const ClientLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      <ScrollToTop />
+      <Header />
+      <Content style={{ marginTop: "0" }}>
+        {children}
+      </Content>
+      <Footer />
+    </Layout>
+  );
+};
 
-// 🧭 Router Client
+/**
+ * Client Routes
+ * Tất cả routes dành cho khách hàng (user)
+ */
 export const clientRoutes: RouteObject[] = [
-    {
-        path: "/",
-        element: <AppLayout />,
-        children: [
-            { index: true, element: <HomePage /> },
-            { path: "about", element: <AboutPage /> },
-            { path: "homestay", element: <HomestayListPage /> },
-            { path: "promotion", element: <PromotionsPage /> },
-            { path: "contact", element: <ContactPage /> },
-
-            // --- THÊM MỚI: Route cho trang chi tiết ---
-            // Nó sử dụng :id để lấy tham số từ URL
-            { path: "homestay/:id", element: <HomestayDetailPage /> }
-        ],
-    },
-    {
-        path: "/login",
-        element: <LoginPage />,
-    },
-    {
-        path: "/register",
-        element: <RegisterPage />,
-    },
+  // Routes không có Header/Footer
+  {
+    path: "/admin/login",
+    element: <AdminLoginPage />,
+  },
+  {
+    path: "/auth/google/callback",
+    element: <GoogleCallback />,
+  },
+  
+  // Routes có Header/Footer
+  {
+    path: "/",
+    element: <ClientLayout><Home /></ClientLayout>,
+  },
+  {
+    path: "/about",
+    element: <ClientLayout><About /></ClientLayout>,
+  },
+  {
+    path: "/services",
+    element: <ClientLayout><Services /></ClientLayout>,
+  },
+  {
+    path: "/rooms",
+    element: <ClientLayout><RoomList /></ClientLayout>,
+  },
+  {
+    path: "/rooms/:id",
+    element: <ClientLayout><RoomDetailPage /></ClientLayout>,
+  },
+  {
+    path: "/room-types/:id",
+    element: <ClientLayout><RoomTypeDetailPage /></ClientLayout>,
+  },
+  {
+    path: "/booking/info",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <BookingInfoPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/booking/payment",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <PaymentPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/payment/success",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <PaymentSuccessPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/payment/cancel",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <PaymentCancelPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/my-bookings",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <MyBookingsPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/promotions",
+    element: <ClientLayout><Promotions /></ClientLayout>,
+  },
+  {
+    path: "/blog",
+    element: <ClientLayout><Blog /></ClientLayout>,
+  },
+  {
+    path: "/contact",
+    element: <ClientLayout><Contact /></ClientLayout>,
+  },
+  {
+    path: "/reset-password/:token",
+    element: <ClientLayout><ResetPasswordPage /></ClientLayout>,
+  },
+  {
+    path: "/profile",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
+    path: "/settings",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <Settings />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
 ];

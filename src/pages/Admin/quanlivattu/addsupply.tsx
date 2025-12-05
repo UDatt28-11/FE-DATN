@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Form, Input, InputNumber, Select } from "antd";
 import { toast } from "react-toastify";
-import { Supply } from "../../../types/supply/supplies";
+import type { Supply } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
 
 interface AddSupplyProps {

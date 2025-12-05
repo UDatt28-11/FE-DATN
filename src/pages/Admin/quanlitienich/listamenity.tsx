@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Input,
@@ -8,6 +8,8 @@ import {
   Modal,
   Dropdown,
   Select,
+  Spin,
+  Image,
 } from "antd";
 import {
   PlusOutlined,
@@ -16,120 +18,165 @@ import {
   SettingOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import { Amenity } from "../../../types/amenity/amenity";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import { toast } from "react-toastify";
+import type { Amenity } from "../../../types/amenity/amenity";
+import amenityService from "../../../service/amenityService";
 import AddAmenity from "./addamenity";
 import EditAmenity from "./editamenity";
 import VariantAmenity from "./variantamenity";
 
 const { Search } = Input;
 
-const initialData: Amenity[] = [
-  {
-    id: 1,
-    name: "Wi-Fi miễn phí",
-    type: "Cơ bản",
-    icon: "📶",
-    description: "Kết nối Internet tốc độ cao",
-    status: "Hoạt động",
-    createdAt: "2025-10-01",
-    updatedAt: "2025-10-10",
-  },
-  {
-    id: 2,
-    name: "Bếp riêng",
-    type: "Cơ bản",
-    icon: "🍳",
-    description: "Đầy đủ dụng cụ nấu ăn",
-    status: "Hoạt động",
-    createdAt: "2025-09-15",
-    updatedAt: "2025-09-30",
-  },
-  {
-    id: 3,
-    name: "Hồ bơi ngoài trời",
-    type: "Nâng cao",
-    icon: "🏊",
-    description: "Hồ bơi rộng 25m",
-    status: "Ẩn",
-    createdAt: "2025-08-20",
-    updatedAt: "2025-09-05",
-  },
-];
-
 const ListAmenity: React.FC = () => {
-  const [data, setData] = useState<Amenity[]>(initialData);
+  const [data, setData] = useState<Amenity[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<string | undefined>(undefined);
+  const [pageSize, setPageSize] = useState<number>(15);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 0,
+    pageSize: 15,
+  });
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [variantModal, setVariantModal] = useState(false);
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
 
-  // Filter và search
-  const filteredData = data.filter(
-    (item) =>
-      (item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.description.toLowerCase().includes(search.toLowerCase())) &&
-      (filterType ? item.type === filterType : true)
-  );
+  // Load amenities
+  const loadAmenities = async (page = 1, searchText = "", type?: string) => {
+    setLoading(true);
+    try {
+      const response = await amenityService.getAmenities({
+        page,
+        per_page: pageSize,
+        search: searchText || undefined,
+        type: type as any,
+      });
+      if (response.success) {
+        setData(Array.isArray(response.data) ? response.data : []);
+        if (response.meta?.pagination) {
+          setPagination({
+            current: response.meta.pagination.current_page,
+            total: response.meta.pagination.total,
+            pageSize: response.meta.pagination.per_page,
+          });
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tải danh sách tiện ích");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleDelete = (id: number) => {
+  useEffect(() => {
+    loadAmenities(1, search, filterType);
+  }, [search, filterType, pageSize]);
+
+  const handleDelete = async (id: number) => {
     Modal.confirm({
       title: "Xóa tiện ích này?",
       content: "Thao tác này không thể hoàn tác.",
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
-      onOk: () => setData(data.filter((item) => item.id !== id)),
+      async onOk() {
+        try {
+          const response = await amenityService.deleteAmenity(id);
+          if (response.success) {
+            toast.success("Đã xóa tiện ích!");
+            loadAmenities(pagination.current, search, filterType);
+          } else {
+            toast.error(response.message || "Có lỗi xảy ra khi xóa");
+          }
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
+        }
+      },
     });
+  };
+
+  const typeMap: Record<string, { color: string; text: string }> = {
+    basic: { color: "blue", text: "Cơ bản" },
+    advanced: { color: "purple", text: "Nâng cao" },
+    safety: { color: "red", text: "An toàn" },
+  };
+
+  const tablePagination: TablePaginationConfig = {
+    current: pagination.current,
+    pageSize: pagination.pageSize,
+    total: pagination.total,
+    showSizeChanger: true,
+    pageSizeOptions: ["15", "30", "45"],
+    onShowSizeChange: (_, size) => {
+      setPageSize(size);
+      setPagination({ ...pagination, pageSize: size });
+    },
+    onChange: (page) => {
+      loadAmenities(page, search, filterType);
+    },
+    showTotal: (total) => `Tổng ${total} tiện ích`,
   };
 
   const columns: ColumnsType<Amenity> = [
     {
       title: "ID",
       dataIndex: "id",
-      sorter: (a, b) => a.id - b.id,
       width: 70,
+    },
+    {
+      title: "Biểu tượng",
+      dataIndex: "icon_url",
+      width: 100,
+      render: (iconUrl?: string) => {
+        if (iconUrl) {
+          return (
+            <Image
+              src={iconUrl}
+              alt="icon"
+              width={40}
+              height={40}
+              style={{ objectFit: "cover", borderRadius: 4 }}
+              preview={false}
+            />
+          );
+        }
+        return <span style={{ fontSize: 20 }}>📦</span>;
+      },
     },
     {
       title: "Tên tiện ích",
       dataIndex: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: "Biểu tượng",
-      dataIndex: "icon",
-      width: 100,
-      render: (icon: Amenity["icon"]) => <span style={{ fontSize: 20 }}>{icon}</span>,
+      title: "Property",
+      dataIndex: "property",
+      render: (property: Amenity["property"]) => property?.name || "-",
     },
     {
       title: "Loại",
       dataIndex: "type",
-      filters: [
-        { text: "Cơ bản", value: "Cơ bản" },
-        { text: "Nâng cao", value: "Nâng cao" },
-      ],
-      onFilter: (value, record) => record.type === value,
-      render: (type: Amenity["type"]) => (
-        <Tag color={type === "Cơ bản" ? "blue" : "purple"}>{type}</Tag>
-      ),
+      render: (type: Amenity["type"]) => {
+        const typeInfo = typeMap[type] || { color: "default", text: type };
+        return <Tag color={typeInfo.color}>{typeInfo.text}</Tag>;
+      },
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      render: (status: Amenity["status"]) => (
-        <Tag color={status === "Hoạt động" ? "green" : "red"}>{status}</Tag>
-      ),
+      title: "Danh mục",
+      dataIndex: "category",
+      render: (category?: string) => category || "-",
     },
     {
       title: "Ngày cập nhật",
-      dataIndex: "updatedAt",
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      dataIndex: "updated_at",
+      render: (date?: string) => date ? new Date(date).toLocaleDateString("vi-VN") : "-",
     },
     {
       title: "Thao tác",
       key: "actions",
+      width: 120,
       render: (_: any, record: Amenity) => {
         const menuItems = [
           {
@@ -173,17 +220,21 @@ const ListAmenity: React.FC = () => {
         <Search
           placeholder="Tìm kiếm tiện ích..."
           allowClear
-          onSearch={setSearch}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onSearch={(value) => loadAmenities(1, value, filterType)}
           style={{ width: 260 }}
         />
         <Select
           placeholder="Lọc theo loại"
           allowClear
           style={{ width: 160 }}
+          value={filterType}
           onChange={setFilterType}
         >
-          <Select.Option value="Cơ bản">Cơ bản</Select.Option>
-          <Select.Option value="Nâng cao">Nâng cao</Select.Option>
+          <Select.Option value="basic">Cơ bản</Select.Option>
+          <Select.Option value="advanced">Nâng cao</Select.Option>
+          <Select.Option value="safety">An toàn</Select.Option>
         </Select>
         <Button
           type="primary"
@@ -194,26 +245,32 @@ const ListAmenity: React.FC = () => {
         </Button>
       </Space>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={filteredData}
-        pagination={{ pageSize: 15, showSizeChanger: true, pageSizeOptions: [15, 30, 45] }}
-        bordered
-      />
+      <Spin spinning={loading}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={data}
+          pagination={tablePagination}
+          bordered
+        />
+      </Spin>
 
       <AddAmenity
         visible={addModal}
         onCancel={() => setAddModal(false)}
-        onAdd={(newData) => setData([...data, newData])}
+        onAdd={() => {
+          setAddModal(false);
+          loadAmenities(pagination.current, search, filterType);
+        }}
       />
       <EditAmenity
         visible={editModal}
         amenity={selectedAmenity}
         onCancel={() => setEditModal(false)}
-        onUpdate={(updated) =>
-          setData(data.map((d) => (d.id === updated.id ? updated : d)))
-        }
+        onUpdate={() => {
+          setEditModal(false);
+          loadAmenities(pagination.current, search, filterType);
+        }}
       />
       <VariantAmenity
         visible={variantModal}

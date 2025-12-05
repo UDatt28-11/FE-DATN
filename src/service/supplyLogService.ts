@@ -1,5 +1,9 @@
-import api from "../ApiFromBE/axios";
-import type { SupplyLog, SupplyLogActivity, MovementSummary } from "../types/supply/supplyLog";
+import api from "../api/axios";
+import type {
+  SupplyLog,
+  SupplyLogActivity,
+  MovementSummary,
+} from "../types/supply/supplyLog";
 
 /**
  * 📋 Supply Log Service - Lịch sử Vật tư
@@ -16,7 +20,8 @@ const supplyLogService = {
    */
   async getAll(params?: Record<string, any>): Promise<SupplyLog[]> {
     const res = await api.get("/supply-logs", { params });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -37,7 +42,8 @@ const supplyLogService = {
     params?: Record<string, any>
   ): Promise<SupplyLog[]> {
     const res = await api.get(`/supply-logs/supply/${supplyId}`, { params });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -48,7 +54,8 @@ const supplyLogService = {
     const res = await api.get("/supply-logs/activities/recent", {
       params: { limit },
     });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -62,7 +69,8 @@ const supplyLogService = {
     action_type?: string;
   }): Promise<MovementSummary[]> {
     const res = await api.get("/supply-logs/summary/movement", { params });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   // ============================================
@@ -79,7 +87,8 @@ const supplyLogService = {
     const res = await api.get("/supply-logs", {
       params: { ...params, action_type: actionType },
     });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
@@ -93,31 +102,37 @@ const supplyLogService = {
     const res = await api.get("/supply-logs", {
       params: { ...params, date_from: dateFrom, date_to: dateTo },
     });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Lọc log theo room
    */
-  async getByRoom(roomId: number | string, params?: Record<string, any>): Promise<SupplyLog[]> {
+  async getByRoom(
+    roomId: number | string,
+    params?: Record<string, any>
+  ): Promise<SupplyLog[]> {
     const res = await api.get("/supply-logs", {
       params: { ...params, room_id: roomId },
     });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Lọc log theo user
    */
-  async getByUser(userId: number | string, params?: Record<string, any>): Promise<SupplyLog[]> {
+  async getByUser(
+    userId: number | string,
+    params?: Record<string, any>
+  ): Promise<SupplyLog[]> {
     const res = await api.get("/supply-logs", {
       params: { ...params, user_id: userId },
     });
-    return res.data.data || res.data;
+    const data = res.data.data || res.data;
+    return Array.isArray(data) ? data : [];
   },
 };
 
 export default supplyLogService;
-
-
-

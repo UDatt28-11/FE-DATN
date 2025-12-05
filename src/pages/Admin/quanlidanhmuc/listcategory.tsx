@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Card,
@@ -9,7 +9,8 @@ import {
   Tooltip,
   Tabs,
   Image,
-  Modal, // 🟢 THÊM MỚI
+  Modal,
+  Spin,
 } from "antd";
 import { toast } from "react-toastify";
 import {
@@ -21,111 +22,110 @@ import {
   HomeOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  DeleteOutlined, // 🟢 THÊM MỚI
-  ExclamationCircleOutlined, // 🟢 THÊM MỚI
+  DeleteOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 
 import AddCategory from "./addcategory";
 import EditCategory from "./editcategory";
 import DetailCategory from "./detailcategory";
-import { Amenity, Category } from "../../../types/category/category";
+import type { RoomType } from "../../../types/roomtype/roomtype";
+import roomtypeService from "../../../service/roomtypeService";
 
-const { confirm } = Modal; // 🟢 THÊM MỚI
+const { confirm } = Modal;
 
 const ListCategory: React.FC = () => {
- const [categories, setCategories] = useState<Category[]>([
-        {
-            key: "1",
-            id: 1,
-            name: "Nhà gỗ",
-            description: "Homestay kiểu nhà gỗ truyền thống, gần gũi với thiên nhiên, phù hợp cho du khách yêu thích sự yên tĩnh.",
-            image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233",
-            status: "active",
-            amenityCount: 12,
-            homestayCount: 45,
-            createdAt: "2023-01-15",
-            updatedAt: "2024-10-20",
-        },
-        {
-            key: "2",
-            id: 2,
-            name: "Căn hộ",
-            description: "Căn hộ hiện đại, đầy đủ tiện nghi, nằm ở trung tâm thành phố, thuận tiện đi lại.",
-            image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-            status: "active",
-            amenityCount: 18,
-            homestayCount: 67,
-            createdAt: "2023-02-10",
-            updatedAt: "2024-10-25",
-        },
-        {
-            key: "3",
-            id: 3,
-            name: "Villa",
-            description: "Biệt thự sang trọng với hồ bơi riêng, phù hợp cho gia đình hoặc nhóm bạn.",
-            image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750",
-            status: "active",
-            amenityCount: 25,
-            homestayCount: 23,
-            createdAt: "2023-03-05",
-            updatedAt: "2024-10-28",
-        },
-        {
-            key: "4",
-            id: 4,
-            name: "Nhà vườn",
-            description: "Nhà vườn rộng rãi, không gian xanh mát, thích hợp nghỉ dưỡng cuối tuần.",
-            image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
-            status: "inactive",
-            amenityCount: 10,
-            homestayCount: 15,
-            createdAt: "2023-04-12",
-            updatedAt: "2024-09-30",
-        },
-        {
-            key: "5",
-            id: 5,
-            name: "Nhà container",
-            description: "Homestay độc đáo từ container, phong cách hiện đại, sáng tạo.",
-            image: "https://images.unsplash.com/photo-1449844908441-8829872d2607",
-            status: "active",
-            amenityCount: 8,
-            homestayCount: 12,
-            createdAt: "2023-05-20",
-            updatedAt: "2024-10-15",
-        },
-    ]);
-
-  const [historyCategories, setHistoryCategories] = useState<Category[]>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [historyRoomTypes, setHistoryRoomTypes] = useState<RoomType[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [pageSize, setPageSize] = useState<number>(15);
   const [activeTab, setActiveTab] = useState<string>("list");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 0,
+    pageSize: 15,
+  });
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null);
 
-  const allAmenities: Amenity[] = [
-    { id: 1, name: "WiFi miễn phí", icon: "📶" },
-    { id: 2, name: "Điều hòa", icon: "❄️" },
-    { id: 3, name: "Bếp", icon: "🍳" },
-    { id: 4, name: "Máy giặt", icon: "🧺" },
-  ];
+  // Load room types
+  const loadRoomTypes = async (page = 1, search = "") => {
+    setLoading(true);
+    try {
+      const response = await roomtypeService.getRoomTypes({
+        page,
+        per_page: pageSize,
+        search: search || undefined,
+      });
+      if (response.success) {
+        setRoomTypes(Array.isArray(response.data) ? response.data : []);
+        if (response.meta?.pagination) {
+          setPagination({
+            current: response.meta.pagination.current_page,
+            total: response.meta.pagination.total,
+            pageSize: response.meta.pagination.per_page,
+          });
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tải danh sách loại phòng");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // 🟢 THÊM HÀM XÓA DANH MỤC
-  const handleDeleteCategory = (record: Category) => {
+  // Load history
+  const loadHistory = async (page = 1, search = "") => {
+    setLoading(true);
+    try {
+      const response = await roomtypeService.getHistory({
+        page,
+        per_page: pageSize,
+        search: search || undefined,
+      });
+      if (response.success) {
+        setHistoryRoomTypes(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tải lịch sử");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "list") {
+      loadRoomTypes(1, searchText);
+    } else {
+      loadHistory(1, searchText);
+    }
+  }, [activeTab, searchText, pageSize]);
+
+  // Xóa room type
+  const handleDeleteRoomType = async (record: RoomType) => {
     confirm({
-      title: `Bạn có chắc muốn xóa danh mục "${record.name}"?`,
+      title: `Bạn có chắc muốn xóa loại phòng "${record.name}"?`,
       icon: <ExclamationCircleOutlined />,
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
-      onOk() {
-        setCategories((prev) => prev.filter((cat) => cat.id !== record.id));
-        setHistoryCategories((prev) => [...prev, record]);
-        toast.success(`Đã xóa danh mục "${record.name}"`);
+      async onOk() {
+        try {
+          const response = await roomtypeService.deleteRoomType(record.id);
+          if (response.success) {
+            toast.success(`Đã xóa loại phòng "${record.name}"`);
+            loadRoomTypes(pagination.current, searchText);
+          } else {
+            toast.error(response.message || "Có lỗi xảy ra khi xóa");
+          }
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
+        }
       },
     });
   };
@@ -141,36 +141,50 @@ const ListCategory: React.FC = () => {
       </Tag>
     );
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  const pagination: TablePaginationConfig = {
-    pageSize,
+  const tablePagination: TablePaginationConfig = {
+    current: pagination.current,
+    pageSize: pagination.pageSize,
+    total: pagination.total,
     showSizeChanger: true,
     pageSizeOptions: ["15", "30", "45"],
-    onShowSizeChange: (_, size) => setPageSize(size),
-    showTotal: (total) => `Tổng ${total} danh mục`,
+    onShowSizeChange: (_, size) => {
+      setPageSize(size);
+      setPagination({ ...pagination, pageSize: size });
+    },
+    onChange: (page) => {
+      if (activeTab === "list") {
+        loadRoomTypes(page, searchText);
+      } else {
+        loadHistory(page, searchText);
+      }
+    },
+    showTotal: (total) => `Tổng ${total} loại phòng`,
   };
 
-  const columns: ColumnsType<Category> = [
+  const columns: ColumnsType<RoomType> = [
     { title: "ID", dataIndex: "id", key: "id", width: 80 },
     {
       title: "Hình ảnh",
-      dataIndex: "image",
-      key: "image",
+      dataIndex: "image_url",
+      key: "image_url",
       width: 100,
       render: (image: string) => (
         <Image
-          src={image}
-          alt="category"
+          src={image || "https://via.placeholder.com/60"}
+          alt="roomtype"
           width={60}
           height={60}
           style={{ objectFit: "cover", borderRadius: 8 }}
         />
       ),
     },
-    { title: "Tên danh mục", dataIndex: "name", key: "name" },
+    { title: "Tên loại phòng", dataIndex: "name", key: "name" },
+    {
+      title: "Property",
+      dataIndex: "property",
+      key: "property",
+      render: (property: RoomType["property"]) => property?.name || "-",
+    },
     { title: "Trạng thái", dataIndex: "status", key: "status", render: getStatusTag },
     {
       title: "Thao tác",
@@ -182,7 +196,7 @@ const ListCategory: React.FC = () => {
               icon={<EyeOutlined />}
               type="default"
               onClick={() => {
-                setSelectedCategory(record);
+                setSelectedRoomType(record);
                 setDetailModalVisible(true);
               }}
             />
@@ -193,18 +207,17 @@ const ListCategory: React.FC = () => {
               icon={<EditOutlined />}
               type="primary"
               onClick={() => {
-                setSelectedCategory(record);
+                setSelectedRoomType(record);
                 setEditModalVisible(true);
               }}
             />
           </Tooltip>
 
-          {/* 🟢 NÚT XÓA DANH MỤC */}
-          <Tooltip title="Xóa danh mục">
+          <Tooltip title="Xóa loại phòng">
             <Button
               icon={<DeleteOutlined />}
               danger
-              onClick={() => handleDeleteCategory(record)}
+              onClick={() => handleDeleteRoomType(record)}
             />
           </Tooltip>
         </Space>
@@ -217,7 +230,7 @@ const ListCategory: React.FC = () => {
       key: "list",
       label: (
         <span>
-          <HomeOutlined /> Danh sách danh mục
+          <HomeOutlined /> Danh sách loại phòng
         </span>
       ),
       children: (
@@ -225,7 +238,7 @@ const ListCategory: React.FC = () => {
           title={
             <Space>
               <HomeOutlined style={{ fontSize: 20, color: "#1890ff" }} />
-              Quản lý Danh mục Homestay
+              Quản lý Loại Phòng
             </Space>
           }
           extra={
@@ -233,26 +246,30 @@ const ListCategory: React.FC = () => {
               <Input
                 placeholder="Tìm kiếm..."
                 prefix={<SearchOutlined />}
+                value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 allowClear
+                style={{ width: 250 }}
               />
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => setAddModalVisible(true)}
               >
-                Thêm danh mục
+                Thêm loại phòng
               </Button>
             </Space>
           }
         >
-          <Table
-            columns={columns}
-            dataSource={filteredCategories}
-            pagination={pagination}
-            rowKey={(record) => record.key || record.id}
-            scroll={{ x: 1200 }}
-          />
+          <Spin spinning={loading}>
+            <Table
+              columns={columns}
+              dataSource={roomTypes}
+              pagination={tablePagination}
+              rowKey={(record) => record.id}
+              scroll={{ x: 1200 }}
+            />
+          </Spin>
         </Card>
       ),
     },
@@ -260,7 +277,7 @@ const ListCategory: React.FC = () => {
       key: "history",
       label: (
         <span>
-          <HistoryOutlined /> Lịch sử ({historyCategories.length})
+          <HistoryOutlined /> Lịch sử ({historyRoomTypes.length})
         </span>
       ),
       children: (
@@ -268,41 +285,81 @@ const ListCategory: React.FC = () => {
           title={
             <Space>
               <HistoryOutlined style={{ fontSize: 20, color: "#ff4d4f" }} />
-              Lịch sử Danh mục
+              Lịch sử Loại Phòng
             </Space>
           }
         >
-          <Table
-            columns={columns}
-            dataSource={historyCategories}
-            pagination={pagination}
-            rowKey={(record) => record.key || record.id}
-          />
+          <Spin spinning={loading}>
+            <Table
+              columns={columns}
+              dataSource={historyRoomTypes}
+              pagination={tablePagination}
+              rowKey={(record) => record.id}
+            />
+          </Spin>
         </Card>
       ),
     },
   ];
 
-  const handleAddCategory = (
+  const handleAddRoomType = async (
     values: any,
     fileList: any[],
     selectedAmenities: number[]
   ) => {
-    const newCategory: Category = {
-      key: Date.now().toString(),
-      id: categories.length + 1,
-      name: values.name,
-      description: values.description,
-      image: fileList[0]?.thumbUrl || "https://via.placeholder.com/150",
-      status: "active",
-      amenityCount: selectedAmenities.length,
-      homestayCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-    setCategories([...categories, newCategory]);
-    setAddModalVisible(false);
-    toast.success("Đã thêm danh mục mới!");
+    try {
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("description", values.description || "");
+      if (values.property_id) {
+        formData.append("property_id", values.property_id);
+      }
+      if (fileList[0]?.originFileObj) {
+        formData.append("image_file", fileList[0].originFileObj);
+      }
+
+      const response = await roomtypeService.createRoomType(formData);
+      if (response.success) {
+        toast.success("Đã thêm loại phòng mới!");
+        setAddModalVisible(false);
+        loadRoomTypes(pagination.current, searchText);
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra khi thêm");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thêm");
+    }
+  };
+
+  const handleUpdateRoomType = async (
+    values: any,
+    fileList: any[],
+    selectedAmenities: number[]
+  ) => {
+    if (!selectedRoomType) return;
+    try {
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("description", values.description || "");
+      formData.append("status", values.status || "active");
+      if (values.property_id) {
+        formData.append("property_id", values.property_id);
+      }
+      // Images are now handled directly in EditCategory component
+      // No need to append image_file here anymore
+      formData.append("_method", "PUT");
+
+      const response = await roomtypeService.updateRoomType(selectedRoomType.id, formData);
+      if (response.success) {
+        // Success message is already shown in EditCategory
+        setEditModalVisible(false);
+        loadRoomTypes(pagination.current, searchText);
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra khi cập nhật");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+    }
   };
 
   return (
@@ -313,27 +370,24 @@ const ListCategory: React.FC = () => {
       <AddCategory
         visible={addModalVisible}
         onCancel={() => setAddModalVisible(false)}
-        onAdd={handleAddCategory}
-        amenities={allAmenities}
+        onAdd={handleAddRoomType}
       />
 
       <EditCategory
         visible={editModalVisible}
-        category={selectedCategory}
+        roomType={selectedRoomType}
         onCancel={() => setEditModalVisible(false)}
-        onUpdate={() => {}}
-        amenities={allAmenities}
+        onUpdate={handleUpdateRoomType}
       />
 
       <DetailCategory
         visible={detailModalVisible}
-        category={selectedCategory}
+        roomType={selectedRoomType}
         onClose={() => setDetailModalVisible(false)}
-        onEdit={(cat) => {
-          setSelectedCategory(cat);
+        onEdit={(rt) => {
+          setSelectedRoomType(rt);
           setEditModalVisible(true);
         }}
-        amenities={allAmenities}
       />
     </>
   );

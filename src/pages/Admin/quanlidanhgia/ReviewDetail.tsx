@@ -4,7 +4,7 @@ import { Card, Spin, Rate, Image, Tag, Button } from "antd";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import reviewService from "../../../service/reviewService";
-import { Review } from "../../../types/review/review";
+import type { Review } from "../../../types/review/review";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 
 const ReviewDetail: React.FC = () => {
@@ -31,7 +31,10 @@ const ReviewDetail: React.FC = () => {
     fetchReviewDetail();
   }, [id]);
 
-  if (loading) return <Spin size="large" style={{ display: "block", margin: "50px auto" }} />;
+  if (loading)
+    return (
+      <Spin size="large" style={{ display: "block", margin: "50px auto" }} />
+    );
 
   if (!review) return <div>Không tìm thấy đánh giá</div>;
 
@@ -57,7 +60,8 @@ const ReviewDetail: React.FC = () => {
           <strong>Phòng:</strong> {review.roomId || "-"}
         </p>
         <p>
-          <strong>Đánh giá:</strong> <Rate disabled defaultValue={review.rating} />
+          <strong>Đánh giá:</strong>{" "}
+          <Rate disabled defaultValue={review.rating} />
         </p>
         <p>
           <strong>Nhận xét:</strong> {review.comment || "-"}
@@ -81,17 +85,33 @@ const ReviewDetail: React.FC = () => {
           </Tag>
         </p>
         <p>
-          <strong>Ngày tạo:</strong> {dayjs(review.createdAt).format("DD/MM/YYYY HH:mm")}
+          <strong>Ngày tạo:</strong>{" "}
+          {dayjs(review.createdAt).format("DD/MM/YYYY HH:mm")}
         </p>
         <p>
           <strong>Ngày duyệt:</strong>{" "}
-          {review.reviewedAt ? dayjs(review.reviewedAt).format("DD/MM/YYYY HH:mm") : "-"}
+          {review.reviewedAt
+            ? dayjs(review.reviewedAt).format("DD/MM/YYYY HH:mm")
+            : "-"}
         </p>
 
         {review.photos && review.photos.length > 0 && (
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 16,
+            }}
+          >
             {review.photos.map((p, index) => (
-              <Image key={index} width={150} height={100} src={p} style={{ borderRadius: 6 }} />
+              <Image
+                key={index}
+                width={150}
+                height={100}
+                src={p}
+                style={{ borderRadius: 6 }}
+              />
             ))}
           </div>
         )}

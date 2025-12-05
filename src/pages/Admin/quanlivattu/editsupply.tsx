@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Form, Input, InputNumber, Select } from "antd";
 import { toast } from "react-toastify";
-import { Supply, SupplyStatus, statusMapToBackend, statusMapToFrontend, SupplyStatusBackend } from "../../../types/supply/supplies";
+import type { Supply, SupplyStatus, SupplyStatusBackend } from "../../../types/supply/supplies";
+import { statusMapToBackend, statusMapToFrontend } from "../../../types/supply/supplies";
 import supplyService from "../../../service/supplyService";
 
 interface EditSupplyProps {

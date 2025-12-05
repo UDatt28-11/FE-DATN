@@ -18,7 +18,8 @@ import {
 } from "@ant-design/icons";
 import { toast } from "react-toastify";
 
-import { Supply, statusMapToFrontend, SupplyStatusBackend } from "../../../types/supply/supplies";
+import type { Supply, SupplyStatusBackend } from "../../../types/supply/supplies";
+import { statusMapToFrontend } from "../../../types/supply/supplies";
 import AddSupply from "./addsupply";
 import EditSupply from "./editsupply";
 import ViewSupply from "./viewsupply";
@@ -42,21 +43,9 @@ const ListSupplies: React.FC = () => {
   const fetchSupplies = async () => {
     setLoading(true);
     try {
-      const res: any = await supplyService.getAll();
-      // Xử lý response có thể có nhiều dạng
-      let data: Supply[] = [];
-      if (Array.isArray(res)) {
-        data = res;
-      } else if (res?.data) {
-        if (Array.isArray(res.data)) {
-          data = res.data;
-        } else if (res.data?.data && Array.isArray(res.data.data)) {
-          data = res.data.data;
-        }
-      }
-      setData(data);
+      const data = await supplyService.getAll();
+      setData(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      console.error("Lỗi khi tải danh sách:", error);
       toast.error(error.response?.data?.message || "Không thể tải danh sách vật tư!");
       setData([]);
     } finally {

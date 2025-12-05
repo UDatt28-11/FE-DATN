@@ -9,13 +9,13 @@ export interface Invoice {
   invoice_number: string;
   issue_date: string;
   due_date: string;
-  
+
   // Customer info
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
   customer_address?: string;
-  
+
   // Amounts
   subtotal: number;
   tax_rate: number;
@@ -24,26 +24,36 @@ export interface Invoice {
   total_amount: number;
   paid_amount: number;
   balance: number;
-  
+
   // Status
-  payment_status: 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
-  invoice_status: 'draft' | 'sent' | 'viewed' | 'paid' | 'cancelled';
-  
+  payment_status:
+    | "pending"
+    | "partially_paid"
+    | "paid"
+    | "overdue"
+    | "cancelled";
+  invoice_status: "draft" | "sent" | "viewed" | "paid" | "cancelled";
+
   // Payment info
-  payment_method?: 'cash' | 'bank_transfer' | 'credit_card' | 'e_wallet' | 'other';
+  payment_method?:
+    | "cash"
+    | "bank_transfer"
+    | "credit_card"
+    | "e_wallet"
+    | "other";
   payment_date?: string;
   payment_notes?: string;
-  
+
   // Additional
   notes?: string;
   terms_conditions?: string;
-  
+
   // Relations
   items?: InvoiceItem[];
   discounts?: InvoiceDiscount[];
   property?: any;
   booking_order?: any;
-  
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -52,20 +62,21 @@ export interface Invoice {
 export interface InvoiceItem {
   id: number;
   invoice_id: number;
-  item_type: 'room_charge' | 'service_charge' | 'penalty' | 'other';
+  item_type: "room_charge" | "service_charge" | "damage_fee" | "penalty" | "other";
   description: string;
   quantity: number;
   unit_price: number;
-  amount: number;
-  tax_rate: number;
-  tax_amount: number;
-  total: number;
-  
+  amount?: number;
+  total_line?: number; // Tổng tiền của item (quantity * unit_price)
+  tax_rate?: number;
+  tax_amount?: number;
+  total?: number; // Alias của total_line
+
   // Related IDs
   booking_detail_id?: number;
   room_id?: number;
   service_id?: number;
-  
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -74,14 +85,14 @@ export interface InvoiceItem {
 export interface InvoiceDiscount {
   id: number;
   invoice_id: number;
-  discount_type: 'percentage' | 'fixed_amount';
+  discount_type: "percentage" | "fixed_amount";
   discount_value: number;
   discount_amount: number;
   description?: string;
-  
+
   // Relations
   promotion_id?: number;
-  
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -90,23 +101,23 @@ export interface InvoiceDiscount {
 export interface InvoiceConfig {
   id: number;
   property_id: number;
-  
+
   // Tax settings
   tax_rate: number;
   tax_inclusive: boolean;
-  
+
   // Payment terms
   payment_terms_days: number;
   late_fee_percentage: number;
-  
+
   // Invoice settings
   invoice_prefix: string;
   invoice_starting_number: number;
-  
+
   // Notes templates
   default_notes?: string;
   default_terms?: string;
-  
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -117,14 +128,14 @@ export interface RefundPolicy {
   property_id: number;
   name: string;
   description?: string;
-  
+
   // Policy rules
   days_before_checkin: number;
   refund_percentage: number;
-  
+
   // Status
   is_active: boolean;
-  
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -138,7 +149,7 @@ export interface InvoiceStatistics {
   overdue_invoices: number;
   total_outstanding: number;
   average_invoice_amount: number;
-  
+
   // By status
   by_status: {
     [key: string]: {
@@ -146,7 +157,7 @@ export interface InvoiceStatistics {
       total: number;
     };
   };
-  
+
   // By payment method
   by_payment_method: {
     [key: string]: {
@@ -204,7 +215,7 @@ export interface SplitInvoiceData {
 }
 
 export interface ApplyDiscountData {
-  discount_type: 'percentage' | 'fixed_amount';
+  discount_type: "percentage" | "fixed_amount";
   discount_value: number;
   description?: string;
   promotion_id?: number;
@@ -215,6 +226,3 @@ export interface ApplyRefundPolicyData {
   cancellation_date: string;
   reason?: string;
 }
-
-
-

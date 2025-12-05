@@ -55,7 +55,8 @@ const ListInvoice: React.FC = () => {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const response: any = await invoiceService.getAll();
+      // Include booking_order để lấy thông tin trạng thái check-in
+      const response: any = await invoiceService.getAll({ include: 'bookingOrder' });
       console.log("Invoice API Response:", response);
 
       // Xử lý response có thể có nhiều dạng
@@ -71,13 +72,50 @@ const ListInvoice: React.FC = () => {
         data = [];
       }
 
-      setInvoices(data);
-      setFilteredInvoices(data);
+      // Map dữ liệu để đảm bảo có invoice_number và customer_name
+      const mappedData = data.map((invoice: any) => {
+        // Tạo invoice_number nếu không có (từ id)
+        if (!invoice.invoice_number && invoice.id) {
+          invoice.invoice_number = `INV-${String(invoice.id).padStart(6, '0')}`;
+        }
+
+        // Lấy customer_name từ booking_order nếu không có trực tiếp
+        if (!invoice.customer_name && invoice.booking_order) {
+          // Có thể lấy từ booking_order.guest hoặc booking_order.customer_name
+          if (invoice.booking_order.guest) {
+            invoice.customer_name = invoice.booking_order.guest.full_name || 
+                                   invoice.booking_order.guest.name || 
+                                   'Khách hàng';
+          } else if (invoice.booking_order.customer_name) {
+            invoice.customer_name = invoice.booking_order.customer_name;
+          } else {
+            invoice.customer_name = 'Khách hàng';
+          }
+
+          // Lấy customer_email từ booking_order nếu không có
+          if (!invoice.customer_email && invoice.booking_order.guest) {
+            invoice.customer_email = invoice.booking_order.guest.email || '';
+          }
+        }
+
+        // Đảm bảo có customer_name (fallback)
+        if (!invoice.customer_name) {
+          invoice.customer_name = 'Khách hàng';
+        }
+
+        return invoice;
+      });
+
+      setInvoices(mappedData);
+      setFilteredInvoices(mappedData);
     } catch (error: any) {
-      console.error("Lỗi khi tải danh sách:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể tải danh sách hóa đơn!"
-      );
+      // Không log error cho 401/403 vì axios interceptor sẽ xử lý redirect
+      if (error.response?.status !== 401 && error.response?.status !== 403) {
+        console.error("Lỗi khi tải danh sách:", error);
+        toast.error(
+          error.response?.data?.message || "Không thể tải danh sách hóa đơn!"
+        );
+      }
       setInvoices([]);
       setFilteredInvoices([]);
     } finally {
@@ -107,8 +145,9 @@ const ListInvoice: React.FC = () => {
         };
       }
       setStatistics(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi khi tải thống kê:", error);
+      // Nếu lỗi 401/403, có thể là do chưa đăng nhập hoặc không có quyền
       // Set default stats nếu lỗi
       setStatistics({
         total_invoices: 0,
@@ -117,6 +156,10 @@ const ListInvoice: React.FC = () => {
         pending_invoices: 0,
         overdue_invoices: 0,
       });
+      // Không hiển thị error message cho 401/403 để tránh làm phiền user
+      if (error.response?.status !== 401 && error.response?.status !== 403) {
+        // Có thể thêm toast notification cho các lỗi khác nếu cần
+      }
     }
   };
 
@@ -278,25 +321,79 @@ const ListInvoice: React.FC = () => {
       key: "invoice_number",
       fixed: "left",
       width: 130,
-      render: (text) => (
-        <span style={{ fontWeight: 600, color: "#1890ff" }}>
-          {text || "N/A"}
-        </span>
-      ),
+      render: (text, record) => {
+        // Tạo invoice_number từ id nếu không có
+        const invoiceNumber = text || (record.id ? `INV-${String(record.id).padStart(6, '0')}` : 'N/A');
+        return (
+          <span style={{ fontWeight: 600, color: "#1890ff" }}>
+            {invoiceNumber}
+          </span>
+        );
+      },
     },
     {
       title: "Khách hàng",
       dataIndex: "customer_name",
       key: "customer_name",
       width: 180,
-      render: (text, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{text || "N/A"}</div>
-          <div style={{ fontSize: 12, color: "#888" }}>
-            {record.customer_email || ""}
+      render: (text, record: any) => {
+        // Lấy customer_name từ booking_order nếu không có trực tiếp
+        let customerName = text;
+        let customerEmail = record.customer_email;
+        const bookingOrder = record.booking_order || record.bookingOrder;
+
+        if (!customerName && bookingOrder) {
+          if (bookingOrder.guest) {
+            customerName = bookingOrder.guest.full_name || 
+                          bookingOrder.guest.name || 
+                          'Khách hàng';
+            customerEmail = customerEmail || bookingOrder.guest.email || '';
+          } else if (bookingOrder.customer_name) {
+            customerName = bookingOrder.customer_name;
+          } else {
+            customerName = 'Khách hàng';
+          }
+        }
+
+        if (!customerName) {
+          customerName = 'Khách hàng';
+        }
+
+        // Lấy trạng thái check-in từ booking_order
+        const bookingStatus = bookingOrder?.status;
+        const getBookingStatusTag = () => {
+          if (!bookingStatus) return null;
+          const statusMap: Record<string, { color: string; text: string; icon: React.ReactNode }> = {
+            'checked_in': { color: 'green', text: 'Đã check-in', icon: <CheckCircleOutlined /> },
+            'partially_checked_in': { color: 'orange', text: 'Check-in một phần', icon: <ExclamationCircleOutlined /> },
+            'checked_out': { color: 'blue', text: 'Đã check-out', icon: <ClockCircleOutlined /> },
+            'partially_checked_out': { color: 'cyan', text: 'Check-out một phần', icon: <ClockCircleOutlined /> },
+            'confirmed': { color: 'processing', text: 'Đã xác nhận', icon: <CheckCircleOutlined /> },
+            'pending': { color: 'warning', text: 'Chờ xác nhận', icon: <ClockCircleOutlined /> },
+            'completed': { color: 'success', text: 'Hoàn thành', icon: <CheckCircleOutlined /> },
+            'cancelled': { color: 'error', text: 'Đã hủy', icon: <CloseCircleOutlined /> },
+          };
+          const config = statusMap[bookingStatus];
+          if (!config) return null;
+          return (
+            <Tag color={config.color} icon={config.icon} style={{ marginTop: 4 }}>
+              {config.text}
+            </Tag>
+          );
+        };
+
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{customerName}</div>
+            {customerEmail && (
+              <div style={{ fontSize: 12, color: "#888" }}>
+                {customerEmail}
+              </div>
+            )}
+            {getBookingStatusTag()}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: "Ngày tạo",
