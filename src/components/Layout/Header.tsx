@@ -336,6 +336,9 @@ const Header: React.FC = () => {
                       <li className={isActive('/contact')}>
                         <Link to="/contact" onClick={closeMenu}>Contact</Link>
                       </li>
+                      <li className={isActive('/policy')}>
+                        <Link to="/policy" onClick={closeMenu}>Policy</Link>
+                      </li>
                     </ul>
 
                     {/* Button or User Menu - Using Ant Design */}

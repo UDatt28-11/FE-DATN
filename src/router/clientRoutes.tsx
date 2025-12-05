@@ -22,6 +22,7 @@ import Blog from "../pages/Blog";
 import Contact from "../pages/Clients/Contact/Contact";
 import Profile from "../pages/Clients/Profile";
 import Settings from "../pages/Clients/Settings";
+import PolicyPage from "../pages/Clients/Policy";
 import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
 import AdminLoginPage from "../pages/Admin/AdminLoginPage";
 import GoogleCallback from "../pages/Auth/GoogleCallback";
@@ -146,6 +147,10 @@ export const clientRoutes: RouteObject[] = [
   {
     path: "/contact",
     element: <ClientLayout><Contact /></ClientLayout>,
+  },
+  {
+    path: "/policy",
+    element: <ClientLayout><PolicyPage /></ClientLayout>,
   },
   {
     path: "/reset-password/:token",
