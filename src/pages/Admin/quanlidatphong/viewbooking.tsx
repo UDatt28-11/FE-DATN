@@ -52,6 +52,7 @@ import type {
 } from "../../../types/booking/booking";
 import { getBooking } from "../../../service/bookingService";
 import AdminCheckInModal from "../../../components/Booking/AdminCheckInModal";
+import AdminCheckoutModal from "../../../components/Booking/AdminCheckoutModal";
 import invoiceService from "../../../service/invoiceService";
 import serviceService, { type Service } from "../../../service/serviceService";
 import supplyService, { type Supply } from "../../../service/supplyService";
@@ -63,6 +64,7 @@ const ViewBooking: React.FC = () => {
   const [booking, setBooking] = useState<BookingOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkInModalVisible, setCheckInModalVisible] = useState(false);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
 
   // State cho quản lý invoices của booking hiện tại
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -584,6 +586,19 @@ const ViewBooking: React.FC = () => {
                 }}
               >
                 Check-in trực tiếp
+              </Button>
+            )}
+            {(booking.status === 'checked_in' || booking.status === 'partially_checked_in' || booking.status === 'partially_checked_out') && (
+              <Button
+                type="primary"
+                icon={<FileTextOutlined />}
+                onClick={() => setCheckoutModalVisible(true)}
+                style={{
+                  backgroundColor: '#ff4d4f',
+                  borderColor: '#ff4d4f',
+                }}
+              >
+                Checkout & Tạo hóa đơn
               </Button>
             )}
             <Tag
@@ -1202,6 +1217,23 @@ const ViewBooking: React.FC = () => {
             fetchBookingDetail(parseInt(id));
           }
           setCheckInModalVisible(false);
+        }}
+      />
+
+      {/* Modal checkout với thiệt hại vật tư */}
+      <AdminCheckoutModal
+        open={checkoutModalVisible}
+        booking={booking}
+        onCancel={() => {
+          setCheckoutModalVisible(false);
+        }}
+        onSuccess={() => {
+          // Refresh booking data
+          if (id) {
+            fetchBookingDetail(parseInt(id));
+            fetchInvoices(parseInt(id));
+          }
+          setCheckoutModalVisible(false);
         }}
       />
       
