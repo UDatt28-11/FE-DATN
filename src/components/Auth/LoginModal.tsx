@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, Button, Divider, Typography, message, Select, Space } from 'antd';
-import { GoogleOutlined, UserOutlined, LockOutlined, SafetyOutlined, TeamOutlined, UserSwitchOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Modal, Form, Input, Button, Divider, Typography, message } from 'antd';
+import { GoogleOutlined, UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../service/authService';
-import type { UserRole } from '../../utils/permissions';
 import { getDefaultDashboard } from '../../utils/permissions';
 
 const { Text } = Typography;
-const { Option } = Select;
 
 interface LoginModalProps {
     open?: boolean;
@@ -16,7 +14,6 @@ interface LoginModalProps {
     onClose: () => void;
     onSwitchToRegister: () => void;
     onSwitchToForgotPassword?: () => void;
-    defaultRole?: 'user' | 'admin' | 'staff';
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
@@ -25,40 +22,21 @@ const LoginModal: React.FC<LoginModalProps> = ({
     onClose,
     onSwitchToRegister,
     onSwitchToForgotPassword,
-    defaultRole = 'user'
 }) => {
     const isOpen = open !== undefined ? open : visible; // Support both for backward compatibility
     const navigate = useNavigate();
     const { login } = useAuth();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'staff'>(defaultRole);
 
     const onFinish = async (values: any) => {
         setLoading(true);
         try {
-            let response;
-            
-            // Gọi API đăng nhập theo role
-            switch (selectedRole) {
-                case 'admin':
-                    response = await authService.adminLogin({
-                        email: values.email,
-                        password: values.password,
-                    });
-                    break;
-                case 'staff':
-                    response = await authService.staffLogin({
-                        email: values.email,
-                        password: values.password,
-                    });
-                    break;
-                default:
-                    response = await authService.login({
-                        email: values.email,
-                        password: values.password,
-                    });
-            }
+            // Sử dụng unified login - backend tự động phát hiện role
+            const response = await authService.unifiedLogin({
+                email: values.email,
+                password: values.password,
+            });
 
             // Lưu thông tin user và token vào context
             if (response.user && response.token) {
@@ -94,28 +72,12 @@ const LoginModal: React.FC<LoginModalProps> = ({
         try {
             setLoading(true);
             // Lấy Google OAuth URL từ backend
-            const googleUrl = await authService.getGoogleLoginUrl(selectedRole);
+            const googleUrl = await authService.getGoogleLoginUrl('user');
             // Redirect đến Google
             window.location.href = googleUrl;
         } catch (error: any) {
             message.error(error.message || 'Không thể kết nối đến Google');
             setLoading(false);
-        }
-    };
-
-    const getRoleIcon = (role: string) => {
-        switch (role) {
-            case 'admin': return <SafetyOutlined />;
-            case 'staff': return <TeamOutlined />;
-            default: return <UserSwitchOutlined />;
-        }
-    };
-
-    const getRoleLabel = (role: string) => {
-        switch (role) {
-            case 'admin': return 'Quản trị viên';
-            case 'staff': return 'Nhân viên';
-            default: return 'Người dùng';
         }
     };
 
@@ -126,7 +88,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
             footer={null}
             width={450}
             centered
-            destroyOnHidden
+            destroyOnClose
             styles={{
                 body: { padding: '40px 30px' }
             }}
@@ -146,7 +108,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     fontSize: 15,
                     marginBottom: 0
                 }}>
-                    Chào mừng bạn trở lại với Palatin Hotel!
+                    Chào mừng bạn trở lại với Sunrise Beach Resort!
                 </p>
             </div>
 
@@ -156,37 +118,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 onFinish={onFinish}
                 size="large"
             >
-                <Form.Item
-                    label={<span style={{ fontWeight: 500 }}>Đăng nhập với vai trò</span>}
-                    style={{ marginBottom: 20 }}
-                >
-                    <Select
-                        value={selectedRole}
-                        onChange={setSelectedRole}
-                        style={{ width: '100%' }}
-                        size="large"
-                    >
-                        <Option value="user">
-                            <Space>
-                                <UserSwitchOutlined />
-                                <span>Người dùng</span>
-                            </Space>
-                        </Option>
-                        <Option value="staff">
-                            <Space>
-                                <TeamOutlined />
-                                <span>Nhân viên</span>
-                            </Space>
-                        </Option>
-                        <Option value="admin">
-                            <Space>
-                                <SafetyOutlined />
-                                <span>Quản trị viên</span>
-                            </Space>
-                        </Option>
-                    </Select>
-                </Form.Item>
-
                 <Form.Item
                     name="email"
                     rules={[
@@ -241,17 +172,19 @@ const LoginModal: React.FC<LoginModalProps> = ({
                             Quên mật khẩu?
                         </Button>
                     ) : (
-                        <Link
-                            to="/forgot-password"
+                        <Button
+                            type="link"
                             onClick={handleCancel}
                             style={{
                                 color: '#cb8670',
                                 fontSize: 14,
-                                fontWeight: 500
+                                fontWeight: 500,
+                                padding: 0,
+                                height: 'auto'
                             }}
                         >
                             Quên mật khẩu?
-                        </Link>
+                        </Button>
                     )}
                 </div>
 

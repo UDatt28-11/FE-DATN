@@ -30,6 +30,43 @@ import { checkInDirect } from '../../service/bookingService';
 const { Text, Title } = Typography;
 const { TextArea } = Input;
 
+// Custom validators
+const validateFullName = (_: any, value: string) => {
+    if (!value) return Promise.reject('Vui lòng nhập họ và tên');
+    const words = value.trim().split(/\s+/);
+    if (words.length < 2) {
+        return Promise.reject('Thông tin không hợp lệ');
+    }
+    return Promise.resolve();
+};
+
+const validateDateOfBirth = (_: any, value: any) => {
+    if (!value) return Promise.resolve(); // Optional field
+    const age = dayjs().diff(dayjs(value), 'year');
+    if (age < 16) {
+        return Promise.reject('Thông tin không hợp lệ');
+    }
+    return Promise.resolve();
+};
+
+const validateIdentityNumber = (identityType: string) => (_: any, value: string) => {
+    if (!value) return Promise.reject('Vui lòng nhập số giấy tờ');
+    
+    if (identityType === 'cccd') {
+        // CCCD: exactly 12 digits
+        if (!/^\d{12}$/.test(value)) {
+            return Promise.reject('Thông tin không hợp lệ');
+        }
+    } else if (identityType === 'passport') {
+        // Passport: 1 letter + 7 digits
+        if (!/^[A-Za-z]\d{7}$/.test(value)) {
+            return Promise.reject('Thông tin không hợp lệ');
+        }
+    }
+    
+    return Promise.resolve();
+};
+
 interface AdminCheckInModalProps {
     open?: boolean;
     visible?: boolean; // Deprecated, use open instead
@@ -289,7 +326,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         <Form.Item
                             name={[`guests_${index}`, 'full_name']}
                             label="Họ và tên"
-                            rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
+                            rules={[{ validator: validateFullName }]}
                         >
                             <Input placeholder="Nhập họ và tên" />
                         </Form.Item>
@@ -299,6 +336,10 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                 <Form.Item
                                     name={[`guests_${index}`, 'date_of_birth']}
                                     label="Ngày sinh"
+                                    rules={[
+                                        { required: true, message: 'Vui lòng chọn ngày sinh' },
+                                        { validator: validateDateOfBirth }
+                                    ]}
                                 >
                                     <DatePicker
                                         style={{ width: '100%' }}
@@ -314,7 +355,13 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                     label="Loại giấy tờ"
                                     rules={[{ required: true, message: 'Vui lòng chọn loại giấy tờ' }]}
                                 >
-                                    <Select placeholder="Chọn loại giấy tờ">
+                                    <Select 
+                                        placeholder="Chọn loại giấy tờ"
+                                        onChange={() => {
+                                            // Clear and revalidate identity_number when type changes
+                                            form.validateFields([[`guests_${index}`, 'identity_number']]);
+                                        }}
+                                    >
                                         <Select.Option value="cccd">CCCD/CMND</Select.Option>
                                         <Select.Option value="passport">Hộ chiếu</Select.Option>
                                     </Select>
@@ -323,11 +370,28 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         </Row>
 
                         <Form.Item
-                            name={[`guests_${index}`, 'identity_number']}
-                            label="Số giấy tờ"
-                            rules={[{ required: true, message: 'Vui lòng nhập số giấy tờ' }]}
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => 
+                                prevValues[`guests_${index}`]?.identity_type !== currentValues[`guests_${index}`]?.identity_type
+                            }
                         >
-                            <Input placeholder="Nhập số CCCD/CMND hoặc hộ chiếu" />
+                            {({ getFieldValue }) => {
+                                const identityType = getFieldValue([`guests_${index}`, 'identity_type']) || 'cccd';
+                                return (
+                                    <Form.Item
+                                        name={[`guests_${index}`, 'identity_number']}
+                                        label="Số giấy tờ"
+                                        rules={[{ validator: validateIdentityNumber(identityType) }]}
+                                    >
+                                        <Input 
+                                            placeholder={identityType === 'passport' 
+                                                ? "Nhập số hộ chiếu (VD: A1234567)" 
+                                                : "Nhập số CCCD (12 số)"
+                                            } 
+                                        />
+                                    </Form.Item>
+                                );
+                            }}
                         </Form.Item>
 
                         <Form.Item

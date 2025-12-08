@@ -59,6 +59,36 @@ export interface UploadAvatarResponse {
 // Auth Service
 const authService = {
     /**
+     * Đăng nhập thống nhất - Backend tự động phát hiện role
+     * Không cần chọn vai trò, chỉ cần email và password
+     */
+    async unifiedLogin(data: LoginRequest): Promise<AuthResponse> {
+        try {
+            const response = await axiosInstance.post<AuthResponse>('/login', data);
+
+            // Lưu token và user data vào localStorage
+            if (response.data.token) {
+                localStorage.setItem('auth_token', response.data.token);
+            }
+            if (response.data.user) {
+                localStorage.setItem('user_data', JSON.stringify(response.data.user));
+            }
+
+            return response.data;
+        } catch (error: any) {
+            // Xử lý lỗi validation từ Laravel
+            if (error.response?.status === 422 || error.response?.status === 401) {
+                const errors = error.response.data.errors;
+                if (errors) {
+                    const errorMessages = Object.values(errors).flat().join(', ');
+                    throw new Error(errorMessages);
+                }
+            }
+            throw new Error(error.response?.data?.message || 'Đăng nhập thất bại');
+        }
+    },
+
+    /**
      * Đăng ký tài khoản mới
      */
     async register(data: RegisterRequest): Promise<AuthResponse> {

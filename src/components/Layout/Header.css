@@ -73,6 +73,60 @@
   transition: all 0.3s ease-in-out;
 }
 
+/* Text Logo Styles */
+.logo-text {
+  display: flex;
+  align-items: center;
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.logo-book {
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.logo-stay {
+  color: #cb8670;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.nav-brand:hover .logo-text {
+  transform: scale(1.05);
+}
+
+.nav-brand:hover .logo-book {
+  color: #cb8670;
+}
+
+.nav-brand:hover .logo-stay {
+  color: #ffffff;
+}
+
+.header-area.is-sticky .logo-text {
+  font-size: 28px;
+}
+
+@media only screen and (max-width: 991px) {
+  .logo-text {
+    font-size: 26px;
+  }
+  
+  .header-area.is-sticky .logo-text {
+    font-size: 24px;
+  }
+}
+
+@media only screen and (max-width: 575px) {
+  .logo-text {
+    font-size: 22px;
+  }
+}
+
 .nav-brand-text {
   display: flex;
   align-items: center;

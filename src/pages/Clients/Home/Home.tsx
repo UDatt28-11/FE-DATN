@@ -51,6 +51,23 @@ const Home: React.FC = () => {
     if (import.meta.env.DEV) {
       console.log('Booking:', values);
     }
+    
+    // Xây dựng query params từ form values
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    // Số người trực tiếp từ form
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    // Navigate đến trang rooms với query params
+    navigate(`/rooms?${params.toString()}`);
   };
 
   const handleRoomTypeClick = (roomTypeId: number) => {
@@ -329,7 +346,7 @@ const Home: React.FC = () => {
 
             <h5 className="mt-30">+84 28 3822 1234</h5>
 
-            <h5>contact@palatinhotel.vn</h5>
+            <h5>contact@bookstay.vn</h5>
 
             <div className="social-info mt-50">
               <a href="#"><i className="fa-brands fa-pinterest" aria-hidden="true"></i></a>

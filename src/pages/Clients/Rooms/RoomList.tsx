@@ -45,7 +45,7 @@ import {
     SafetyOutlined,
     ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
@@ -121,7 +121,7 @@ const useDebounce = (value: any, delay: number) => {
 
 const RoomList: React.FC = () => {
     const navigate = useNavigate();
-    // const [searchParams, setSearchParams] = useSearchParams(); // Không dùng nữa vì đã bỏ filter theo loại phòng
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // Sử dụng useAuth - nếu không có AuthProvider sẽ throw error
     // Component này cần được wrap trong AuthProvider ở App level
@@ -185,28 +185,291 @@ const RoomList: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
 
+    // State cho tính năng chia phòng thông minh (Smart Room Allocation)
+    const [totalGuests, setTotalGuests] = useState<number>(0);
+    const [showRoomSuggestions, setShowRoomSuggestions] = useState<boolean>(false);
+    const [urlParamsInitialized, setUrlParamsInitialized] = useState<boolean>(false);
+
+    // Đọc URL params và khởi tạo giá trị ban đầu (từ Homepage search bar)
+    useEffect(() => {
+        if (urlParamsInitialized) return;
+        
+        const checkInParam = searchParams.get('check_in');
+        const checkOutParam = searchParams.get('check_out');
+        const adultsParam = searchParams.get('adults');
+        const childrenParam = searchParams.get('children');
+        const totalGuestsParam = searchParams.get('total_guests');
+        
+        // Set ngày check-in/check-out nếu có
+        if (checkInParam && checkOutParam) {
+            const checkInDate = dayjs(checkInParam);
+            const checkOutDate = dayjs(checkOutParam);
+            
+            if (checkInDate.isValid() && checkOutDate.isValid() && checkOutDate.isAfter(checkInDate)) {
+                setDateRange([checkInDate, checkOutDate]);
+            }
+        }
+        
+        // Set tổng số khách và hiển thị gợi ý chia phòng
+        // Khi có total_guests, KHÔNG áp dụng filter maxAdults/maxChildren
+        // Thay vào đó, hiển thị modal gợi ý chia phòng thông minh
+        if (totalGuestsParam) {
+            const guests = parseInt(totalGuestsParam, 10);
+            if (!isNaN(guests) && guests > 1) {
+                setTotalGuests(guests);
+                // Không set maxAdults/maxChildren để hiển thị tất cả phòng
+                // Modal gợi ý chia phòng sẽ được hiển thị tự động
+            }
+        } else {
+            // Chỉ áp dụng filter số khách nếu KHÔNG có total_guests
+            // (tức là user đang filter thủ công, không phải từ homepage search)
+            if (adultsParam) {
+                const adults = parseInt(adultsParam, 10);
+                if (!isNaN(adults) && adults > 0) {
+                    setMaxAdults(adults);
+                }
+            }
+            
+            if (childrenParam) {
+                const children = parseInt(childrenParam, 10);
+                if (!isNaN(children) && children >= 0) {
+                    setMaxChildren(children);
+                }
+            }
+        }
+        
+        setUrlParamsInitialized(true);
+    }, [searchParams, setDateRange, urlParamsInitialized]);
+
+    // Tự động hiển thị modal gợi ý chia phòng khi có totalGuests từ URL và data đã load
+    useEffect(() => {
+        if (urlParamsInitialized && !loading && totalGuests > 1 && roomTypes.length > 0) {
+            // Delay một chút để UX mượt hơn
+            const timer = setTimeout(() => {
+                setShowRoomSuggestions(true);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [urlParamsInitialized, loading, totalGuests, roomTypes.length]);
+
+    // Định nghĩa interface cho gợi ý chia phòng
+    interface RoomAllocationSuggestion {
+        type: 'optimal' | 'economical' | 'comfortable';
+        label: string;
+        description: string;
+        rooms: { roomType: RoomTypeWithDetails; quantity: number }[];
+        totalRooms: number;
+        totalPrice: number;
+        totalCapacity: number;
+        wastedCapacity: number;
+    }
+
+    // Tính toán gợi ý chia phòng thông minh
+    const calculateRoomSuggestions = useCallback((): RoomAllocationSuggestion[] => {
+        if (totalGuests < 2 || roomTypes.length === 0) return [];
+
+        // Chỉ lấy các loại phòng còn trống
+        const availableRoomTypes = roomTypes.filter(rt => (rt.available_count || 0) > 0);
+        if (availableRoomTypes.length === 0) return [];
+
+        const suggestions: RoomAllocationSuggestion[] = [];
+
+        // ========================================
+        // GỢI Ý 1: TỐI ƯU (ít phòng nhất)
+        // ========================================
+        const optimalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
+        let remainingGuests = totalGuests;
+        
+        // Sắp xếp theo sức chứa giảm dần
+        const sortedByCapacity = [...availableRoomTypes].sort((a, b) => 
+            (b.max_adults || 2) - (a.max_adults || 2)
+        );
+
+        for (const rt of sortedByCapacity) {
+            if (remainingGuests <= 0) break;
+            const capacity = rt.max_adults || 2;
+            const available = rt.available_count || 0;
+            const needed = Math.ceil(remainingGuests / capacity);
+            const quantity = Math.min(needed, available);
+            
+            if (quantity > 0) {
+                optimalRooms.push({ roomType: rt, quantity });
+                remainingGuests -= quantity * capacity;
+            }
+        }
+
+        if (remainingGuests <= 0 && optimalRooms.length > 0) {
+            const totalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            const totalPrice = optimalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
+            const totalCapacity = optimalRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
+            
+            suggestions.push({
+                type: 'optimal',
+                label: '🎯 Tối ưu',
+                description: 'Ít phòng nhất, phù hợp nhóm đông',
+                rooms: optimalRooms,
+                totalRooms,
+                totalPrice,
+                totalCapacity,
+                wastedCapacity: totalCapacity - totalGuests,
+            });
+        }
+
+        // ========================================
+        // GỢI Ý 2: TIẾT KIỆM (giá thấp nhất)
+        // ========================================
+        const economicalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
+        remainingGuests = totalGuests;
+        
+        // Sắp xếp theo giá/người tăng dần (tính theo capacity)
+        const sortedByPricePerPerson = [...availableRoomTypes].sort((a, b) => {
+            const pricePerPersonA = (a.price_per_night || 0) / (a.max_adults || 2);
+            const pricePerPersonB = (b.price_per_night || 0) / (b.max_adults || 2);
+            return pricePerPersonA - pricePerPersonB;
+        });
+
+        for (const rt of sortedByPricePerPerson) {
+            if (remainingGuests <= 0) break;
+            const capacity = rt.max_adults || 2;
+            const available = rt.available_count || 0;
+            const needed = Math.ceil(remainingGuests / capacity);
+            const quantity = Math.min(needed, available);
+            
+            if (quantity > 0) {
+                economicalRooms.push({ roomType: rt, quantity });
+                remainingGuests -= quantity * capacity;
+            }
+        }
+
+        if (remainingGuests <= 0 && economicalRooms.length > 0) {
+            const totalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            const totalPrice = economicalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
+            const totalCapacity = economicalRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
+            
+            // Chỉ thêm nếu khác với gợi ý tối ưu
+            const isDifferent = JSON.stringify(economicalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity }))) !==
+                               JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
+            
+            if (isDifferent) {
+                suggestions.push({
+                    type: 'economical',
+                    label: '💰 Tiết kiệm',
+                    description: 'Chi phí thấp nhất theo đầu người',
+                    rooms: economicalRooms,
+                    totalRooms,
+                    totalPrice,
+                    totalCapacity,
+                    wastedCapacity: totalCapacity - totalGuests,
+                });
+            }
+        }
+
+        // ========================================
+        // GỢI Ý 3: THOẢI MÁI (ít người/phòng, rộng rãi)
+        // ========================================
+        const comfortableRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
+        remainingGuests = totalGuests;
+        
+        // Ưu tiên phòng có sức chứa lớn nhưng chỉ xếp 50-70% capacity
+        const sortedForComfort = [...availableRoomTypes].sort((a, b) => 
+            (b.max_adults || 2) - (a.max_adults || 2)
+        );
+
+        for (const rt of sortedForComfort) {
+            if (remainingGuests <= 0) break;
+            const maxCapacity = rt.max_adults || 2;
+            // Xếp ít hơn 70% sức chứa để thoải mái
+            const comfortCapacity = Math.max(1, Math.floor(maxCapacity * 0.7));
+            const available = rt.available_count || 0;
+            const needed = Math.ceil(remainingGuests / comfortCapacity);
+            const quantity = Math.min(needed, available);
+            
+            if (quantity > 0) {
+                comfortableRooms.push({ roomType: rt, quantity });
+                remainingGuests -= quantity * comfortCapacity;
+            }
+        }
+
+        if (remainingGuests <= 0 && comfortableRooms.length > 0) {
+            const totalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
+            const totalPrice = comfortableRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
+            const totalCapacity = comfortableRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
+            
+            // Chỉ thêm nếu khác với các gợi ý trước
+            const comfortKey = JSON.stringify(comfortableRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
+            const optimalKey = JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
+            const economicalKey = JSON.stringify(economicalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
+            
+            if (comfortKey !== optimalKey && comfortKey !== economicalKey) {
+                suggestions.push({
+                    type: 'comfortable',
+                    label: '🛋️ Thoải mái',
+                    description: 'Rộng rãi, ít người/phòng hơn',
+                    rooms: comfortableRooms,
+                    totalRooms,
+                    totalPrice,
+                    totalCapacity,
+                    wastedCapacity: totalCapacity - totalGuests,
+                });
+            }
+        }
+
+        return suggestions;
+    }, [totalGuests, roomTypes]);
+
+    // Áp dụng gợi ý chia phòng vào cart
+    const applyRoomSuggestion = (suggestion: RoomAllocationSuggestion) => {
+        if (!dateRange || !dateRange[0] || !dateRange[1]) {
+            message.warning('Vui lòng chọn ngày nhận và trả phòng trước!');
+            return;
+        }
+
+        // Clear cart trước
+        clearCart();
+
+        // Tính số đêm
+        const checkInStr = dateRange[0].format('YYYY-MM-DD');
+        const checkOutStr = dateRange[1].format('YYYY-MM-DD');
+        const nights = dateRange[1].diff(dateRange[0], 'day');
+
+        // Thêm các phòng theo gợi ý
+        for (const { roomType, quantity } of suggestion.rooms) {
+            const pricePerNight = roomType.price_per_night || 0;
+            addRoomTypeToCart(
+                roomType, 
+                quantity, 
+                checkInStr, 
+                checkOutStr, 
+                nights,
+                pricePerNight,
+                roomType.max_adults || 2, 
+                roomType.max_children || 0
+            );
+        }
+
+        message.success(`Đã thêm ${suggestion.totalRooms} phòng vào giỏ hàng theo gợi ý "${suggestion.label}"`);
+        setShowRoomSuggestions(false);
+        setCartVisible(true);
+    };
+
+    // Tính toán gợi ý khi totalGuests thay đổi
+    const roomSuggestions = calculateRoomSuggestions();
+
     // Debounce search query
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     // Đã bỏ filter theo loại phòng, không cần lấy room_type_id từ URL nữa
 
-    // Fetch room types và amenities cho filter options
+    // Fetch amenities cho filter options (OPTIMIZED: chỉ lấy amenities, room types đã có từ fetchRoomTypes)
     useEffect(() => {
         const fetchFilterOptions = async () => {
             setLoadingOptions(true);
             try {
-                const [, amenitiesRes] = await Promise.allSettled([
-                    api.get('/public/room-types', { params: { status: 'active', per_page: 100 } }),
-                    api.get('/public/amenities', { params: { per_page: 100 } }),
-                ]);
-
-                // Không cần lưu roomTypeOptions nữa vì đã dùng roomTypes từ fetchRoomTypes
-                // if (roomTypesRes.status === 'fulfilled' && roomTypesRes.value.data.success) {
-                //     setRoomTypeOptions(roomTypesRes.value.data.data || []);
-                // }
-
-                if (amenitiesRes.status === 'fulfilled' && amenitiesRes.value.data.success) {
-                    setAmenities(amenitiesRes.value.data.data || []);
+                // Chỉ gọi 1 API lấy amenities, không gọi room-types nữa vì đã có từ fetchRoomTypes
+                const amenitiesRes = await api.get('/public/amenities', { params: { per_page: 100 } });
+                
+                if (amenitiesRes.data.success) {
+                    setAmenities(amenitiesRes.data.data || []);
                 }
             } catch (error: any) {
                 if (import.meta.env.DEV) {
@@ -435,6 +698,8 @@ const RoomList: React.FC = () => {
         setSortBy("created_at");
         setSortOrder("desc");
         setCurrentPage(1);
+        setTotalGuests(0);
+        setShowRoomSuggestions(false);
         // setSearchParams({}); // Không dùng nữa
     };
 
@@ -1350,10 +1615,54 @@ const RoomList: React.FC = () => {
                                 </Select>
                             </div>
 
+                            {/* 🎯 Chia phòng thông minh cho nhóm đông */}
+                            <div style={{ 
+                                marginBottom: 24, 
+                                padding: 16, 
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                                borderRadius: 12,
+                                color: 'white'
+                            }}>
+                                <Text strong style={{ display: 'block', marginBottom: 12, color: 'white', fontSize: 14 }}>
+                                    🎯 Chia phòng thông minh
+                                </Text>
+                                <Text style={{ display: 'block', marginBottom: 12, color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
+                                    Nhập tổng số khách, hệ thống sẽ tự gợi ý cách chia phòng tối ưu
+                                </Text>
+                                <Space.Compact style={{ width: '100%' }}>
+                                    <InputNumber
+                                        style={{ width: '100%' }}
+                                        min={0}
+                                        max={100}
+                                        value={totalGuests}
+                                        onChange={(value) => {
+                                            setTotalGuests(value || 0);
+                                            if ((value || 0) >= 2) {
+                                                setShowRoomSuggestions(true);
+                                            } else {
+                                                setShowRoomSuggestions(false);
+                                            }
+                                        }}
+                                        placeholder="Nhập số khách (VD: 20)"
+                                        addonAfter="người"
+                                    />
+                                </Space.Compact>
+                                {totalGuests >= 2 && (
+                                    <Button 
+                                        type="default" 
+                                        size="small"
+                                        style={{ marginTop: 8, background: 'white', color: '#667eea' }}
+                                        onClick={() => setShowRoomSuggestions(true)}
+                                    >
+                                        Xem gợi ý chia phòng →
+                                    </Button>
+                                )}
+                            </div>
+
                             {/* Nhóm khách */}
                             <div style={{ marginBottom: 24 }}>
                                 <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Nhóm khách
+                                    Nhóm khách (cách khác)
                                 </Text>
                                 <Select
                                     style={{ width: '100%' }}
@@ -1538,6 +1847,167 @@ const RoomList: React.FC = () => {
                         </Col>
                     </Row>
                 </div>
+            </Modal>
+
+            {/* Modal Gợi ý chia phòng thông minh */}
+            <Modal
+                title={
+                    <Space>
+                        <span>🎯</span>
+                        <span>Gợi ý chia phòng cho {totalGuests} khách</span>
+                    </Space>
+                }
+                open={showRoomSuggestions && totalGuests >= 2}
+                onCancel={() => setShowRoomSuggestions(false)}
+                footer={null}
+                width={900}
+                centered
+            >
+                {!dateRange || !dateRange[0] || !dateRange[1] ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <CalendarOutlined style={{ fontSize: 48, color: '#999', marginBottom: 16 }} />
+                        <Title level={4} style={{ color: '#999' }}>Vui lòng chọn ngày nhận - trả phòng trước</Title>
+                        <Text type="secondary">Hệ thống cần biết ngày để kiểm tra phòng còn trống</Text>
+                    </div>
+                ) : roomSuggestions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <Empty 
+                            description={
+                                <span>
+                                    Không đủ phòng trống cho {totalGuests} khách trong khoảng thời gian đã chọn.
+                                    <br />
+                                    Vui lòng thử chọn ngày khác hoặc giảm số lượng khách.
+                                </span>
+                            }
+                        />
+                    </div>
+                ) : (
+                    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                        <div style={{ 
+                            padding: 16, 
+                            background: '#f0f5ff', 
+                            borderRadius: 8,
+                            border: '1px solid #d6e4ff'
+                        }}>
+                            <Text>
+                                <strong>Ngày nhận phòng:</strong> {dateRange[0]?.format('DD/MM/YYYY')} → 
+                                <strong> Ngày trả phòng:</strong> {dateRange[1]?.format('DD/MM/YYYY')}
+                                <span style={{ marginLeft: 16, color: '#1890ff' }}>
+                                    ({dateRange[1]?.diff(dateRange[0], 'day')} đêm)
+                                </span>
+                            </Text>
+                        </div>
+
+                        {roomSuggestions.map((suggestion, index) => (
+                            <Card 
+                                key={suggestion.type}
+                                size="small"
+                                style={{ 
+                                    borderRadius: 12,
+                                    border: suggestion.type === 'optimal' ? '2px solid #52c41a' : '1px solid #e8e8e8',
+                                    background: suggestion.type === 'optimal' ? '#f6ffed' : 'white'
+                                }}
+                                title={
+                                    <Space>
+                                        <span style={{ fontSize: 18 }}>{suggestion.label}</span>
+                                        {suggestion.type === 'optimal' && (
+                                            <Badge count="Đề xuất" style={{ backgroundColor: '#52c41a' }} />
+                                        )}
+                                    </Space>
+                                }
+                                extra={
+                                    <Button 
+                                        type={suggestion.type === 'optimal' ? 'primary' : 'default'}
+                                        onClick={() => applyRoomSuggestion(suggestion)}
+                                        icon={<ShoppingCartOutlined />}
+                                    >
+                                        Áp dụng
+                                    </Button>
+                                }
+                            >
+                                <Row gutter={[16, 16]}>
+                                    <Col span={24}>
+                                        <Text type="secondary">{suggestion.description}</Text>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Space wrap size={[8, 8]}>
+                                            {suggestion.rooms.map((room, idx) => (
+                                                <Card 
+                                                    key={idx}
+                                                    size="small" 
+                                                    style={{ 
+                                                        width: 200, 
+                                                        borderRadius: 8,
+                                                        background: '#fafafa'
+                                                    }}
+                                                >
+                                                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                                                        <Text strong style={{ fontSize: 13 }}>
+                                                            {room.roomType.name}
+                                                        </Text>
+                                                        <Space split={<Divider type="vertical" />}>
+                                                            <Text type="secondary" style={{ fontSize: 11 }}>
+                                                                <UserOutlined /> {room.roomType.max_adults || 2} người/phòng
+                                                            </Text>
+                                                            <Text style={{ fontSize: 11, color: '#1890ff' }}>
+                                                                x{room.quantity} phòng
+                                                            </Text>
+                                                        </Space>
+                                                        <Text style={{ color: '#f5222d', fontSize: 12 }}>
+                                                            {formatVND((room.roomType.price_per_night || 0) * room.quantity)}/đêm
+                                                        </Text>
+                                                    </Space>
+                                                </Card>
+                                            ))}
+                                        </Space>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <Row gutter={16}>
+                                            <Col span={6}>
+                                                <Text type="secondary">Tổng phòng:</Text>
+                                                <br />
+                                                <Text strong style={{ fontSize: 16 }}>{suggestion.totalRooms} phòng</Text>
+                                            </Col>
+                                            <Col span={6}>
+                                                <Text type="secondary">Sức chứa:</Text>
+                                                <br />
+                                                <Text strong style={{ fontSize: 16 }}>{suggestion.totalCapacity} người</Text>
+                                                {suggestion.wastedCapacity > 0 && (
+                                                    <Text type="secondary" style={{ fontSize: 11 }}>
+                                                        {' '}(+{suggestion.wastedCapacity} dư)
+                                                    </Text>
+                                                )}
+                                            </Col>
+                                            <Col span={12}>
+                                                <Text type="secondary">Tổng tiền/đêm:</Text>
+                                                <br />
+                                                <Text strong style={{ fontSize: 18, color: '#f5222d' }}>
+                                                    {formatVND(suggestion.totalPrice)}
+                                                </Text>
+                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                    {' '}≈ {formatVND(Math.round(suggestion.totalPrice / totalGuests))}/người
+                                                </Text>
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        ))}
+
+                        <div style={{ 
+                            padding: 12, 
+                            background: '#fffbe6', 
+                            borderRadius: 8,
+                            border: '1px solid #ffe58f'
+                        }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                💡 <strong>Lưu ý:</strong> Giá hiển thị là giá/đêm. Tổng tiền sẽ được tính dựa trên số đêm lưu trú.
+                                Bạn có thể điều chỉnh số lượng phòng sau khi thêm vào giỏ hàng.
+                            </Text>
+                        </div>
+                    </Space>
+                )}
             </Modal>
 
             {/* Modal Chi tiết phòng */}

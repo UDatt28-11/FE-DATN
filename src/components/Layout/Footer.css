@@ -25,6 +25,37 @@
   height: auto;
 }
 
+/* Footer Logo Text Styles */
+.footer-logo {
+  text-decoration: none;
+}
+
+.footer-logo .logo-text {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: all 0.3s ease-in-out;
+}
+
+.footer-logo .logo-book {
+  color: #ffffff;
+}
+
+.footer-logo .logo-stay {
+  color: #cb8670;
+}
+
+.footer-logo:hover .logo-book {
+  color: #cb8670;
+}
+
+.footer-logo:hover .logo-stay {
+  color: #ffffff;
+}
+
 .footer-area .footer-widget-area .widget-title {
   padding-top: 15px;
   color: #ffffff;

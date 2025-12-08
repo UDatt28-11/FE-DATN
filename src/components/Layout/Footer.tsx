@@ -18,13 +18,16 @@ const Footer: React.FC = () => {
           {/* Footer Widget Area - About */}
           <Col xs={24} lg={10}>
             <div className="footer-widget-area mt-50">
-              <a href="#" className="d-block mb-5">
-                <img src="/img/core-img/logo.png" alt="Palatin Logo" />
+              <a href="/" className="d-block mb-5 footer-logo">
+                <span className="logo-text">
+                  <span className="logo-book">Book</span>
+                  <span className="logo-stay">Stay</span>
+                </span>
               </a>
               <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada 
-                lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula 
-                sapien. Suspendisse cursus faucibus finibus.
+                BookStay - Hệ thống đặt phòng khách sạn trực tuyến hàng đầu. 
+                Chúng tôi cam kết mang đến cho bạn trải nghiệm lưu trú tuyệt vời 
+                với dịch vụ chuyên nghiệp và giá cả hợp lý.
               </p>
             </div>
           </Col>
@@ -32,24 +35,24 @@ const Footer: React.FC = () => {
           {/* Footer Widget Area - Map */}
           <Col xs={24} md={12} lg={8}>
             <div className="footer-widget-area mt-50">
-              <h6 className="widget-title mb-5">Find us on the map</h6>
-              <img src="/img/bg-img/footer-map.png" alt="Map" />
+              <h6 className="widget-title mb-5">Tìm chúng tôi trên bản đồ</h6>
+              <img src="/img/bg-img/footer-map.png" alt="Bản đồ" />
             </div>
           </Col>
 
           {/* Footer Widget Area - Newsletter */}
           <Col xs={24} md={12} lg={6}>
             <div className="footer-widget-area mt-50">
-              <h6 className="widget-title mb-5">Subscribe to our newsletter</h6>
+              <h6 className="widget-title mb-5">Đăng ký nhận tin</h6>
               <form onSubmit={handleSubscribe} className="subscribe-form">
                 <Input
                   type="email"
                   name="subscribe-email"
                   id="subscribeemail"
-                  placeholder="Your E-mail"
+                  placeholder="Email của bạn"
                 />
                 <Button type="primary" htmlType="submit">
-                  Subscribe
+                  Đăng ký
                 </Button>
               </form>
             </div>
@@ -59,11 +62,7 @@ const Footer: React.FC = () => {
           <Col xs={24}>
             <div className="copywrite-text mt-30">
               <p>
-                Copyright &copy;{currentYear} All rights reserved | This template is made with{' '}
-                <i className="fa fa-heart-o" aria-hidden="true"></i> by{' '}
-                <a href="https://colorlib.com" target="_blank" rel="noopener noreferrer">
-                  Colorlib
-                </a>
+                Bản quyền &copy;{currentYear} BookStay. Đã đăng ký bản quyền.
               </p>
             </div>
           </Col>

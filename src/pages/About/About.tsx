@@ -64,7 +64,7 @@ const About: React.FC = () => {
             <Col xs={24} lg={12} data-aos="fade-right">
               <div style={{ marginBottom: '100px' }}>
                 <Title level={2} style={{ marginBottom: '2rem' }}>
-                  Welcome to Palatin
+                  Welcome to BookStay
                 </Title>
                 <Paragraph style={{ marginBottom: '2rem', fontSize: '16px' }}>
                   Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque, at rutrum nulla dictum. Ut ac ligula sapien. Suspendisse cursus faucibus finibus.

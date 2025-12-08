@@ -26,14 +26,14 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
                 {/* Check In */}
                 <Form.Item
                     name="checkIn"
-                    label="Check In"
+                    label="Nhận phòng"
                     className="form-group"
                     initialValue={dayjs()}
                 >
                     <DatePicker
-                        placeholder="Select date"
+                        placeholder="Chọn ngày"
                         size="large"
-                        format="DD MMMM"
+                        format="DD/MM/YYYY"
                         style={{ width: '100%' }}
                         suffixIcon={<i className="fa fa-angle-down" />}
                         disabledDate={(current) => current && current < dayjs().startOf('day')}
@@ -43,14 +43,14 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
                 {/* Check Out */}
                 <Form.Item
                     name="checkOut"
-                    label="Check Out"
+                    label="Trả phòng"
                     className="form-group"
                     initialValue={dayjs().add(1, 'day')}
                 >
                     <DatePicker
-                        placeholder="Select date"
+                        placeholder="Chọn ngày"
                         size="large"
-                        format="DD MMMM"
+                        format="DD/MM/YYYY"
                         style={{ width: '100%' }}
                         suffixIcon={<i className="fa fa-angle-down" />}
                         disabledDate={(current) => {
@@ -60,32 +60,16 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
                     />
                 </Form.Item>
 
-                {/* Adults */}
+                {/* Số người */}
                 <Form.Item
-                    name="adults"
-                    label="Adults"
+                    name="guests"
+                    label="Số người"
                     className="form-group"
                     initialValue={2}
                 >
                     <InputNumber
                         min={1}
-                        max={10}
-                        size="large"
-                        style={{ width: '100%' }}
-                        controls={true}
-                    />
-                </Form.Item>
-
-                {/* Childrens */}
-                <Form.Item
-                    name="children"
-                    label="Childrens"
-                    className="form-group"
-                    initialValue={1}
-                >
-                    <InputNumber
-                        min={0}
-                        max={10}
+                        max={100}
                         size="large"
                         style={{ width: '100%' }}
                         controls={true}
@@ -95,7 +79,7 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
                 {/* Button */}
                 {showButton && (
                     <button type="submit" className="form-submit">
-                        BOOK NOW
+                        TÌM PHÒNG
                     </button>
                 )}
             </Form>
