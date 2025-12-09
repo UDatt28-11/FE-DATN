@@ -11,8 +11,12 @@ import {
     Modal,
     Descriptions,
     message,
-    Popconfirm,
     Input as AntdInput,
+    InputNumber,
+    Empty,
+    Spin,
+    Divider,
+    Alert,
 } from 'antd';
 import {
     EyeOutlined,
@@ -24,18 +28,45 @@ import {
     HomeOutlined,
     CalendarOutlined,
     PhoneOutlined,
+    WarningOutlined,
+    PlusOutlined,
+    DeleteOutlined,
+    DollarOutlined,
+    ToolOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
     getCheckoutRequests,
-    approveCheckoutRequest,
     rejectCheckoutRequest,
+    getSuppliesForCheckout,
+    approveCheckoutRequest,
     type CheckoutRequest,
+    type DamagedSupply,
 } from '../../../service/bookingService';
 import type { Pagination } from '../../../types/booking/booking';
+import { formatVND } from '../../../utils/currency';
 
 const { TextArea } = AntdInput;
 const { Option } = Select;
+
+interface Supply {
+    id: number;
+    name: string;
+    description?: string;
+    category?: string;
+    unit?: string;
+    unit_price: number;
+    current_stock: number;
+}
+
+interface DamagedItem {
+    supply_id: number;
+    supply_name: string;
+    quantity: number;
+    unit_price: number;
+    notes?: string;
+    total: number;
+}
 
 const ListCheckoutRequests: React.FC = () => {
     const [requests, setRequests] = useState<CheckoutRequest[]>([]);
@@ -46,6 +77,15 @@ const ListCheckoutRequests: React.FC = () => {
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+
+    // State cho checkout với thiệt hại
+    const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+    const [supplies, setSupplies] = useState<Supply[]>([]);
+    const [loadingSupplies, setLoadingSupplies] = useState(false);
+    const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([]);
+    const [roomStatus, setRoomStatus] = useState<'available' | 'maintenance'>('available');
+    const [checkoutNotes, setCheckoutNotes] = useState('');
+    const [processingCheckout, setProcessingCheckout] = useState(false);
 
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
@@ -69,20 +109,126 @@ const ListCheckoutRequests: React.FC = () => {
         fetchData(1, statusFilter);
     }, [statusFilter]);
 
-    const handleApprove = async (id: number) => {
-        try {
-            await approveCheckoutRequest(id);
-            message.success('Yêu cầu checkout đã được duyệt thành công');
-            fetchData(pagination?.current_page || 1, statusFilter);
-            if (selectedRequest?.id === id) {
-                setDetailModalVisible(false);
-            }
-        } catch (error: any) {
-            if (error.response?.status !== 401 && error.response?.status !== 403) {
-                console.error('Error approving request:', error);
-                message.error(error.response?.data?.message || 'Không thể duyệt yêu cầu checkout');
+    // Mở modal checkout với thiệt hại
+    const handleOpenCheckoutModal = async (request: CheckoutRequest) => {
+        setSelectedRequest(request);
+        setDamagedItems([]);
+        setRoomStatus('available');
+        setCheckoutNotes('');
+        setCheckoutModalVisible(true);
+
+        // Fetch supplies cho booking này
+        if (request.booking_order_id) {
+            setLoadingSupplies(true);
+            try {
+                const result = await getSuppliesForCheckout(request.booking_order_id);
+                setSupplies(result.data || []);
+            } catch (error: any) {
+                console.error('Error fetching supplies:', error);
+                // Don't show error, just continue without supplies
+            } finally {
+                setLoadingSupplies(false);
             }
         }
+    };
+
+    // Xử lý checkout với thiệt hại
+    const handleProcessCheckout = async () => {
+        if (!selectedRequest) return;
+
+        setProcessingCheckout(true);
+        try {
+            const validDamageItems: DamagedSupply[] = damagedItems
+                .filter(item => item.supply_id > 0 && item.quantity > 0)
+                .map(item => ({
+                    supply_id: item.supply_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    notes: item.notes,
+                }));
+
+            await approveCheckoutRequest(selectedRequest.id, {
+                room_status: roomStatus,
+                notes: checkoutNotes,
+                damaged_supplies: validDamageItems.length > 0 ? validDamageItems : undefined,
+            });
+
+            message.success('Checkout thành công! Hóa đơn đã được tạo.');
+            setCheckoutModalVisible(false);
+            setDetailModalVisible(false);
+            fetchData(pagination?.current_page || 1, statusFilter);
+        } catch (error: any) {
+            console.error('Error processing checkout:', error);
+            if (error.response?.status !== 401 && error.response?.status !== 403) {
+                message.error(error.response?.data?.message || 'Không thể xử lý checkout');
+            }
+        } finally {
+            setProcessingCheckout(false);
+        }
+    };
+
+    // Thêm thiệt hại mới
+    const handleAddDamageItem = () => {
+        if (supplies.length === 0) {
+            message.warning('Không có vật tư nào để thêm');
+            return;
+        }
+
+        setDamagedItems([
+            ...damagedItems,
+            {
+                supply_id: 0,
+                supply_name: '',
+                quantity: 1,
+                unit_price: 0,
+                notes: '',
+                total: 0,
+            },
+        ]);
+    };
+
+    // Xóa thiệt hại
+    const handleRemoveDamageItem = (index: number) => {
+        const newItems = [...damagedItems];
+        newItems.splice(index, 1);
+        setDamagedItems(newItems);
+    };
+
+    // Cập nhật thiệt hại
+    const handleDamageItemChange = (index: number, field: string, value: any) => {
+        const newItems = [...damagedItems];
+
+        if (field === 'supply_id') {
+            const supply = supplies.find(s => s.id === value);
+            if (supply) {
+                newItems[index] = {
+                    ...newItems[index],
+                    supply_id: value,
+                    supply_name: supply.name,
+                    unit_price: supply.unit_price,
+                    total: supply.unit_price * newItems[index].quantity,
+                };
+            }
+        } else if (field === 'quantity') {
+            newItems[index] = {
+                ...newItems[index],
+                quantity: value,
+                total: newItems[index].unit_price * value,
+            };
+        } else if (field === 'unit_price') {
+            newItems[index] = {
+                ...newItems[index],
+                unit_price: value,
+                total: value * newItems[index].quantity,
+            };
+        } else if (field === 'notes') {
+            newItems[index] = {
+                ...newItems[index],
+                notes: value,
+            };
+        }
+
+        setDamagedItems(newItems);
     };
 
     const handleReject = async () => {
@@ -115,6 +261,9 @@ const ListCheckoutRequests: React.FC = () => {
     const handleTableChange = (page: number) => {
         fetchData(page, statusFilter);
     };
+
+    // Tính tổng thiệt hại
+    const totalDamage = damagedItems.reduce((sum, item) => sum + item.total, 0);
 
     const columns = [
         {
@@ -201,7 +350,7 @@ const ListCheckoutRequests: React.FC = () => {
         {
             title: 'Thao tác',
             key: 'action',
-            width: 200,
+            width: 280,
             render: (_: any, record: CheckoutRequest) => (
                 <Space>
                     <Button
@@ -213,24 +362,15 @@ const ListCheckoutRequests: React.FC = () => {
                     </Button>
                     {record.status === 'pending' && (
                         <>
-                            <Popconfirm
-                                title="Xác nhận duyệt"
-                                description="Bạn có chắc chắn muốn duyệt yêu cầu checkout này?"
-                                onConfirm={() => handleApprove(record.id)}
-                                okText="Duyệt"
-                                cancelText="Hủy"
-                                okButtonProps={{ style: { backgroundColor: '#52c41a', borderColor: '#52c41a' } }}
-                            >
-                                <Button
-                                    type="link"
-                                    icon={<CheckCircleOutlined />}
-                                    style={{ color: '#52c41a' }}
-                                >
-                                    Duyệt
-                                </Button>
-                            </Popconfirm>
                             <Button
-                                type="link"
+                                type="primary"
+                                icon={<CheckCircleOutlined />}
+                                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                                onClick={() => handleOpenCheckoutModal(record)}
+                            >
+                                Duyệt & Checkout
+                            </Button>
+                            <Button
                                 danger
                                 icon={<CloseCircleOutlined />}
                                 onClick={() => {
@@ -305,23 +445,18 @@ const ListCheckoutRequests: React.FC = () => {
                         Đóng
                     </Button>,
                     selectedRequest?.status === 'pending' && (
-                        <Popconfirm
+                        <Button
                             key="approve"
-                            title="Xác nhận duyệt"
-                            description="Bạn có chắc chắn muốn duyệt yêu cầu checkout này?"
-                            onConfirm={() => selectedRequest && handleApprove(selectedRequest.id)}
-                            okText="Duyệt"
-                            cancelText="Hủy"
-                            okButtonProps={{ style: { backgroundColor: '#52c41a', borderColor: '#52c41a' } }}
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                            onClick={() => {
+                                setDetailModalVisible(false);
+                                handleOpenCheckoutModal(selectedRequest);
+                            }}
                         >
-                            <Button
-                                type="primary"
-                                icon={<CheckCircleOutlined />}
-                                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                            >
-                                Duyệt
-                            </Button>
-                        </Popconfirm>
+                            Duyệt & Checkout
+                        </Button>
                     ),
                     selectedRequest?.status === 'pending' && (
                         <Button
@@ -394,6 +529,213 @@ const ListCheckoutRequests: React.FC = () => {
                 )}
             </Modal>
 
+            {/* Modal checkout với thiệt hại vật tư */}
+            <Modal
+                title={
+                    <Space>
+                        <LogoutOutlined style={{ color: '#52c41a' }} />
+                        <span>Checkout & Ghi nhận thiệt hại</span>
+                    </Space>
+                }
+                open={checkoutModalVisible}
+                onCancel={() => {
+                    setCheckoutModalVisible(false);
+                    setDamagedItems([]);
+                }}
+                width={900}
+                footer={[
+                    <Button key="cancel" onClick={() => setCheckoutModalVisible(false)}>
+                        Hủy
+                    </Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        loading={processingCheckout}
+                        icon={<CheckCircleOutlined />}
+                        onClick={handleProcessCheckout}
+                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                    >
+                        Xác nhận Checkout
+                    </Button>,
+                ]}
+            >
+                {selectedRequest && (
+                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                        {/* Thông tin booking */}
+                        <Card size="small" style={{ backgroundColor: '#f5f5f5' }}>
+                            <Row gutter={16}>
+                                <Col span={8}>
+                                    <div><strong>Mã đặt phòng:</strong></div>
+                                    <div>#{selectedRequest.booking_order?.order_code}</div>
+                                </Col>
+                                <Col span={8}>
+                                    <div><strong>Phòng:</strong></div>
+                                    <div>{selectedRequest.booking_detail?.room?.name || 'N/A'}</div>
+                                </Col>
+                                <Col span={8}>
+                                    <div><strong>Khách hàng:</strong></div>
+                                    <div>{selectedRequest.booking_order?.guest?.full_name || selectedRequest.booking_order?.customer_name || 'N/A'}</div>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        {/* Trạng thái phòng sau checkout */}
+                        <Card size="small" title={<><ToolOutlined /> Trạng thái phòng sau checkout</>}>
+                            <Select
+                                style={{ width: 350 }}
+                                value={roomStatus}
+                                onChange={setRoomStatus}
+                            >
+                                <Option value="available">
+                                    <Tag color="green">Sẵn sàng</Tag> - Phòng sạch, có thể cho khách mới
+                                </Option>
+                                <Option value="maintenance">
+                                    <Tag color="orange">Bảo trì</Tag> - Cần dọn dẹp/sửa chữa
+                                </Option>
+                            </Select>
+                        </Card>
+
+                        {/* Thiệt hại vật tư */}
+                        <Card
+                            size="small"
+                            title={
+                                <Space>
+                                    <WarningOutlined style={{ color: '#f5222d' }} />
+                                    <span>Thiệt hại vật tư (nếu có)</span>
+                                </Space>
+                            }
+                            extra={
+                                <Button
+                                    type="dashed"
+                                    icon={<PlusOutlined />}
+                                    onClick={handleAddDamageItem}
+                                    size="small"
+                                    loading={loadingSupplies}
+                                >
+                                    Thêm thiệt hại
+                                </Button>
+                            }
+                        >
+                            {loadingSupplies ? (
+                                <div style={{ textAlign: 'center', padding: 20 }}>
+                                    <Spin size="small" />
+                                    <div>Đang tải danh sách vật tư...</div>
+                                </div>
+                            ) : damagedItems.length === 0 ? (
+                                <Empty
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    description="Chưa có thiệt hại vật tư nào. Click 'Thêm thiệt hại' để ghi nhận."
+                                />
+                            ) : (
+                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                    {damagedItems.map((item, index) => (
+                                        <Card key={index} size="small" style={{ backgroundColor: '#fff7e6' }}>
+                                            <Row gutter={16} align="middle">
+                                                <Col span={7}>
+                                                    <div style={{ marginBottom: 4 }}>Vật tư:</div>
+                                                    <Select
+                                                        style={{ width: '100%' }}
+                                                        placeholder="Chọn vật tư"
+                                                        value={item.supply_id || undefined}
+                                                        onChange={(value) => handleDamageItemChange(index, 'supply_id', value)}
+                                                        showSearch
+                                                        optionFilterProp="children"
+                                                    >
+                                                        {supplies.map(supply => (
+                                                            <Option key={supply.id} value={supply.id}>
+                                                                {supply.name} ({supply.category || 'N/A'})
+                                                            </Option>
+                                                        ))}
+                                                    </Select>
+                                                </Col>
+                                                <Col span={4}>
+                                                    <div style={{ marginBottom: 4 }}>Số lượng:</div>
+                                                    <InputNumber
+                                                        min={1}
+                                                        max={100}
+                                                        value={item.quantity}
+                                                        onChange={(value) => handleDamageItemChange(index, 'quantity', value || 1)}
+                                                        style={{ width: '100%' }}
+                                                    />
+                                                </Col>
+                                                <Col span={5}>
+                                                    <div style={{ marginBottom: 4 }}>Đơn giá:</div>
+                                                    <InputNumber
+                                                        min={0}
+                                                        step={10000}
+                                                        value={item.unit_price}
+                                                        onChange={(value) => handleDamageItemChange(index, 'unit_price', value || 0)}
+                                                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                        parser={(value) => Number(value?.replace(/\$\s?|(,*)/g, ''))}
+                                                        style={{ width: '100%' }}
+                                                    />
+                                                </Col>
+                                                <Col span={5}>
+                                                    <div style={{ marginBottom: 4 }}>Ghi chú:</div>
+                                                    <AntdInput
+                                                        placeholder="Ghi chú"
+                                                        value={item.notes}
+                                                        onChange={(e) => handleDamageItemChange(index, 'notes', e.target.value)}
+                                                    />
+                                                </Col>
+                                                <Col span={3} style={{ textAlign: 'right' }}>
+                                                    <div style={{ marginBottom: 4 }}>Thành tiền:</div>
+                                                    <Space>
+                                                        <span style={{ color: '#f5222d', fontWeight: 'bold' }}>
+                                                            {formatVND(item.total)}
+                                                        </span>
+                                                        <Button
+                                                            type="text"
+                                                            danger
+                                                            icon={<DeleteOutlined />}
+                                                            onClick={() => handleRemoveDamageItem(index)}
+                                                        />
+                                                    </Space>
+                                                </Col>
+                                            </Row>
+                                        </Card>
+                                    ))}
+                                    <Divider style={{ margin: '12px 0' }} />
+                                    <div style={{ textAlign: 'right' }}>
+                                        <Space>
+                                            <span>Tổng thiệt hại:</span>
+                                            <span style={{ fontSize: 18, color: '#f5222d', fontWeight: 'bold' }}>
+                                                {formatVND(totalDamage)}
+                                            </span>
+                                        </Space>
+                                    </div>
+                                </Space>
+                            )}
+                        </Card>
+
+                        {/* Ghi chú checkout */}
+                        <Card size="small" title="Ghi chú checkout">
+                            <TextArea
+                                rows={2}
+                                placeholder="Nhập ghi chú nếu có..."
+                                value={checkoutNotes}
+                                onChange={(e) => setCheckoutNotes(e.target.value)}
+                                maxLength={1000}
+                            />
+                        </Card>
+
+                        {/* Thông báo */}
+                        <Alert
+                            message="Lưu ý"
+                            description={
+                                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                    <li>Thiệt hại vật tư sẽ được thêm vào hóa đơn của khách hàng</li>
+                                    <li>Tồn kho vật tư sẽ được cập nhật tự động</li>
+                                    <li>Sau khi checkout, phòng sẽ chuyển sang trạng thái đã chọn</li>
+                                </ul>
+                            }
+                            type="info"
+                            showIcon
+                        />
+                    </Space>
+                )}
+            </Modal>
+
             {/* Modal từ chối yêu cầu checkout */}
             <Modal
                 title="Từ chối yêu cầu checkout"
@@ -424,4 +766,3 @@ const ListCheckoutRequests: React.FC = () => {
 };
 
 export default ListCheckoutRequests;
-

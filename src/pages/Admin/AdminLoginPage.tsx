@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Select, Space, message, Typography, Divider } from 'antd';
-import { UserOutlined, LockOutlined, SafetyOutlined, TeamOutlined, LoginOutlined, GoogleOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, message, Typography, Divider } from 'antd';
+import { UserOutlined, LockOutlined, SafetyOutlined, LoginOutlined, GoogleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../service/authService';
 import { getDefaultDashboard } from '../../utils/permissions';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 /**
  * Admin/Staff Login Page
  * Trang đăng nhập riêng cho Admin và Staff
+ * Backend tự động phát hiện vai trò dựa trên tài khoản
  */
 const AdminLoginPage: React.FC = () => {
     const navigate = useNavigate();
     const { login, isLoggedIn, user } = useAuth();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState<'admin' | 'staff'>('admin');
 
     // Redirect nếu đã đăng nhập
     useEffect(() => {
@@ -31,23 +30,24 @@ const AdminLoginPage: React.FC = () => {
     const onFinish = async (values: any) => {
         setLoading(true);
         try {
-            let response;
-            
-            // Gọi API đăng nhập theo role
-            if (selectedRole === 'admin') {
-                response = await authService.adminLogin({
-                    email: values.email,
-                    password: values.password,
-                });
-            } else {
-                response = await authService.staffLogin({
-                    email: values.email,
-                    password: values.password,
-                });
-            }
+            // Sử dụng unified login - backend tự động phát hiện role
+            const response = await authService.unifiedLogin({
+                email: values.email,
+                password: values.password,
+            });
 
-            // Lưu thông tin user và token vào context
+            // Kiểm tra xem có phải admin hoặc staff không
             if (response.user && response.token) {
+                const userRole = response.user.role;
+                
+                if (userRole !== 'admin' && userRole !== 'staff') {
+                    message.error('Tài khoản này không có quyền truy cập trang quản lý');
+                    // Clear token vừa lưu
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    return;
+                }
+
                 login(response.user, response.token);
                 message.success(response.message || 'Đăng nhập thành công!');
 
@@ -65,7 +65,7 @@ const AdminLoginPage: React.FC = () => {
     const handleGoogleLogin = async () => {
         try {
             setLoading(true);
-            const googleUrl = await authService.getGoogleLoginUrl(selectedRole);
+            const googleUrl = await authService.getGoogleLoginUrl('admin');
             window.location.href = googleUrl;
         } catch (error: any) {
             message.error(error.message || 'Không thể kết nối đến Google');
@@ -91,7 +91,7 @@ const AdminLoginPage: React.FC = () => {
                     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                     borderRadius: 16,
                 }}
-                bodyStyle={{ padding: '40px 40px 30px' }}
+                styles={{ body: { padding: '40px 40px 30px' } }}
             >
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -123,34 +123,7 @@ const AdminLoginPage: React.FC = () => {
                     layout="vertical"
                     onFinish={onFinish}
                     size="large"
-                    initialValues={{ role: 'admin' }}
                 >
-                    {/* Role Selection */}
-                    <Form.Item
-                        label={<span style={{ fontWeight: 500, fontSize: 15 }}>Vai trò</span>}
-                        style={{ marginBottom: 24 }}
-                    >
-                        <Select
-                            value={selectedRole}
-                            onChange={setSelectedRole}
-                            style={{ width: '100%' }}
-                            size="large"
-                        >
-                            <Option value="admin">
-                                <Space>
-                                    <SafetyOutlined style={{ color: '#ff4d4f' }} />
-                                    <span>Quản trị viên</span>
-                                </Space>
-                            </Option>
-                            <Option value="staff">
-                                <Space>
-                                    <TeamOutlined style={{ color: '#1890ff' }} />
-                                    <span>Nhân viên</span>
-                                </Space>
-                            </Option>
-                        </Select>
-                    </Form.Item>
-
                     {/* Email */}
                     <Form.Item
                         label={<span style={{ fontWeight: 500, fontSize: 15 }}>Email</span>}
@@ -256,7 +229,7 @@ const AdminLoginPage: React.FC = () => {
                     }}
                 >
                     <Text type="secondary" style={{ fontSize: 13 }}>
-                        🔒 Trang này chỉ dành cho nhân viên có thẩm quyền
+                        🔒 Hệ thống tự động nhận diện vai trò của bạn
                     </Text>
                 </div>
             </Card>
@@ -265,4 +238,3 @@ const AdminLoginPage: React.FC = () => {
 };
 
 export default AdminLoginPage;
-

@@ -205,7 +205,10 @@ const Header: React.FC = () => {
 
                 {/* Nav brand */}
                 <Link to="/" className="nav-brand">
-                  <img src="/img/core-img/logo.png" alt="The Palatin Logo" />
+                  <span className="logo-text">
+                    <span className="logo-book">Book</span>
+                    <span className="logo-stay">Stay</span>
+                  </span>
                 </Link>
 
                 {/* Navbar Toggler - Using Ant Design Button */}
@@ -253,23 +256,22 @@ const Header: React.FC = () => {
                   <div className="classynav">
                     <ul>
                       <li className={isActive('/')}>
-                        <Link to="/" onClick={closeMenu}>Home</Link>
+                        <Link to="/" onClick={closeMenu}>Trang chủ</Link>
                       </li>
                       <li className={isActive('/about')}>
-                        <Link to="/about" onClick={closeMenu}>About Us</Link>
+                        <Link to="/about" onClick={closeMenu}>Giới thiệu</Link>
                       </li>
                       <li className={isActive('/rooms')}>
                         <Link to="/rooms" onClick={closeMenu}>Phòng</Link>
                       </li>
-
                       <li className={isActive('/services')}>
-                        <Link to="/services" onClick={closeMenu}>Services</Link>
+                        <Link to="/services" onClick={closeMenu}>Dịch vụ</Link>
                       </li>
                       <li className={isActive('/promotions')}>
-                        <Link to="/promotions" onClick={closeMenu}>Promotions</Link>
+                        <Link to="/promotions" onClick={closeMenu}>Khuyến mãi</Link>
                       </li>
                       <li className={isActive('/contact')}>
-                        <Link to="/contact" onClick={closeMenu}>Contact</Link>
+                        <Link to="/contact" onClick={closeMenu}>Liên hệ</Link>
                       </li>
                     </ul>
 

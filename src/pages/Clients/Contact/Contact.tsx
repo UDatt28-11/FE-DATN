@@ -135,7 +135,7 @@ const Contact: React.FC = () => {
                   <Title level={4} style={{ marginBottom: '10px' }}>
                     Email:
                   </Title>
-                  <Paragraph style={{ color: '#6c757d', margin: 0 }}>info@palatin.com</Paragraph>
+                  <Paragraph style={{ color: '#6c757d', margin: 0 }}>info@bookstay.vn</Paragraph>
                 </Card>
 
                 <Card

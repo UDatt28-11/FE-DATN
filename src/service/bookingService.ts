@@ -705,9 +705,29 @@ export async function getCheckoutRequests(params?: ListCheckoutRequestsParams) {
   };
 }
 
-export async function approveCheckoutRequest(id: number) {
-  const { data } = await api.post(`/admin/checkout-requests/${id}/approve`);
-  return data.data as CheckoutRequest;
+export interface DamagedSupply {
+  supply_id: number;
+  quantity: number;
+  unit_price: number;
+  notes?: string;
+}
+
+export interface ApproveCheckoutRequestParams {
+  room_status?: 'available' | 'maintenance';
+  notes?: string;
+  damaged_supplies?: DamagedSupply[];
+}
+
+export async function approveCheckoutRequest(
+  id: number, 
+  params?: ApproveCheckoutRequestParams
+) {
+  const { data } = await api.post(`/admin/checkout-requests/${id}/approve`, params || {});
+  return {
+    data: data.data as CheckoutRequest,
+    damage_summary: data.damage_summary,
+    invoice: data.invoice,
+  };
 }
 
 export async function rejectCheckoutRequest(id: number, rejectionReason: string) {
@@ -1053,4 +1073,83 @@ export async function completeAmenityRequest(
     admin_notes: adminNotes,
   });
   return data;
+}
+
+// ========================================
+// ADMIN CHECKOUT WITH DAMAGE ITEMS
+// ========================================
+
+/**
+ * Get supplies available for checkout (to record damages)
+ */
+export async function getSuppliesForCheckout(bookingId: number) {
+  const { data } = await api.get(`/staff/check-out/${bookingId}/supplies`);
+  return data;
+}
+
+/**
+ * Preview checkout with damage items
+ */
+export async function previewCheckout(
+  bookingId: number,
+  checkoutData: {
+    damaged_supplies?: {
+      supply_id: number;
+      quantity: number;
+      unit_price?: number;
+    }[];
+    additional_services?: {
+      service_id: number;
+      quantity: number;
+    }[];
+  }
+) {
+  const { data } = await api.post(`/staff/check-out/${bookingId}/preview`, checkoutData);
+  return data;
+}
+
+/**
+ * Admin/Staff checkout with damage items
+ */
+export async function checkOutDirect(
+  bookingId: number,
+  checkoutData: {
+    booking_detail_ids?: number[];
+    room_status: 'available' | 'maintenance';
+    notes?: string;
+    damaged_supplies?: {
+      supply_id: number;
+      quantity: number;
+      unit_price?: number;
+      notes?: string;
+    }[];
+    additional_services?: {
+      service_id: number;
+      quantity: number;
+    }[];
+    create_invoice?: boolean;
+  }
+) {
+  try {
+    const { data } = await api.post(`/staff/check-out/${bookingId}`, checkoutData);
+    return {
+      booking: data.data as BookingOrder,
+      damage_summary: data.damage_summary as {
+        total_damage_fee: number;
+        items: {
+          supply: string;
+          quantity: number;
+          unit_price: number;
+          total: number;
+          notes?: string;
+        }[];
+      },
+      invoice: data.invoice,
+    };
+  } catch (error: any) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error checking out (admin):", error);
+    }
+    throw error;
+  }
 }

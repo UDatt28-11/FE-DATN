@@ -31,7 +31,8 @@ export interface RoomTypesWithDetailsResponse {
 }
 
 /**
- * Lấy danh sách RoomType với đầy đủ thông tin (price, amenities, etc.) từ Room mẫu
+ * Lấy danh sách RoomType với đầy đủ thông tin (price, amenities, etc.)
+ * OPTIMIZED: Backend trả về tất cả dữ liệu trong 1 API call, không cần N+1 queries
  * @param params Query parameters
  */
 export async function getRoomTypesWithDetails(params?: {
@@ -44,10 +45,8 @@ export async function getRoomTypesWithDetails(params?: {
     per_page?: number;
 }): Promise<RoomTypesWithDetailsResponse> {
     try {
-        // Lấy danh sách RoomType từ API public
-        // Backend chỉ chấp nhận limit tối đa 20, nên cần điều chỉnh
-        const limit = params?.per_page ? Math.min(params.per_page, 20) : 20;
-        // Chỉ gửi check_in và check_out nếu cả hai đều có giá trị
+        // Optimized: Backend now returns all details in a single call
+        const limit = params?.per_page ? Math.min(params.per_page, 100) : 100;
         const requestParams: any = {
             limit: limit,
         };
@@ -57,11 +56,15 @@ export async function getRoomTypesWithDetails(params?: {
             requestParams.check_out = params.check_out;
         }
         
-        const roomTypesResponse = await api.get<RoomTypeResponse>('/public/room-types', {
+        const response = await api.get<{
+            success: boolean;
+            data: RoomTypeWithDetails[];
+            cached?: boolean;
+        }>('/public/room-types', {
             params: requestParams
         });
 
-        if (!roomTypesResponse.data.success || !Array.isArray(roomTypesResponse.data.data)) {
+        if (!response.data.success || !Array.isArray(response.data.data)) {
             return {
                 success: false,
                 data: [],
@@ -69,73 +72,10 @@ export async function getRoomTypesWithDetails(params?: {
             };
         }
 
-        const roomTypes = roomTypesResponse.data.data;
-        const roomTypesWithDetails: RoomTypeWithDetails[] = [];
-
-        // Với mỗi RoomType, lấy một Room mẫu để lấy thông tin chi tiết
-        for (const roomType of roomTypes) {
-            try {
-                // Lấy một Room mẫu của RoomType này
-                // Backend tự động filter status='available', không cần gửi param status
-                const roomRequestParams: any = {
-                    room_type_id: roomType.id,
-                    per_page: 1,
-                };
-                
-                // Chỉ gửi check_in và check_out nếu cả hai đều có giá trị
-                if (params?.check_in && params?.check_out) {
-                    roomRequestParams.check_in = params.check_in;
-                    roomRequestParams.check_out = params.check_out;
-                }
-                
-                const roomsResponse = await api.get('/rooms', {
-                    params: roomRequestParams
-                }).catch((error) => {
-                    // Nếu lỗi 422 hoặc lỗi khác, log và return null
-                    if (error.response?.status === 422) {
-                        console.warn(`Validation error for room_type_id ${roomType.id}:`, error.response?.data);
-                    } else {
-                        console.warn(`Error fetching rooms for room_type_id ${roomType.id}:`, error);
-                    }
-                    return null;
-                });
-
-                let roomTypeWithDetails: RoomTypeWithDetails = {
-                    ...roomType,
-                    available_count: roomType.rooms_count || 0,
-                };
-
-                if (roomsResponse && roomsResponse.data?.success && Array.isArray(roomsResponse.data.data) && roomsResponse.data.data.length > 0) {
-                    const sampleRoom = roomsResponse.data.data[0] as Room;
-                    
-                    // Lấy thông tin từ Room mẫu
-                    roomTypeWithDetails = {
-                        ...roomTypeWithDetails,
-                        price_per_night: sampleRoom.price_per_night,
-                        max_adults: sampleRoom.max_adults,
-                        max_children: sampleRoom.max_children,
-                        amenities: sampleRoom.amenities,
-                        images: sampleRoom.images,
-                        rating: sampleRoom.rating,
-                        reviews_count: sampleRoom.reviews_count,
-                    };
-                }
-
-                roomTypesWithDetails.push(roomTypeWithDetails);
-            } catch (error) {
-                // Nếu không lấy được Room mẫu, vẫn thêm RoomType nhưng không có thông tin chi tiết
-                console.warn(`Could not fetch sample room for room type ${roomType.id}:`, error);
-                roomTypesWithDetails.push({
-                    ...roomType,
-                    available_count: roomType.rooms_count || 0,
-                });
-            }
-        }
-
+        // Backend đã trả về đầy đủ thông tin, không cần gọi thêm API
         return {
             success: true,
-            data: roomTypesWithDetails,
-            meta: roomTypesResponse.data.meta,
+            data: response.data.data,
         };
     } catch (error: any) {
         console.error('Error fetching room types with details:', error);
