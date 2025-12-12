@@ -24,6 +24,7 @@ import Contact from "../pages/Clients/Contact/Contact";
 import Profile from "../pages/Clients/Profile";
 import Settings from "../pages/Clients/Settings";
 import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
+import ForgotPasswordPage from "../pages/Clients/Auth/ForgotPasswordPage";
 import AdminLoginPage from "../pages/Admin/AdminLoginPage";
 import GoogleCallback from "../pages/Auth/GoogleCallback";
 
@@ -59,6 +60,10 @@ export const clientRoutes: RouteObject[] = [
   {
     path: "/auth/google/callback",
     element: <GoogleCallback />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
   },
   
   // Routes có Header/Footer
