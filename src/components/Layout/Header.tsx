@@ -60,11 +60,12 @@ const Header: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoggedIn, user]);
 
-  // Kiểm tra query param để tự động mở login modal (sau khi xác nhận email)
+  // Kiểm tra query param để tự động mở login modal (sau khi xác nhận email hoặc reset password)
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const showLogin = searchParams.get('showLogin');
     const emailVerified = searchParams.get('emailVerified');
+    const resetPasswordSuccess = searchParams.get('resetPasswordSuccess');
 
     if (showLogin === 'true' && !isLoggedIn) {
       // Tự động mở login modal
@@ -75,10 +76,16 @@ const Header: React.FC = () => {
         message.success('Xác thực email thành công! Vui lòng đăng nhập để tiếp tục.', 4);
       }
 
+      // Hiển thị thông báo nếu có resetPasswordSuccess
+      if (resetPasswordSuccess === 'true') {
+        message.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.', 4);
+      }
+
       // Xóa query param khỏi URL để tránh mở lại modal khi refresh
       const newSearchParams = new URLSearchParams(location.search);
       newSearchParams.delete('showLogin');
       newSearchParams.delete('emailVerified');
+      newSearchParams.delete('resetPasswordSuccess');
       const newSearch = newSearchParams.toString();
       navigate(
         {
