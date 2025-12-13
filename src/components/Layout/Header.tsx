@@ -60,6 +60,36 @@ const Header: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoggedIn, user]);
 
+  // Kiểm tra query param để tự động mở login modal (sau khi xác nhận email)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const showLogin = searchParams.get('showLogin');
+    const emailVerified = searchParams.get('emailVerified');
+
+    if (showLogin === 'true' && !isLoggedIn) {
+      // Tự động mở login modal
+      setIsLoginModalVisible(true);
+
+      // Hiển thị thông báo nếu có emailVerified
+      if (emailVerified === 'success') {
+        message.success('Xác thực email thành công! Vui lòng đăng nhập để tiếp tục.', 4);
+      }
+
+      // Xóa query param khỏi URL để tránh mở lại modal khi refresh
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.delete('showLogin');
+      newSearchParams.delete('emailVerified');
+      const newSearch = newSearchParams.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: newSearch ? `?${newSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [location.search, location.pathname, isLoggedIn, navigate]);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
