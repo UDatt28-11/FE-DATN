@@ -10,8 +10,10 @@ import {
   Badge,
   Button,
   Divider,
+  message,
 } from "antd";
 import type { MenuProps } from "antd";
+import { useAuth } from "../../context/AuthContext";
 import {
   DashboardOutlined,
   UserOutlined,
@@ -49,6 +51,7 @@ interface MenuItem {
 const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const menuItems: MenuItem[] = [
     {
@@ -182,19 +185,6 @@ const AdminLayout: React.FC = () => {
 
   const userMenuItems: MenuProps["items"] = [
     {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "Hồ sơ của tôi",
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Cài đặt tài khoản",
-    },
-    {
-      type: "divider",
-    },
-    {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Đăng xuất",
@@ -202,11 +192,19 @@ const AdminLayout: React.FC = () => {
     },
   ];
 
-  const handleUserMenuClick: MenuProps["onClick"] = ({ key }) => {
+  const handleUserMenuClick: MenuProps["onClick"] = async ({ key }) => {
     if (key === "logout") {
-      console.log("Logging out...");
-    } else if (key === "profile") {
-      navigate("/admin/profile");
+      try {
+        await logout();
+        message.success("Đăng xuất thành công");
+        // Redirect về trang chủ người dùng
+        window.location.href = "/";
+      } catch (error: any) {
+        console.error("Logout error:", error);
+        message.error("Có lỗi xảy ra khi đăng xuất");
+        // Vẫn redirect về trang chủ dù có lỗi
+        window.location.href = "/";
+      }
     }
   };
 
@@ -386,18 +384,19 @@ const AdminLayout: React.FC = () => {
               <Space style={{ cursor: "pointer", padding: "4px 12px" }}>
                 <Avatar
                   size={40}
-                  src="https://randomuser.me/api/portraits/men/1.jpg"
+                  src={user?.avatar_url || undefined}
+                  icon={!user?.avatar_url ? <UserOutlined /> : undefined}
                   style={{
                     border: "2px solid #e0e7ff",
                   }}
                 />
                 <div style={{ lineHeight: 1.3, textAlign: "left" }}>
                   <Text strong style={{ color: "#1e293b", fontSize: 14 }}>
-                    Nguyễn Văn A
+                    {user?.full_name || "Admin"}
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Super Admin
+                    {user?.role === "admin" ? "Quản trị viên" : user?.role === "staff" ? "Nhân viên" : "Người dùng"}
                   </Text>
                 </div>
               </Space>
