@@ -26,7 +26,6 @@ import Settings from "../pages/Clients/Settings";
 import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
 import ForgotPasswordPage from "../pages/Clients/Auth/ForgotPasswordPage";
 import EmailVerifiedPage from "../pages/Clients/Auth/EmailVerifiedPage";
-import AdminLoginPage from "../pages/Admin/AdminLoginPage";
 import GoogleCallback from "../pages/Auth/GoogleCallback";
 
 const { Content } = Layout;
@@ -54,10 +53,6 @@ const ClientLayout = ({ children }: { children: React.ReactNode }) => {
  */
 export const clientRoutes: RouteObject[] = [
   // Routes không có Header/Footer
-  {
-    path: "/admin/login",
-    element: <AdminLoginPage />,
-  },
   {
     path: "/auth/google/callback",
     element: <GoogleCallback />,

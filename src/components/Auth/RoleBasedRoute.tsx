@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
-import { Result, Button, Spin } from "antd";
+import { Result, Button, Spin, message } from "antd";
 import { LockOutlined, StopOutlined } from "@ant-design/icons";
 import { useAuth } from "../../context/AuthContext";
 import type { UserRole } from "../../utils/permissions";
@@ -36,6 +36,15 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   showAccessDenied = true,
 }) => {
   const { user, isLoggedIn, loading } = useAuth();
+  const hasShownMessage = useRef(false);
+
+  // Hiển thị message khi chưa đăng nhập (chỉ hiển thị 1 lần)
+  useEffect(() => {
+    if (!loading && (!isLoggedIn || !user) && !hasShownMessage.current) {
+      hasShownMessage.current = true;
+      message.info("Bạn cần đăng nhập để truy cập trang này");
+    }
+  }, [loading, isLoggedIn, user]);
 
   // Loading state
   if (loading) {
@@ -55,36 +64,9 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
     );
   }
 
-  // Chưa đăng nhập
+  // Chưa đăng nhập - redirect về trang chủ
   if (!isLoggedIn || !user) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "40px 20px",
-          background: "#f5f5f5",
-        }}
-      >
-        <Result
-          status="warning"
-          icon={<LockOutlined style={{ color: "#faad14" }} />}
-          title="Yêu cầu đăng nhập"
-          subTitle="Bạn cần đăng nhập với tài khoản có quyền phù hợp để truy cập trang này."
-          extra={[
-            <Button
-              type="primary"
-              key="login"
-              onClick={() => (window.location.href = "/")}
-            >
-              Đăng nhập
-            </Button>,
-          ]}
-        />
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   // Kiểm tra quyền

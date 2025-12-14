@@ -185,22 +185,42 @@ const ListUser: React.FC = () => {
         });
         break;
       case "delete":
-        Modal.confirm({
-          title: "Xóa người dùng",
-          content: `Xóa ${record.name}? Không thể hoàn tác!`,
-          okButtonProps: { danger: true },
-          onOk: async () => {
-            try {
-              await userService.deleteUser(record.id);
-              message.success("Đã xóa người dùng");
-              fetchUsers(pagination.current, pagination.pageSize);
-              fetchStatistics();
-            } catch (error: any) {
-              const errorMessage = error.response?.data?.message || "Không thể xóa người dùng!";
-              message.error(errorMessage);
-            }
-          },
-        });
+        // Kiểm tra nếu là admin và chỉ còn 1 admin
+        if (record.role === "admin") {
+          Modal.confirm({
+            title: "Xóa người dùng",
+            content: `Bạn đang cố xóa tài khoản admin. Nếu đây là tài khoản admin cuối cùng, bạn sẽ không thể xóa. Bạn có chắc chắn muốn tiếp tục?`,
+            okButtonProps: { danger: true },
+            onOk: async () => {
+              try {
+                await userService.deleteUser(record.id);
+                message.success("Đã xóa người dùng");
+                fetchUsers(pagination.current, pagination.pageSize);
+                fetchStatistics();
+              } catch (error: any) {
+                const errorMessage = error.response?.data?.message || "Không thể xóa người dùng!";
+                message.error(errorMessage);
+              }
+            },
+          });
+        } else {
+          Modal.confirm({
+            title: "Xóa người dùng",
+            content: `Xóa ${record.name}? Không thể hoàn tác!`,
+            okButtonProps: { danger: true },
+            onOk: async () => {
+              try {
+                await userService.deleteUser(record.id);
+                message.success("Đã xóa người dùng");
+                fetchUsers(pagination.current, pagination.pageSize);
+                fetchStatistics();
+              } catch (error: any) {
+                const errorMessage = error.response?.data?.message || "Không thể xóa người dùng!";
+                message.error(errorMessage);
+              }
+            },
+          });
+        }
         break;
     }
   };
