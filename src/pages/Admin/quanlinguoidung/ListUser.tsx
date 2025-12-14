@@ -14,8 +14,8 @@ import {
   Row,
   Col,
   Statistic,
+  message,
 } from "antd";
-import { toast } from "react-toastify";
 import {
   SearchOutlined,
   MoreOutlined,
@@ -24,17 +24,41 @@ import {
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
-  EyeOutlined,
   ReloadOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import userService from "../../../service/userService";
-import type { User } from "../../../service/authService";
+import type { User, BackendUser } from "../../../types/user/user";
 import AddUser from "./AddUser";
 import EditUser from "./EditUser";
 
 const { Option } = Select;
+
+// Helper function để map BackendUser sang User
+const mapBackendUserToUser = (backendUser: BackendUser): User => {
+  return {
+    key: backendUser.id.toString(),
+    id: backendUser.id,
+    name: backendUser.full_name,
+    email: backendUser.email,
+    phone: backendUser.phone_number || "",
+    avatar: backendUser.avatar_url || "",
+    role: backendUser.role,
+    status: backendUser.status,
+    // Giữ lại các field từ backend
+    full_name: backendUser.full_name,
+    phone_number: backendUser.phone_number,
+    avatar_url: backendUser.avatar_url,
+    date_of_birth: backendUser.date_of_birth,
+    gender: backendUser.gender,
+    address: backendUser.address,
+    identity_verified: backendUser.identity_verified,
+    created_at: backendUser.created_at,
+    updated_at: backendUser.updated_at,
+    joinDate: backendUser.created_at,
+  };
+};
 
 const ListUser: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -43,29 +67,45 @@ const ListUser: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [statistics, setStatistics] = useState<any>(null);
-  
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 15,
+    total: 0,
+  });
+
   // Fetch users from API
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1, pageSize: number = 15) => {
     setLoading(true);
     try {
       const result = await userService.getAll({
         search: searchText || undefined,
         role: roleFilter !== "all" ? roleFilter : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
+        page,
+        per_page: pageSize,
       });
-      // Xử lý response có thể có nhiều dạng
+
       if (result.success && result.data) {
-        setUsers(Array.isArray(result.data) ? result.data : []);
-      } else if (Array.isArray(result)) {
-        setUsers(result);
-      } else if (result.data && Array.isArray(result.data)) {
-        setUsers(result.data);
+        // Map backend users to frontend format
+        const mappedUsers = (result.data as BackendUser[]).map(mapBackendUserToUser);
+        setUsers(mappedUsers);
+
+        // Update pagination from meta
+        if (result.meta?.pagination) {
+          setPagination({
+            current: result.meta.pagination.current_page,
+            pageSize: result.meta.pagination.per_page,
+            total: result.meta.pagination.total,
+          });
+        }
       } else {
         setUsers([]);
       }
     } catch (error: any) {
       console.error("Lỗi khi tải danh sách:", error);
-      toast.error("Không thể tải danh sách người dùng!");
+      const errorMessage = error.response?.data?.message || "Không thể tải danh sách người dùng!";
+      message.error(errorMessage);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -75,95 +115,44 @@ const ListUser: React.FC = () => {
   const fetchStatistics = async () => {
     try {
       const stats = await userService.getStatistics();
-      setStatistics(stats);
-    } catch (error) {
+      if (stats.success && stats.data) {
+        setStatistics(stats.data);
+      } else {
+        // Fallback values
+        setStatistics({
+          total_users: 0,
+          active_users: 0,
+          locked_users: 0,
+          new_users_this_month: 0,
+        });
+      }
+    } catch (error: any) {
       console.error("Lỗi khi tải thống kê:", error);
+      const errorMessage = error.response?.data?.message || "Không thể tải thống kê";
+      message.warning(errorMessage);
+      setStatistics({
+        total_users: 0,
+        active_users: 0,
+        locked_users: 0,
+        new_users_this_month: 0,
+      });
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(pagination.current, pagination.pageSize);
     fetchStatistics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roleFilter, statusFilter]);
 
-  // Mock data as fallback (remove this in production)
+  // Debounced search effect
   useEffect(() => {
-    if (users.length === 0 && !loading) {
-      setUsers([
-          {
-              key: "1",
-              id: "USR001",
-              name: "Nguyễn Văn An",
-              email: "nguyenvanan@gmail.com",
-              phone: "0901234567",
-              avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-              role: "host",
-              status: "active",
-              totalBookings: 45,
-              totalSpent: 25000000,
-              joinDate: "2023-01-15",
-              lastLogin: "2024-10-28",
-          },
-          {
-              key: "2",
-              id: "USR002",
-              name: "Trần Thị Bình",
-              email: "tranthibinh@gmail.com",
-              phone: "0912345678",
-              avatar: "https://randomuser.me/api/portraits/women/2.jpg",
-              role: "guest",
-              status: "active",
-              totalBookings: 12,
-              totalSpent: 8500000,
-              joinDate: "2023-03-20",
-              lastLogin: "2024-10-29",
-          },
-          {
-              key: "3",
-              id: "USR003",
-              name: "Lê Hoàng Cường",
-              email: "lehoangcuong@gmail.com",
-              phone: "0923456789",
-              avatar: "https://randomuser.me/api/portraits/men/3.jpg",
-              role: "admin",
-              status: "active",
-              totalBookings: 0,
-              totalSpent: 0,
-              joinDate: "2022-11-10",
-              lastLogin: "2024-10-29",
-          },
-          {
-              key: "4",
-              id: "USR004",
-              name: "Phạm Thu Dung",
-              email: "phamthudung@gmail.com",
-              phone: "0934567890",
-              avatar: "https://randomuser.me/api/portraits/women/4.jpg",
-              role: "guest",
-              status: "inactive",
-              totalBookings: 3,
-              totalSpent: 1200000,
-              joinDate: "2024-01-05",
-              lastLogin: "2024-09-15",
-          },
-          {
-              key: "5",
-              id: "USR005",
-              name: "Hoàng Minh Đức",
-              email: "hoangminhduc@gmail.com",
-              phone: "0945678901",
-              avatar: "https://randomuser.me/api/portraits/men/5.jpg",
-              role: "host",
-              status: "blocked",
-              totalBookings: 8,
-              totalSpent: 3500000,
-              joinDate: "2023-06-18",
-              lastLogin: "2024-08-22",
-          },
-      ]);
-    }
-  }, [users, loading]);
+    const timer = setTimeout(() => {
+      fetchUsers(1, pagination.pageSize);
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText]);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isAddVisible, setIsAddVisible] = useState(false);
@@ -176,29 +165,24 @@ const ListUser: React.FC = () => {
         setIsEditVisible(true);
         break;
       case "block":
+        const newStatus = record.status === "active" ? "locked" : "active";
+        const action = newStatus === "locked" ? "khóa" : "mở khóa";
         Modal.confirm({
-          title: "Khóa người dùng",
-          content: `Bạn có chắc muốn khóa ${record.name}?`,
-          okButtonProps: { danger: true },
+          title: `${action === "khóa" ? "Khóa" : "Mở khóa"} người dùng`,
+          content: `Bạn có chắc muốn ${action} ${record.name}?`,
+          okButtonProps: { danger: newStatus === "locked" },
           onOk: async () => {
             try {
-              await userService.block(record.id, "Vi phạm quy định");
-              toast.success("Đã khóa người dùng");
-              fetchUsers();
-            } catch (error) {
-              toast.error("Không thể khóa người dùng!");
+              await userService.updateStatus(record.id, newStatus);
+              message.success(`Đã ${action} người dùng`);
+              fetchUsers(pagination.current, pagination.pageSize);
+              fetchStatistics();
+            } catch (error: any) {
+              const errorMessage = error.response?.data?.message || `Không thể ${action} người dùng!`;
+              message.error(errorMessage);
             }
           },
         });
-        break;
-      case "unblock":
-        try {
-          await userService.unblock(record.id);
-          toast.success("Đã mở khóa người dùng");
-          fetchUsers();
-        } catch (error) {
-          toast.error("Không thể mở khóa!");
-        }
         break;
       case "delete":
         Modal.confirm({
@@ -207,12 +191,13 @@ const ListUser: React.FC = () => {
           okButtonProps: { danger: true },
           onOk: async () => {
             try {
-              await userService.remove(record.id);
-              toast.success("Đã xóa người dùng");
-              fetchUsers();
+              await userService.deleteUser(record.id);
+              message.success("Đã xóa người dùng");
+              fetchUsers(pagination.current, pagination.pageSize);
               fetchStatistics();
-            } catch (error) {
-              toast.error("Không thể xóa người dùng!");
+            } catch (error: any) {
+              const errorMessage = error.response?.data?.message || "Không thể xóa người dùng!";
+              message.error(errorMessage);
             }
           },
         });
@@ -223,17 +208,10 @@ const ListUser: React.FC = () => {
   const handleSearch = (value: string) => {
     setSearchText(value);
   };
-  
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchText !== "") {
-        fetchUsers();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText]);
+
+  const handleTableChange = (newPagination: any) => {
+    fetchUsers(newPagination.current, newPagination.pageSize);
+  };
 
   const columns: ColumnsType<User> = [
     {
@@ -242,10 +220,10 @@ const ListUser: React.FC = () => {
       key: "name",
       render: (_, record) => (
         <Space>
-          <Avatar src={record.avatar} icon={<UserOutlined />} />
+          <Avatar src={record.avatar || record.avatar_url} icon={<UserOutlined />} />
           <div>
-            <div>{record.name}</div>
-            <div style={{ fontSize: 12, color: "#888" }}>{record.id}</div>
+            <div>{record.name || record.full_name}</div>
+            <div style={{ fontSize: 12, color: "#888" }}>ID: {record.id}</div>
           </div>
         </Space>
       ),
@@ -259,83 +237,66 @@ const ListUser: React.FC = () => {
       title: "Vai trò",
       dataIndex: "role",
       key: "role",
-      render: (role: "admin" | "host" | "guest") => {
-        const colors: Record<"admin" | "host" | "guest", string> = {
+      render: (role: "admin" | "staff" | "user") => {
+        const colors: Record<"admin" | "staff" | "user", string> = {
           admin: "red",
-          host: "blue",
-          guest: "green",
+          staff: "blue",
+          user: "green",
         };
-        const labels: Record<"admin" | "host" | "guest", string> = {
+        const labels: Record<"admin" | "staff" | "user", string> = {
           admin: "Quản trị viên",
-          host: "Chủ nhà",
-          guest: "Khách hàng",
+          staff: "Nhân viên",
+          user: "Người dùng",
         };
         return <Tag color={colors[role]}>{labels[role]}</Tag>;
       },
-      filters: [
-        { text: "Quản trị viên", value: "admin" },
-        { text: "Chủ nhà", value: "host" },
-        { text: "Khách hàng", value: "guest" },
-      ],
-      onFilter: (value, record) => record.role === value,
     },
-
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag
-          color={
-            status === "active"
-              ? "green"
-              : status === "inactive"
-              ? "default"
-              : "red"
-          }
-        >
-          {status}
-        </Tag>
-      ),
-      filters: [
-        { text: "Hoạt động", value: "active" },
-        { text: "Không hoạt động", value: "inactive" },
-        { text: "Bị khóa", value: "blocked" },
-      ],
-      onFilter: (value, record) => record.status === value,
+      render: (status: "active" | "locked") => {
+        const statusConfig: Record<"active" | "locked", { color: string; label: string }> = {
+          active: { color: "green", label: "Hoạt động" },
+          locked: { color: "red", label: "Bị khóa" },
+        };
+        const config = statusConfig[status] || { color: "default", label: status };
+        return <Tag color={config.color}>{config.label}</Tag>;
+      },
     },
     {
       title: "Thao tác",
       key: "action",
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              { key: "edit", label: "Chỉnh sửa", icon: <EditOutlined /> },
-              { key: "block", label: "Khóa/Mở khóa", icon: <LockOutlined /> },
-              {
-                key: "delete",
-                label: "Xóa",
-                icon: <DeleteOutlined />,
-                danger: true,
-              },
-            ],
-            onClick: ({ key }) => handleMenuClick(key, record),
-          }}
-          trigger={["click"]}
-        >
-          <Button icon={<MoreOutlined />} />
-        </Dropdown>
-      ),
+      render: (_, record) => {
+        const menuItems = [
+          { key: "edit", label: "Chỉnh sửa", icon: <EditOutlined /> },
+          {
+            key: "block",
+            label: record.status === "active" ? "Khóa" : "Mở khóa",
+            icon: record.status === "active" ? <LockOutlined /> : <UnlockOutlined />,
+          },
+          {
+            key: "delete",
+            label: "Xóa",
+            icon: <DeleteOutlined />,
+            danger: true,
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{
+              items: menuItems,
+              onClick: ({ key }) => handleMenuClick(key, record),
+            }}
+            trigger={["click"]}
+          >
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
+        );
+      },
     },
   ];
-
-  const filteredUsers = Array.isArray(users) ? users.filter(
-    (u) =>
-      (u.name || "").toLowerCase().includes(searchText.toLowerCase()) ||
-      (u.email || "").toLowerCase().includes(searchText.toLowerCase()) ||
-      (u.phone || "").includes(searchText)
-  ) : [];
 
   return (
     <div style={{ padding: 24 }}>
@@ -363,7 +324,7 @@ const ListUser: React.FC = () => {
           <Card>
             <Statistic
               title="Bị khóa"
-              value={statistics?.blocked_users || 0}
+              value={statistics?.locked_users || 0}
               valueStyle={{ color: "#cf1322" }}
             />
           </Card>
@@ -388,6 +349,7 @@ const ListUser: React.FC = () => {
               prefix={<SearchOutlined />}
               onChange={(e) => handleSearch(e.target.value)}
               style={{ width: 200 }}
+              allowClear
             />
             <Select
               value={roleFilter}
@@ -397,8 +359,7 @@ const ListUser: React.FC = () => {
               <Option value="all">Tất cả vai trò</Option>
               <Option value="admin">Quản trị viên</Option>
               <Option value="staff">Nhân viên</Option>
-              <Option value="host">Chủ nhà</Option>
-              <Option value="guest">Khách hàng</Option>
+              <Option value="user">Người dùng</Option>
             </Select>
             <Select
               value={statusFilter}
@@ -407,10 +368,9 @@ const ListUser: React.FC = () => {
             >
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="active">Hoạt động</Option>
-              <Option value="inactive">Không hoạt động</Option>
-              <Option value="blocked">Bị khóa</Option>
+              <Option value="locked">Bị khóa</Option>
             </Select>
-            <Button icon={<ReloadOutlined />} onClick={fetchUsers} loading={loading}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchUsers(pagination.current, pagination.pageSize)} loading={loading}>
               Làm mới
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddVisible(true)}>
@@ -422,22 +382,25 @@ const ListUser: React.FC = () => {
         <Spin spinning={loading}>
           <Table
             columns={columns}
-            dataSource={filteredUsers}
+            dataSource={users}
             pagination={{
-              pageSize: 15,
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
               pageSizeOptions: ["15", "30", "45"],
               showSizeChanger: true,
               showTotal: (total) => `Tổng ${total} người dùng`,
             }}
+            onChange={handleTableChange}
           />
         </Spin>
       </Card>
-      
+
       <AddUser
         visible={isAddVisible}
         onClose={() => setIsAddVisible(false)}
         onAdd={() => {
-          fetchUsers();
+          fetchUsers(pagination.current, pagination.pageSize);
           fetchStatistics();
         }}
       />
@@ -445,10 +408,15 @@ const ListUser: React.FC = () => {
         <EditUser
           visible={isEditVisible}
           user={selectedUser}
-          onClose={() => setIsEditVisible(false)}
-          onUpdate={() => {
-            fetchUsers();
+          onClose={() => {
             setIsEditVisible(false);
+            setSelectedUser(null);
+          }}
+          onUpdate={() => {
+            fetchUsers(pagination.current, pagination.pageSize);
+            fetchStatistics();
+            setIsEditVisible(false);
+            setSelectedUser(null);
           }}
         />
       )}
