@@ -15,7 +15,6 @@ import {
   Row,
   Col,
   Divider,
-  Alert,
 } from 'antd';
 import {
   GiftOutlined,
@@ -31,7 +30,6 @@ import {
 } from '@ant-design/icons';
 import {
   getUserVouchers,
-  getAvailableVouchers,
   getVoucherCounts,
   claimVoucher,
   type Voucher,
@@ -53,7 +51,6 @@ const MyVouchersPage: React.FC = () => {
   const [claimLoading, setClaimLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('unused');
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
-  const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
   const [counts, setCounts] = useState<VoucherCounts>({
     unused: 0,
     used: 0,
@@ -80,15 +77,10 @@ const MyVouchersPage: React.FC = () => {
       const countsData = await getVoucherCounts();
       setCounts(countsData);
 
-      // Fetch vouchers based on active tab
-      if (activeTab === 'available') {
-        const { vouchers } = await getAvailableVouchers({ per_page: 50 });
-        setAvailableVouchers(vouchers);
-      } else {
-        const status = activeTab === 'all' ? 'all' : (activeTab as 'unused' | 'used');
-        const { vouchers } = await getUserVouchers({ status, per_page: 50 });
-        setVouchers(vouchers);
-      }
+      // Fetch vouchers based on active tab (chỉ còn: chưa sử dụng / đã sử dụng)
+      const status = activeTab as 'unused' | 'used';
+      const { vouchers } = await getUserVouchers({ status, per_page: 50 });
+      setVouchers(vouchers);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
     } finally {
@@ -116,22 +108,12 @@ const MyVouchersPage: React.FC = () => {
     }
   };
 
-  const handleClaimFromList = async (voucher: Voucher) => {
-    try {
-      const result = await claimVoucher(voucher.code);
-      message.success(result.message);
-      fetchData();
-    } catch (error: any) {
-      message.error(error.response?.data?.message || 'Không thể lưu mã voucher');
-    }
-  };
-
   const copyToClipboard = (code: string) => {
     navigator.clipboard.writeText(code);
     message.success('Đã sao chép mã: ' + code);
   };
 
-  const renderVoucherCard = (voucher: Voucher, isAvailable: boolean = false) => {
+  const renderVoucherCard = (voucher: Voucher) => {
     const isExpired = voucher.end_date && dayjs(voucher.end_date).isBefore(dayjs());
     const isUsed = !!voucher.used_at;
 
@@ -235,15 +217,7 @@ const MyVouchersPage: React.FC = () => {
             </Space>
           </Col>
           <Col xs={24} sm={6} style={{ textAlign: 'right' }}>
-            {isAvailable ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => handleClaimFromList(voucher)}
-              >
-                Lưu mã
-              </Button>
-            ) : isUsed ? (
+            {isUsed ? (
               <Space direction="vertical" size={0} style={{ textAlign: 'right' }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Đã dùng:
@@ -324,7 +298,7 @@ const MyVouchersPage: React.FC = () => {
             tab={
               <span>
                 <CheckCircleOutlined />
-                Chưa sử dụng ({counts.unused})
+                Chưa sử dụng
               </span>
             }
             key="unused"
@@ -333,19 +307,10 @@ const MyVouchersPage: React.FC = () => {
             tab={
               <span>
                 <ClockCircleOutlined />
-                Đã sử dụng ({counts.used})
+                Đã sử dụng
               </span>
             }
             key="used"
-          />
-          <TabPane
-            tab={
-              <span>
-                <GiftOutlined />
-                Voucher có thể nhận
-              </span>
-            }
-            key="available"
           />
         </Tabs>
 
@@ -355,38 +320,15 @@ const MyVouchersPage: React.FC = () => {
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin size="large" />
           </div>
-        ) : activeTab === 'available' ? (
-          availableVouchers.length === 0 ? (
-            <Empty
-              description="Không có voucher mới để nhận"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ) : (
-            <>
-              <Alert
-                message="Nhấn 'Lưu mã' để thêm voucher vào kho của bạn"
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
-              {availableVouchers.map((v) => renderVoucherCard(v, true))}
-            </>
-          )
         ) : vouchers.length === 0 ? (
           <Empty
             description={
               activeTab === 'unused'
-                ? 'Bạn chưa có voucher nào. Hãy nhập mã hoặc nhận voucher mới!'
+                ? 'Bạn chưa có voucher nào. Hãy nhập mã hoặc nhập mã mới!'
                 : 'Chưa có voucher đã sử dụng'
             }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-          >
-            {activeTab === 'unused' && (
-              <Button type="primary" onClick={() => setActiveTab('available')}>
-                Xem voucher có thể nhận
-              </Button>
-            )}
-          </Empty>
+          />
         ) : (
           vouchers.map((v) => renderVoucherCard(v))
         )}
