@@ -165,6 +165,7 @@ const Promotions: React.FC = () => {
                 'Áp dụng cho các cặp đôi đang hẹn hò hoặc mới cưới'
             ]
         }
+    ];
 
     // Một vài ảnh nền mặc định cho thẻ khuyến mãi
     const promotionImages = [
