@@ -435,7 +435,15 @@ const MyBookingsPage: React.FC = () => {
 
     // Filter bookings dựa trên activeTab và payment_status
     const filteredBookings = React.useMemo(() => {
-        if (activeTab === 'pending_payment') {
+        if (activeTab === 'booked') {
+            // Tab "Đã đặt" chỉ hiển thị booking đã thanh toán thành công (payment_status === 'paid')
+            // và có status là pending hoặc confirmed (chưa check-in)
+            return bookings.filter(booking => {
+                const isPendingOrConfirmed = booking.status === 'pending' || booking.status === 'confirmed';
+                const isPaid = booking.payment_status === 'paid';
+                return isPendingOrConfirmed && isPaid;
+            });
+        } else if (activeTab === 'pending_payment') {
             // Chỉ hiển thị bookings đã checkout nhưng chưa thanh toán đầy đủ
             return bookings.filter(booking => {
                 const isCheckedOut = booking.status === 'checked_out' || booking.status === 'partially_checked_out';
@@ -904,7 +912,11 @@ const MyBookingsPage: React.FC = () => {
                         items={[
                             {
                                 key: 'booked',
-                                label: `Đã đặt (${(bookingCounts.pending || 0) + (bookingCounts.confirmed || 0)})`,
+                                label: `Đã đặt (${allBookings.filter(b => {
+                                    const isPendingOrConfirmed = b.status === 'pending' || b.status === 'confirmed';
+                                    const isPaid = b.payment_status === 'paid';
+                                    return isPendingOrConfirmed && isPaid;
+                                }).length})`,
                             },
                             {
                                 key: 'in_use',
