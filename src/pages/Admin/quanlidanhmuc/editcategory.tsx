@@ -57,7 +57,7 @@ const EditCategory: React.FC<EditCategoryProps> = ({
 
   const loadRoomTypeImages = async () => {
     if (!roomType) return;
-    
+
     setLoadingImages(true);
     try {
       const response = await axios.get(`${API_URL}/admin/room-types/${roomType.id}`);
@@ -134,7 +134,7 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         ...values,
         status, // thêm trạng thái vào dữ liệu gửi ra ngoài
       };
-      
+
       // Upload images mới nếu có
       if (fileList.length > 0 && roomType) {
         setUploading(true);
@@ -145,7 +145,7 @@ const EditCategory: React.FC<EditCategoryProps> = ({
               formData.append('images[]', file.originFileObj);
             }
           });
-          
+
           await roomtypeService.uploadImages(roomType.id, formData);
           toast.success("Cập nhật loại phòng và upload hình ảnh thành công!");
           // Reload images after upload
@@ -163,7 +163,7 @@ const EditCategory: React.FC<EditCategoryProps> = ({
           setUploading(false);
         }
       }
-      
+
       onUpdate(updatedValues, fileList, []);
     } catch (error: any) {
       if (error.errorFields) {
@@ -192,7 +192,15 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         <Form.Item
           name="name"
           label="Tên loại phòng"
-          rules={[{ required: true, message: "Vui lòng nhập tên loại phòng!" }]}
+          rules={[
+            { required: true, message: "Vui lòng nhập tên loại phòng!" },
+            { min: 2, message: "Tên loại phòng phải có ít nhất 2 ký tự!" },
+            { max: 255, message: "Tên loại phòng không được vượt quá 255 ký tự!" },
+            {
+              pattern: /^[^\d].*$/,
+              message: "Tên loại phòng không được bắt đầu bằng chữ số!"
+            },
+          ]}
         >
           <Input placeholder="VD: Phòng Standard, Phòng Deluxe..." size="large" />
         </Form.Item>

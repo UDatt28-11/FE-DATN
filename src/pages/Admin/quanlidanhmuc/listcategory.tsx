@@ -311,9 +311,14 @@ const ListCategory: React.FC = () => {
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("description", values.description || "");
-      if (values.property_id) {
-        formData.append("property_id", values.property_id);
+
+      // property_id là required, phải có giá trị
+      if (!values.property_id) {
+        toast.error("Vui lòng chọn cơ sở lưu trú!");
+        return;
       }
+      formData.append("property_id", values.property_id.toString());
+
       if (fileList[0]?.originFileObj) {
         formData.append("image_file", fileList[0].originFileObj);
       }
@@ -327,7 +332,15 @@ const ListCategory: React.FC = () => {
         toast.error(response.message || "Có lỗi xảy ra khi thêm");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thêm");
+      console.error('Error creating room type:', error);
+      // Hiển thị lỗi validation chi tiết nếu có
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat();
+        toast.error(errorMessages.join(', '));
+      } else {
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thêm");
+      }
     }
   };
 
@@ -342,9 +355,14 @@ const ListCategory: React.FC = () => {
       formData.append("name", values.name);
       formData.append("description", values.description || "");
       formData.append("status", values.status || "active");
-      if (values.property_id) {
-        formData.append("property_id", values.property_id);
+
+      // property_id là required
+      if (!values.property_id) {
+        toast.error("Vui lòng chọn cơ sở lưu trú!");
+        return;
       }
+      formData.append("property_id", values.property_id.toString());
+
       // Images are now handled directly in EditCategory component
       // No need to append image_file here anymore
       formData.append("_method", "PUT");
@@ -358,7 +376,15 @@ const ListCategory: React.FC = () => {
         toast.error(response.message || "Có lỗi xảy ra khi cập nhật");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+      console.error('Error updating room type:', error);
+      // Hiển thị lỗi validation chi tiết nếu có
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat();
+        toast.error(errorMessages.join(', '));
+      } else {
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+      }
     }
   };
 
