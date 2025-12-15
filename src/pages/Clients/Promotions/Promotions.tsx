@@ -237,58 +237,68 @@ const Promotions: React.FC = () => {
 
     return (
         <div className="promotions-page">
-            {/* Breadcrumb Section */}
-            <section
-                className="breadcrumb-area"
-                style={{
-                    backgroundImage: "url('/img/bg-img/18.jpg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    height: 450,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 450,
+                backgroundImage: "url('/img/bg-img/16.jpg')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    top: 0,
+                    left: 0,
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
+                    zIndex: 1,
+                }} />
+                <div style={{
                     position: 'relative',
-                }}
-            >
-                <div
-                    style={{
-                        position: 'absolute',
-                        width: '100%',
-                        height: '100%',
-                        top: 0,
-                        left: 0,
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        zIndex: 0,
-                    }}
-                />
-                <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-                    <Row justify="center">
-                        <Col xs={24}>
-                            <div style={{ textAlign: 'center', color: '#fff' }}>
-                                <h1 style={{ fontSize: '3rem', marginBottom: '20px', color: '#fff' }} data-aos="fade-up">
-                                    Mã Giảm Giá
-                                </h1>
-                                <Breadcrumb
-                                    data-aos="fade-up"
-                                    data-aos-delay="200"
-                                    style={{ justifyContent: 'center', display: 'flex' }}
-                                    items={[
-                                        {
-                                            title: (
-                                                <Link to="/" style={{ color: '#cb8670' }}>
-                                                    <HomeOutlined /> Trang chủ
-                                                </Link>
-                                            ),
-                                        },
-                                        {
-                                            title: <span style={{ color: '#fff' }}>Mã giảm giá</span>,
-                                        },
-                                    ]}
-                                />
-                            </div>
-                        </Col>
-                    </Row>
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 25px',
+                        borderRadius: 2,
+                    }} />
+                    <h1 style={{ 
+                        color: '#fff', 
+                        fontSize: 52, 
+                        fontWeight: 400,
+                        marginBottom: 20,
+                        fontFamily: '"Playfair Display", Georgia, serif',
+                        fontStyle: 'italic',
+                    }}>
+                        Mã Giảm Giá
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+                        Khám phá các ưu đãi hấp dẫn dành riêng cho bạn
+                    </p>
+                    <Breadcrumb
+                        style={{ justifyContent: 'center', display: 'flex' }}
+                        items={[
+                            {
+                                title: (
+                                    <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
+                                        <HomeOutlined /> Trang chủ
+                                    </Link>
+                                ),
+                            },
+                            {
+                                title: <span style={{ color: '#fff', fontSize: 15 }}>Khuyến mại</span>,
+                            },
+                        ]}
+                    />
                 </div>
             </section>
 
@@ -384,7 +394,7 @@ const Promotions: React.FC = () => {
                                         display: 'flex',
                                         flexDirection: 'column',
                                     }}
-                                    bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                    styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                                 >
                                     <div style={{ marginBottom: '15px' }}>
                                         {getTypeIcon(promo.type)}

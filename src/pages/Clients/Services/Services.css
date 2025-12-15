@@ -1,7 +1,7 @@
 /* Services Page Styles */
 
-/* Hero Section */
-.services-hero {
+/* Hero Section - DISABLED, using inline styles now */
+/* .services-hero {
     position: relative;
     z-index: 1;
     height: 400px;
@@ -33,7 +33,7 @@
     color: #fff !important;
     font-size: 3rem;
     margin-bottom: 1rem !important;
-}
+} */
 
 /* Mobile Responsive */
 @media (max-width: 767px) {

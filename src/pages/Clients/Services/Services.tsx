@@ -112,32 +112,68 @@ const Services: React.FC = () => {
 
   return (
     <div>
-      {/* Breadcrumb Section */}
-      <section
-        className="services-hero"
-        style={{
-          backgroundImage: "url('/img/bg-img/18.jpg')",
-        }}
-      >
-        <div className="services-hero-overlay" />
-        <div className="services-hero-content">
-          <Title level={1} className="services-hero-title" data-aos="fade-up">
+      {/* Hero Section */}
+      <section style={{
+        position: 'relative',
+        height: 450,
+        backgroundImage: "url('/img/bg-img/15.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          top: 0,
+          left: 0,
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
+          zIndex: 1,
+        }} />
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          textAlign: 'center',
+          padding: '0 20px',
+        }}>
+          <div style={{
+            width: 60,
+            height: 3,
+            background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+            margin: '0 auto 25px',
+            borderRadius: 2,
+          }} />
+          <Title 
+            level={1} 
+            style={{ 
+              color: '#fff', 
+              fontSize: 52, 
+              fontWeight: 400,
+              marginBottom: 20,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              fontStyle: 'italic',
+            }}
+          >
             Dịch Vụ Của Chúng Tôi
           </Title>
+          <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+            Trải nghiệm các dịch vụ cao cấp và tiện ích đẳng cấp
+          </Paragraph>
           <Breadcrumb
-            data-aos="fade-up"
-            data-aos-delay="200"
             style={{ justifyContent: 'center', display: 'flex' }}
             items={[
               {
                 title: (
-                  <Link to="/" style={{ color: '#cb8670' }}>
+                  <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
                     <HomeOutlined /> Trang chủ
                   </Link>
                 ),
               },
               {
-                title: <span style={{ color: '#fff' }}>Dịch vụ</span>,
+                title: <span style={{ color: '#fff', fontSize: 15 }}>Dịch vụ</span>,
               },
             ]}
           />
@@ -156,20 +192,38 @@ const Services: React.FC = () => {
       </div>
 
       {/* Free Services Section */}
-      <section style={{ padding: '100px 0 50px' }}>
+      <section style={{ 
+        padding: '100px 0 50px',
+        background: 'linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)',
+      }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
           {/* Section Title */}
-          <div style={{ textAlign: 'center', marginBottom: '60px' }} data-aos="fade-up">
+          <div style={{ textAlign: 'center', marginBottom: 70 }}>
             <div style={{
-              width: '60px',
-              height: '3px',
-              background: '#52c41a',
-              margin: '0 auto 20px'
+              width: 70,
+              height: 4,
+              background: 'linear-gradient(90deg, #52c41a, #73d13d)',
+              margin: '0 auto 25px',
+              borderRadius: 3,
+              boxShadow: '0 2px 8px rgba(82, 196, 26, 0.3)',
             }}></div>
-            <Title level={2} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
+            <Title level={2} style={{ 
+              fontSize: 42, 
+              fontWeight: 600, 
+              marginBottom: 18,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              color: '#1a1a1a',
+              letterSpacing: '-0.5px',
+            }}>
               Dịch Vụ Miễn Phí
             </Title>
-            <Paragraph style={{ fontSize: '16px', color: '#6c757d', maxWidth: '700px', margin: '0 auto' }}>
+            <Paragraph style={{ 
+              color: '#6c757d', 
+              fontSize: 17, 
+              maxWidth: 700, 
+              margin: '0 auto',
+              lineHeight: 1.7,
+            }}>
               Các tiện ích miễn phí dành cho tất cả khách hàng lưu trú tại khách sạn, mang đến trải nghiệm tốt nhất.
             </Paragraph>
           </div>
@@ -190,7 +244,7 @@ const Services: React.FC = () => {
                     position: 'relative',
                     overflow: 'visible',
                   }}
-                  bodyStyle={{ padding: '40px 20px' }}
+                  styles={{ body: { padding: '40px 20px' } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-10px)';
                     e.currentTarget.style.boxShadow = '0 12px 24px rgba(82, 196, 26, 0.3)';
@@ -230,17 +284,32 @@ const Services: React.FC = () => {
       <section style={{ padding: '50px 0 100px', backgroundColor: '#f8f9fa' }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
           {/* Section Title */}
-          <div style={{ textAlign: 'center', marginBottom: '60px' }} data-aos="fade-up">
+          <div style={{ textAlign: 'center', marginBottom: 70 }}>
             <div style={{
-              width: '60px',
-              height: '3px',
-              background: '#cb8670',
-              margin: '0 auto 20px'
+              width: 70,
+              height: 4,
+              background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+              margin: '0 auto 25px',
+              borderRadius: 3,
+              boxShadow: '0 2px 8px rgba(203, 134, 112, 0.3)',
             }}></div>
-            <Title level={2} style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
+            <Title level={2} style={{ 
+              fontSize: 42, 
+              fontWeight: 600, 
+              marginBottom: 18,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              color: '#1a1a1a',
+              letterSpacing: '-0.5px',
+            }}>
               Dịch Vụ Cao Cấp
             </Title>
-            <Paragraph style={{ fontSize: '16px', color: '#6c757d', maxWidth: '700px', margin: '0 auto' }}>
+            <Paragraph style={{ 
+              color: '#6c757d', 
+              fontSize: 17, 
+              maxWidth: 700, 
+              margin: '0 auto',
+              lineHeight: 1.7,
+            }}>
               Các dịch vụ cao cấp với chất lượng tốt nhất, mang đến sự hài lòng và trải nghiệm đẳng cấp cho quý khách.
             </Paragraph>
           </div>
@@ -261,7 +330,7 @@ const Services: React.FC = () => {
                     position: 'relative',
                     overflow: 'visible',
                   }}
-                  bodyStyle={{ padding: '40px 30px' }}
+                  styles={{ body: { padding: '40px 30px' } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-10px)';
                     e.currentTarget.style.boxShadow = '0 12px 24px rgba(203, 134, 112, 0.2)';

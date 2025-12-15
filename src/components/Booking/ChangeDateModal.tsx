@@ -112,7 +112,7 @@ const ChangeDateModal: React.FC<ChangeDateModalProps> = ({
             onCancel={onCancel}
             footer={null}
             width={550}
-            destroyOnClose
+            destroyOnHidden
         >
             <div>
                 {/* Chính sách đổi ngày */}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Typography, Card, Divider, Row, Col } from 'antd';
+import { Link, useNavigate } from 'react-router-dom';
+import { Typography, Card, Divider, Row, Col, Breadcrumb } from 'antd';
 import { 
   HomeOutlined, 
   CalendarOutlined, 
@@ -10,12 +10,32 @@ import {
   SafetyOutlined,
   WarningOutlined,
   CarOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  PhoneOutlined
 } from '@ant-design/icons';
+import BookingFilter from '@/components/Booking/BookingFilter';
 import './HomestayPolicyPage.css';
 const { Title, Paragraph, Text } = Typography;
 
 const HomestayPolicyPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleBookNow = (values: any) => {
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    navigate(`/rooms?${params.toString()}`);
+  };
+
   const policies = [
     {
       id: 1,
@@ -141,71 +161,203 @@ const HomestayPolicyPage: React.FC = () => {
 
   return (
     <div>
-      {/* Breadcrumb Section */}
-      <section
-        style={{
-          position: 'relative',
+      {/* Hero Section */}
+      <section style={{
+        position: 'relative',
+        height: 450,
+        backgroundImage: "url('/img/bg-img/20.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          top: 0,
+          left: 0,
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
           zIndex: 1,
-          height: '400px',
-          backgroundImage: "url('/img/bg-img/19.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 70,
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            top: 0,
-            left: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: -1,
-          }}
-        />
-        <div style={{ textAlign: 'center', color: '#fff', zIndex: 1 }}>
-          <Title level={1} style={{ color: '#fff', fontSize: '3rem', marginBottom: '1rem' }}>
-            🏡 CHÍNH SÁCH VÀ NỘI QUY HOMESTAY
+        }} />
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          textAlign: 'center',
+          padding: '0 20px',
+        }}>
+          <div style={{
+            width: 60,
+            height: 3,
+            background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+            margin: '0 auto 25px',
+            borderRadius: 2,
+          }} />
+          <Title 
+            level={1} 
+            style={{ 
+              color: '#fff', 
+              fontSize: 52, 
+              fontWeight: 400,
+              marginBottom: 20,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              fontStyle: 'italic',
+            }}
+          >
+            Chính Sách & Nội Quy
           </Title>
+          <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+            Quy định và hướng dẫn để có trải nghiệm tốt nhất tại BookStay
+          </Paragraph>
+          <Breadcrumb
+            style={{ justifyContent: 'center', display: 'flex' }}
+            items={[
+              {
+                title: (
+                  <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
+                    <HomeOutlined /> Trang chủ
+                  </Link>
+                ),
+              },
+              {
+                title: <span style={{ color: '#fff', fontSize: 15 }}>Chính Sách</span>,
+              },
+            ]}
+          />
         </div>
       </section>
 
+      {/* Book Now Area */}
+      <div style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
+        </div>
+      </div>
+
       {/* Policies Content Section */}
-      <div style={{ padding: '100px 50px', background: '#fff' }}>
+      <div style={{ 
+        padding: '100px 50px', 
+        background: 'linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)',
+      }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          {/* Section Heading */}
+          <div style={{ textAlign: 'center', marginBottom: 70 }}>
+            <div style={{
+              width: 70,
+              height: 4,
+              background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+              margin: '0 auto 25px',
+              borderRadius: 3,
+              boxShadow: '0 2px 8px rgba(203, 134, 112, 0.3)',
+            }} />
+            <Title level={2} style={{ 
+              fontSize: 42, 
+              fontWeight: 600, 
+              marginBottom: 18,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              color: '#1a1a1a',
+              letterSpacing: '-0.5px',
+            }}>
+              Quy Định Và Điều Khoản
+            </Title>
+            <Paragraph style={{ 
+              color: '#6c757d', 
+              fontSize: 17, 
+              maxWidth: 700, 
+              margin: '0 auto',
+              lineHeight: 1.7,
+            }}>
+              Vui lòng đọc kỹ các chính sách và nội quy dưới đây để đảm bảo trải nghiệm lưu trú tốt nhất
+            </Paragraph>
+          </div>
+
           <Row gutter={[32, 32]}>
-            {policies.map((policy) => (
+            {policies.map((policy, index) => (
               <Col xs={24} md={12} key={policy.id}>
                 <Card
                   className="policy-card"
                   hoverable
                   style={{
                     borderTop: `4px solid ${policy.color}`,
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    borderRadius: 16,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                     height: '100%',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    border: '1px solid #e8e8e8',
+                  }}
+                  styles={{ body: { padding: '28px' } }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-8px)';
+                    e.currentTarget.style.boxShadow = '0 12px 30px rgba(203, 134, 112, 0.2)';
+                    e.currentTarget.style.borderColor = 'rgba(203, 134, 112, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+                    e.currentTarget.style.borderColor = '#e8e8e8';
                   }}
                 >
-                  <div className="policy-card-header">
-                    <div 
-                      className="policy-icon"
-                      style={{ color: policy.color }}
-                    >
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 16,
+                    marginBottom: 20,
+                  }}>
+                    <div style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 12,
+                      background: `linear-gradient(135deg, ${policy.color}15, ${policy.color}25)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 26,
+                      color: policy.color,
+                      flexShrink: 0,
+                    }}>
                       {policy.icon}
                     </div>
-                    <Title level={3} className="policy-card-title">
+                    <Title level={4} style={{ 
+                      margin: 0,
+                      fontSize: 20,
+                      fontWeight: 600,
+                      color: '#1a1a1a',
+                      fontFamily: '"Playfair Display", Georgia, serif',
+                    }}>
                       {policy.id}. {policy.title}
                     </Title>
                   </div>
-                  <Divider style={{ margin: '16px 0' }} />
-                  <ul className="policy-list">
-                    {policy.items.map((item, index) => (
-                      <li key={index} className="policy-item">
-                        <Text>{item}</Text>
+                  <Divider style={{ margin: '20px 0', borderColor: '#e8e8e8' }} />
+                  <ul style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                  }}>
+                    {policy.items.map((item, idx) => (
+                      <li key={idx} style={{
+                        marginBottom: 14,
+                        paddingLeft: 28,
+                        position: 'relative',
+                        fontSize: 14,
+                        lineHeight: 1.7,
+                        color: '#5a5a5a',
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 8,
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: policy.color,
+                        }} />
+                        <Text style={{ fontSize: 14, lineHeight: 1.7 }}>{item}</Text>
                       </li>
                     ))}
                   </ul>
@@ -217,22 +369,51 @@ const HomestayPolicyPage: React.FC = () => {
       </div>
 
       {/* Footer Note */}
-      <div style={{ padding: '0 50px 80px', background: '#fff' }}>
+      <div style={{ padding: '0 50px 80px', background: 'transparent' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Card 
             style={{ 
-              borderRadius: '12px', 
-              background: 'linear-gradient(135deg, #cb8670 0%, #d89070 100%)', 
-              border: 'none' 
+              borderRadius: 16,
+              background: 'linear-gradient(135deg, #cb8670 0%, #b87560 100%)', 
+              border: 'none',
+              boxShadow: '0 8px 30px rgba(203, 134, 112, 0.25)',
             }}
+            styles={{ body: { padding: '40px' } }}
           >
             <div style={{ textAlign: 'center', color: 'white' }}>
-              <Title level={4} style={{ color: 'white', marginBottom: '16px' }}>
-                📞 Liên hệ hỗ trợ
+              <div style={{
+                width: 50,
+                height: 50,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                fontSize: 24,
+              }}>
+                <PhoneOutlined style={{ fontSize: 24, color: 'white', transform: 'rotate(90deg)' }} />
+              </div>
+              <Title level={3} style={{ 
+                color: 'white', 
+                marginBottom: 16,
+                fontFamily: '"Playfair Display", Georgia, serif',
+              }}>
+                Cần Hỗ Trợ Thêm?
               </Title>
-              <Paragraph style={{ color: 'white', fontSize: '16px', margin: 0 }}>
+              <Paragraph style={{ 
+                color: 'rgba(255,255,255,0.95)', 
+                fontSize: 16, 
+                margin: 0,
+                lineHeight: 1.8,
+              }}>
                 Nếu bạn có bất kỳ thắc mắc nào về chính sách, vui lòng liên hệ với chúng tôi qua{' '}
-                <Link to="/contact" style={{ color: '#fff', fontWeight: 'bold', textDecoration: 'underline' }}>
+                <Link to="/contact" style={{ 
+                  color: '#fff', 
+                  fontWeight: 700, 
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                }}>
                   trang liên hệ
                 </Link>
                 {' '}hoặc hotline để được hỗ trợ tốt nhất.

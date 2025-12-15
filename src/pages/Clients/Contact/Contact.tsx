@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Row, Col, Form, Input, Button, Typography, Breadcrumb } from 'antd';
 import { HomeOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, ClockCircleOutlined, SendOutlined } from '@ant-design/icons';
@@ -8,11 +8,9 @@ import './Contact.css';
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-// Inject custom styles
-const injectStyles = () => {
-  const styleId = 'contact-page-styles';
-  if (document.getElementById(styleId)) return;
-  
+// Inject custom styles only once (outside component to avoid re-injection)
+const styleId = 'contact-page-styles';
+if (!document.getElementById(styleId)) {
   const style = document.createElement('style');
   style.id = styleId;
   style.textContent = `
@@ -82,7 +80,7 @@ const injectStyles = () => {
     }
   `;
   document.head.appendChild(style);
-};
+}
 
 const styles = {
   // Hero Section
@@ -177,10 +175,6 @@ const styles = {
 const Contact: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    injectStyles();
-  }, []);
 
   const handleBookNow = (values: any) => {
     const params = new URLSearchParams();

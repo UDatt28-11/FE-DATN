@@ -106,7 +106,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
             onCancel={onCancel}
             footer={null}
             width={600}
-            destroyOnClose
+            destroyOnHidden
         >
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
