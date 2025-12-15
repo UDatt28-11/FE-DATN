@@ -45,6 +45,9 @@ interface BookingCartContextType {
     dateRange: [Dayjs | null, Dayjs | null] | null;
     clearCart: () => void;
     setDateRange: (range: [Dayjs | null, Dayjs | null] | null) => void;
+    // Tổng số khách mong muốn (từ homepage/filter)
+    desiredGuests: number;
+    setDesiredGuests: (guests: number) => void;
     cartVisible: boolean;
     setCartVisible: (visible: boolean) => void;
 }
@@ -54,6 +57,7 @@ const BookingCartContext = createContext<BookingCartContextType | undefined>(und
 const CART_STORAGE_KEY = 'booking_cart';
 const ROOM_TYPE_CART_STORAGE_KEY = 'booking_room_type_cart'; // Key mới cho RoomType cart
 const DATE_RANGE_STORAGE_KEY = 'booking_date_range';
+const DESIRED_GUESTS_STORAGE_KEY = 'booking_desired_guests';
 
 export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Mô hình mới: RoomType-based cart
@@ -114,6 +118,20 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
     });
 
     const [cartVisible, setCartVisible] = useState<boolean>(false);
+
+    // Tổng số khách mong muốn (đồng bộ với homepage & filter)
+    const [desiredGuests, setDesiredGuestsState] = useState<number>(() => {
+        try {
+            const saved = localStorage.getItem(DESIRED_GUESTS_STORAGE_KEY);
+            if (saved) {
+                const num = parseInt(saved, 10);
+                if (!isNaN(num) && num >= 0) return num;
+            }
+        } catch (e) {
+            console.error('Error loading desired guests from localStorage:', e);
+        }
+        return 0;
+    });
 
     // Save RoomType cart to localStorage
     useEffect(() => {
@@ -199,6 +217,19 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
     }, [dateRange]);
 
+    // Save desiredGuests to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem(DESIRED_GUESTS_STORAGE_KEY, String(desiredGuests));
+        } catch (e) {
+            console.error('Error saving desired guests to localStorage:', e);
+        }
+    }, [desiredGuests]);
+
+    const setDesiredGuests = (guests: number) => {
+        setDesiredGuestsState(Math.max(0, guests || 0));
+    };
+
     // Mô hình mới: Thêm RoomType vào cart
     const addRoomTypeToCart = useCallback((
         roomType: RoomType, 
@@ -217,12 +248,14 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
             if (existingIndex >= 0) {
                 // Nếu đã có, cập nhật quantity
                 const updated = [...prev];
+                const newQuantity = (updated[existingIndex].quantity || 1) + quantity;
                 updated[existingIndex] = {
                     ...updated[existingIndex],
-                    quantity: (updated[existingIndex].quantity || 1) + quantity,
-                    totalPrice: ((updated[existingIndex].quantity || 1) + quantity) * pricePerNight * nights,
+                    quantity: newQuantity,
+                    totalPrice: newQuantity * pricePerNight * nights,
                 };
-                message.success(`Đã cập nhật số lượng "${roomType.name}" trong booking cart!`);
+                const capacity = newQuantity * (maxAdults + maxChildren);
+                message.success(`Đã cập nhật số lượng "${roomType.name}" trong booking cart! (Sức chứa loại phòng này: tối đa ${capacity} khách)`);
                 return updated;
             }
 
@@ -238,7 +271,8 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
                 maxChildren,
             };
 
-            message.success(`Đã thêm ${quantity} "${roomType.name}" vào booking cart!`);
+            const capacity = quantity * (maxAdults + maxChildren);
+            message.success(`Đã thêm ${quantity} "${roomType.name}" vào booking cart! (Sức chứa tối đa ${capacity} khách)`);
             return [...prev, newSelectedRoomType];
         });
     }, []);
@@ -315,11 +349,9 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
     const clearCart = useCallback(() => {
         setSelectedRoomTypes([]);
         setSelectedRooms([]);
-        setDateRangeState(null);
         try {
             localStorage.removeItem(ROOM_TYPE_CART_STORAGE_KEY);
             localStorage.removeItem(CART_STORAGE_KEY);
-            localStorage.removeItem(DATE_RANGE_STORAGE_KEY);
         } catch (e) {
             console.error('Error clearing booking cart from localStorage:', e);
         }
@@ -356,12 +388,14 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({ childre
         dateRange,
         clearCart,
         setDateRange,
+        desiredGuests,
+        setDesiredGuests,
         cartVisible,
         setCartVisible,
     }), [
         selectedRoomTypes, addRoomTypeToCart, updateRoomTypeQuantity, removeRoomTypeFromCart, isRoomTypeInCart,
         selectedRooms, addToCart, removeFromCart, isInCart,
-        dateRange, clearCart, setDateRange, cartVisible
+        dateRange, clearCart, setDateRange, desiredGuests, setDesiredGuests, cartVisible
     ]);
 
     return (

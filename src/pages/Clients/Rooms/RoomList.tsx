@@ -145,6 +145,8 @@ const RoomList: React.FC = () => {
         // addToCart,
         // removeFromCart,
         // isInCart,
+        desiredGuests,
+        setDesiredGuests,
     } = useBookingCart();
 
     // State cho dữ liệu - Mô hình mới: RoomType
@@ -192,8 +194,6 @@ const RoomList: React.FC = () => {
 
     // Đọc URL params và khởi tạo giá trị ban đầu (từ Homepage search bar)
     useEffect(() => {
-        if (urlParamsInitialized) return;
-
         const checkInParam = searchParams.get('check_in');
         const checkOutParam = searchParams.get('check_out');
         const adultsParam = searchParams.get('adults');
@@ -217,6 +217,7 @@ const RoomList: React.FC = () => {
             const guests = parseInt(totalGuestsParam, 10);
             if (!isNaN(guests) && guests > 1) {
                 setTotalGuests(guests);
+                setDesiredGuests(guests);
                 // Không set maxAdults/maxChildren để hiển thị tất cả phòng
                 // Modal gợi ý chia phòng sẽ được hiển thị tự động
             }
@@ -239,18 +240,9 @@ const RoomList: React.FC = () => {
         }
 
         setUrlParamsInitialized(true);
-    }, [searchParams, setDateRange, urlParamsInitialized]);
+    }, [searchParams, setDateRange]);
 
-    // Tự động hiển thị modal gợi ý chia phòng khi có totalGuests từ URL và data đã load
-    useEffect(() => {
-        if (urlParamsInitialized && !loading && totalGuests > 1 && roomTypes.length > 0) {
-            // Delay một chút để UX mượt hơn
-            const timer = setTimeout(() => {
-                setShowRoomSuggestions(true);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [urlParamsInitialized, loading, totalGuests, roomTypes.length]);
+    // Popup "Tìm phòng thông minh" chỉ hiển thị khi người dùng bấm nút, không tự động mở
 
     // Định nghĩa interface cho gợi ý chia phòng
     interface RoomAllocationSuggestion {
@@ -753,7 +745,7 @@ const RoomList: React.FC = () => {
             }
 
             // Kiểm tra ngày checkout phải sau ngày checkin
-            if (newRange[1].isSameOrBefore(newRange[0], 'day')) {
+            if (!newRange[1].isAfter(newRange[0], 'day')) {
                 message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                 return; // Không cập nhật state
             }
@@ -825,6 +817,26 @@ const RoomList: React.FC = () => {
         if (!dateRange || !dateRange[0] || !dateRange[1]) {
             message.warning('Vui lòng chọn ngày nhận và trả phòng!');
             return;
+        }
+
+        // Validate sức chứa tổng so với desiredGuests (nếu người dùng đã nhập)
+        if (desiredGuests && desiredGuests > 0) {
+            const totalCapacity = selectedRoomTypes.reduce((sum, item) => {
+                const qty = item.quantity || 1;
+                const cap = (item.maxAdults || 0) + (item.maxChildren || 0);
+                return sum + qty * cap;
+            }, 0);
+
+            if (totalCapacity < desiredGuests) {
+                message.error(`Tổng sức chứa (${totalCapacity} khách) nhỏ hơn số khách bạn nhập (${desiredGuests}). Vui lòng thêm thêm phòng.`);
+                return;
+            }
+
+            // Nếu sức chứa quá dư (> desiredGuests + 2), không cho đặt
+            if (totalCapacity > desiredGuests + 2) {
+                message.error(`Bạn đang đặt quá nhiều phòng (sức chứa ${totalCapacity} khách) so với số khách (${desiredGuests}). Vui lòng giảm bớt số phòng.`);
+                return;
+            }
         }
 
         // Chuyển đổi selectedRoomTypes sang format BookingRoomItem
@@ -1001,6 +1013,41 @@ const RoomList: React.FC = () => {
                                             className="date-range-picker"
                                         />
                                     </div>
+                                    {/* Input tổng số khách liên kết với chia phòng thông minh */}
+                                    <Space.Compact>
+                                        <InputNumber
+                                            min={0}
+                                            max={100}
+                                            value={totalGuests}
+                                            style={{ width: 140 }}
+                                            placeholder="Số khách"
+                                            onChange={(value) => {
+                                                const guests = value || 0;
+                                                setTotalGuests(guests);
+                                                setDesiredGuests(guests);
+                                            }}
+                                            addonAfter="người"
+                                        />
+                                    </Space.Compact>
+                                    {/* Nút tìm / chia phòng thông minh */}
+                                    <Button
+                                        type="default"
+                                        onClick={() => {
+                                            const guests = totalGuests || 0;
+                                            setDesiredGuests(guests);
+                                            if (guests < 2) {
+                                                message.warning('Vui lòng nhập số khách (ít nhất 2) để gợi ý chia phòng phù hợp.');
+                                                return;
+                                            }
+                                            if (!dateRange || !dateRange[0] || !dateRange[1]) {
+                                                message.warning('Vui lòng chọn ngày nhận và trả phòng trước khi tìm phòng phù hợp.');
+                                                return;
+                                            }
+                                            setShowRoomSuggestions(true);
+                                        }}
+                                    >
+                                        Tìm phòng thông minh
+                                    </Button>
                                     {/* Booking Cart Button */}
                                     <Badge count={selectedRoomTypes?.length || 0} showZero={false} className="booking-cart-badge">
                                         <Button
@@ -1485,7 +1532,7 @@ const RoomList: React.FC = () => {
 
                         <Divider />
 
-                        {/* Tổng tiền */}
+                        {/* Tổng tiền + Validate sức chứa */}
                         <div style={{
                             padding: 16,
                             background: '#f5f5f5',
@@ -1512,6 +1559,45 @@ const RoomList: React.FC = () => {
                                     </Text>
                                 </Col>
                             </Row>
+
+                            {/* Thông tin sức chứa so với số khách mong muốn */}
+                            {desiredGuests > 0 && (
+                                <div style={{ marginTop: 12 }}>
+                                    {(() => {
+                                        const totalCapacity = (selectedRoomTypes || []).reduce((sum, item) => {
+                                            const qty = item.quantity || 1;
+                                            const cap = (item.maxAdults || 0) + (item.maxChildren || 0);
+                                            return sum + qty * cap;
+                                        }, 0);
+
+                                        if (totalCapacity < desiredGuests) {
+                                            return (
+                                                <Text type="danger" style={{ fontSize: 12, display: 'block' }}>
+                                                    Tổng sức chứa hiện tại là <strong>{totalCapacity}</strong> khách, 
+                                                    nhỏ hơn số khách bạn nhập là <strong>{desiredGuests}</strong>. 
+                                                    Vui lòng thêm thêm phòng.
+                                                </Text>
+                                            );
+                                        }
+
+                                        if (totalCapacity > desiredGuests + 2) {
+                                            return (
+                                                <Text type="danger" style={{ fontSize: 12, display: 'block' }}>
+                                                    Bạn đang đặt phòng cho tối đa <strong>{totalCapacity}</strong> khách,
+                                                    lớn hơn số khách mong muốn <strong>{desiredGuests}</strong> quá nhiều.
+                                                    Vui lòng giảm bớt số phòng.
+                                                </Text>
+                                            );
+                                        }
+
+                                        return (
+                                            <Text type="success" style={{ fontSize: 12, display: 'block' }}>
+                                                Sức chứa tối đa <strong>{totalCapacity}</strong> khách phù hợp với số khách mong muốn <strong>{desiredGuests}</strong>.
+                                            </Text>
+                                        );
+                                    })()}
+                                </div>
+                            )}
                         </div>
 
                         {/* Nút đặt phòng */}
@@ -1527,6 +1613,17 @@ const RoomList: React.FC = () => {
                                 fontSize: 16,
                                 fontWeight: 'bold'
                             }}
+                            disabled={(() => {
+                                if (!desiredGuests || desiredGuests <= 0) return false;
+                                const totalCapacity = (selectedRoomTypes || []).reduce((sum, item) => {
+                                    const qty = item.quantity || 1;
+                                    const cap = (item.maxAdults || 0) + (item.maxChildren || 0);
+                                    return sum + qty * cap;
+                                }, 0);
+                                if (totalCapacity < desiredGuests) return true;
+                                if (totalCapacity > desiredGuests + 2) return true;
+                                return false;
+                            })()}
                         >
                             Đặt phòng ngay ({selectedRoomTypes.reduce((sum, item) => sum + (item.quantity || 1), 0)} phòng)
                         </Button>
@@ -1636,49 +1733,8 @@ const RoomList: React.FC = () => {
                                 </Select>
                             </div>
 
-                            {/* 🎯 Chia phòng thông minh cho nhóm đông */}
-                            <div style={{
-                                marginBottom: 24,
-                                padding: 16,
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                borderRadius: 12,
-                                color: 'white'
-                            }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12, color: 'white', fontSize: 14 }}>
-                                    🎯 Chia phòng thông minh
-                                </Text>
-                                <Text style={{ display: 'block', marginBottom: 12, color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
-                                    Nhập tổng số khách, hệ thống sẽ tự gợi ý cách chia phòng tối ưu
-                                </Text>
-                                <Space.Compact style={{ width: '100%' }}>
-                                    <InputNumber
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                        max={100}
-                                        value={totalGuests}
-                                        onChange={(value) => {
-                                            setTotalGuests(value || 0);
-                                            if ((value || 0) >= 2) {
-                                                setShowRoomSuggestions(true);
-                                            } else {
-                                                setShowRoomSuggestions(false);
-                                            }
-                                        }}
-                                        placeholder="Nhập số khách (VD: 20)"
-                                        addonAfter="người"
-                                    />
-                                </Space.Compact>
-                                {totalGuests >= 2 && (
-                                    <Button
-                                        type="default"
-                                        size="small"
-                                        style={{ marginTop: 8, background: 'white', color: '#667eea' }}
-                                        onClick={() => setShowRoomSuggestions(true)}
-                                    >
-                                        Xem gợi ý chia phòng →
-                                    </Button>
-                                )}
-                            </div>
+                            {/* 🎯 Chia phòng thông minh cho nhóm đông 
+                                (ô nhập số khách đã được đưa ra thanh trên cùng cạnh chọn ngày) */}
 
                             {/* Nhóm khách */}
                             <div style={{ marginBottom: 24 }}>

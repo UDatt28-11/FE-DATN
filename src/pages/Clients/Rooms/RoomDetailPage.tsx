@@ -336,7 +336,7 @@ const RoomDetailPage: React.FC = () => {
             }
 
             // Kiểm tra ngày checkout phải sau ngày checkin
-            if (newRange[1].isSameOrBefore(newRange[0], 'day')) {
+            if (!newRange[1].isAfter(newRange[0], 'day')) {
                 message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                 return; // Không cập nhật state
             }

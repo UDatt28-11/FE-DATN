@@ -569,7 +569,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                                         message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                                                         return;
                                                     }
-                                                    if (dates[1].isSameOrBefore(dates[0], 'day')) {
+                                                    if (!dates[1].isAfter(dates[0], 'day')) {
                                                         message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                                                         return;
                                                     }

@@ -198,7 +198,7 @@ const BookingInfoPage: React.FC = () => {
                 // Kiểm tra ngày checkout phải sau ngày checkin
                 const checkIn = dayjs(checkInDate);
                 const checkOut = dayjs(checkOutDate);
-                if (checkOut.isSameOrBefore(checkIn, 'day')) {
+                if (!checkOut.isAfter(checkIn, 'day')) {
                     throw new Error('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                 }
 
