@@ -98,6 +98,9 @@ const EditSupply: React.FC<EditSupplyProps> = ({
         <Form.Item label="Đơn vị" name="unit" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
+        <Form.Item label="Số lượng" name="current_stock">
+          <InputNumber min={0} style={{ width: "100%" }} />
+        </Form.Item>
         <Form.Item label="Giá nhập (₫)" name="unit_price">
           <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
