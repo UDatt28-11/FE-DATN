@@ -47,7 +47,7 @@ import {
 } from "@ant-design/icons";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { Dayjs } from "dayjs";
-import dayjs from "dayjs";
+import dayjs from "../../../utils/dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
 // import { getRooms, getRoomById } from "../../../service/room"; // Không dùng nữa, đã chuyển sang RoomType
 import { getRoomTypesWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";

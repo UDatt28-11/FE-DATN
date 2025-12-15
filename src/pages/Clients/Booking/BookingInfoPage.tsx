@@ -23,7 +23,7 @@ import {
     PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
 import { useAuth } from '../../../context/AuthContext';
 import { useBookingCart } from '../../../context/BookingCartContext';
 import { createUserBooking } from '../../../service/bookingService';
