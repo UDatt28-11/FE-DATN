@@ -244,7 +244,10 @@ const Promotions: React.FC = () => {
                     backgroundImage: "url('/img/bg-img/18.jpg')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    padding: '100px 0',
+                    height: 450,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     position: 'relative',
                 }}
             >
@@ -290,7 +293,7 @@ const Promotions: React.FC = () => {
             </section>
 
             {/* Book Now Area */}
-            <div className="book-now-area" style={{ marginTop: '50px', position: 'relative', zIndex: 10 }}>
+            <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
                 <div className="container">
                     <Row justify="center">
                         <Col xs={24} lg={20}>

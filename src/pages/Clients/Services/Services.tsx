@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Typography, Breadcrumb, Button, Tag } from 'antd';
+import BookingFilter from '../../../components/Booking/BookingFilter';
 import {
   HomeOutlined,
   CarOutlined,
@@ -19,6 +20,24 @@ import './Services.css';
 const { Title, Paragraph, Text } = Typography;
 
 const Services: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleBookNow = (values: any) => {
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    navigate(`/rooms?${params.toString()}`);
+  };
+
   const freeServices = [
     {
       icon: <WifiOutlined style={{ fontSize: '48px', color: '#cb8670' }} />,
@@ -124,6 +143,17 @@ const Services: React.FC = () => {
           />
         </div>
       </section>
+
+      {/* Book Now Area */}
+      <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* Free Services Section */}
       <section style={{ padding: '100px 0 50px' }}>

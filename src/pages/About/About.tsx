@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Row, Col, Typography, Image } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
+import BookingFilter from '../../components/Booking/BookingFilter';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -213,6 +214,7 @@ const styles = {
 };
 
 const About: React.FC = () => {
+  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const milestonesRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +223,22 @@ const About: React.FC = () => {
   const poolCount = useCountUp(3, 1500, isVisible);
   const roomCount = useCountUp(79, 2000, isVisible);
   const apartmentCount = useCountUp(25, 1800, isVisible);
+
+  const handleBookNow = (values: any) => {
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    navigate(`/rooms?${params.toString()}`);
+  };
 
   // Inject CSS animations on mount
   useEffect(() => {
@@ -276,6 +294,17 @@ const About: React.FC = () => {
         </div>
       </section>
       {/* ##### Breadcumb Area End ##### */}
+
+      {/* Book Now Area */}
+      <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* ##### About Us Area Start ##### */}
       <section style={styles.aboutSection}>
