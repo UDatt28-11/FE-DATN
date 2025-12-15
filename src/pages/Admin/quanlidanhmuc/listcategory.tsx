@@ -162,37 +162,75 @@ const ListCategory: React.FC = () => {
   };
 
   const columns: ColumnsType<RoomType> = [
-    { title: "ID", dataIndex: "id", key: "id", width: 80 },
+    { title: "ID", dataIndex: "id", key: "id", width: 60, align: "center" },
     {
       title: "Hình ảnh",
       dataIndex: "image_url",
       key: "image_url",
-      width: 100,
+      width: 80,
+      align: "center",
       render: (image: string) => (
         <Image
-          src={image || "https://via.placeholder.com/60"}
+          src={image || "https://via.placeholder.com/48"}
           alt="roomtype"
-          width={60}
-          height={60}
+          width={48}
+          height={48}
           style={{ objectFit: "cover", borderRadius: 8 }}
+          preview={false}
         />
       ),
     },
-    { title: "Tên loại phòng", dataIndex: "name", key: "name" },
+    {
+      title: "Tên loại phòng",
+      dataIndex: "name",
+      key: "name",
+      ellipsis: true,
+    },
+    {
+      title: "Giá / đêm",
+      dataIndex: "base_price",
+      key: "base_price",
+      width: 130,
+      render: (price?: number) => (
+        <span style={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+          {price != null ? price.toLocaleString("vi-VN") : "0"} ₫
+        </span>
+      ),
+    },
+    {
+      title: "Sức chứa",
+      key: "capacity",
+      width: 110,
+      render: (_, record) => (
+        <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+          {(record.max_adults ?? 0)} NL, {(record.max_children ?? 0)} TE
+        </span>
+      ),
+    },
     {
       title: "Property",
       dataIndex: "property",
       key: "property",
+      width: 180,
+      ellipsis: true,
       render: (property: RoomType["property"]) => property?.name || "-",
     },
-    { title: "Trạng thái", dataIndex: "status", key: "status", render: getStatusTag },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      render: getStatusTag,
+    },
     {
       title: "Thao tác",
       key: "action",
+      width: 150,
       render: (_, record) => (
-        <Space>
-          <Tooltip title="Xem chi tiết">
+        <Space size="small">
+          <Tooltip title="Xem chi tiết loại phòng">
             <Button
+              size="small"
               icon={<EyeOutlined />}
               type="default"
               onClick={() => {
@@ -202,8 +240,9 @@ const ListCategory: React.FC = () => {
             />
           </Tooltip>
 
-          <Tooltip title="Chỉnh sửa">
+          <Tooltip title="Chỉnh sửa loại phòng">
             <Button
+              size="small"
               icon={<EditOutlined />}
               type="primary"
               onClick={() => {
@@ -215,6 +254,7 @@ const ListCategory: React.FC = () => {
 
           <Tooltip title="Xóa loại phòng">
             <Button
+              size="small"
               icon={<DeleteOutlined />}
               danger
               onClick={() => handleDeleteRoomType(record)}
@@ -267,7 +307,6 @@ const ListCategory: React.FC = () => {
               dataSource={roomTypes}
               pagination={tablePagination}
               rowKey={(record) => record.id}
-              scroll={{ x: 1200 }}
             />
           </Spin>
         </Card>
@@ -311,6 +350,16 @@ const ListCategory: React.FC = () => {
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("description", values.description || "");
+      // Giá & sức chứa
+      if (values.base_price != null) {
+        formData.append("base_price", String(values.base_price));
+      }
+      if (values.max_adults != null) {
+        formData.append("max_adults", String(values.max_adults));
+      }
+      if (values.max_children != null) {
+        formData.append("max_children", String(values.max_children));
+      }
       if (values.property_id) {
         formData.append("property_id", values.property_id);
       }
@@ -342,6 +391,16 @@ const ListCategory: React.FC = () => {
       formData.append("name", values.name);
       formData.append("description", values.description || "");
       formData.append("status", values.status || "active");
+      // Giá & sức chứa
+      if (values.base_price != null) {
+        formData.append("base_price", String(values.base_price));
+      }
+      if (values.max_adults != null) {
+        formData.append("max_adults", String(values.max_adults));
+      }
+      if (values.max_children != null) {
+        formData.append("max_children", String(values.max_children));
+      }
       if (values.property_id) {
         formData.append("property_id", values.property_id);
       }

@@ -13,6 +13,12 @@ export interface RoomType {
   name: string;
   description?: string;
   image_url?: string;
+  /** Giá cơ bản theo đêm cho loại phòng */
+  base_price?: number;
+  /** Số người lớn tối đa cho loại phòng */
+  max_adults?: number;
+  /** Số trẻ em tối đa cho loại phòng */
+  max_children?: number;
   status: "active" | "inactive";
   created_at?: string;
   updated_at?: string;

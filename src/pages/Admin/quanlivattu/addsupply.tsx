@@ -8,9 +8,11 @@ interface AddSupplyProps {
   visible: boolean;
   onCancel: () => void;
   onAdd: (supply: Supply) => void; // callback khi thêm thành công
+  /** Nếu truyền roomId, vật tư sẽ được gán trực tiếp cho phòng đó */
+  roomId?: number;
 }
 
-const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd }) => {
+const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +24,8 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd }) => {
       // đảm bảo các giá trị số có mặc định
       const payload = {
         ...values,
+        // Nếu có roomId, gán vật tư cho phòng đó
+        room_id: roomId ?? values.room_id,
         current_stock: values.current_stock ?? 0,
         min_stock_level: values.min_stock_level ?? 0,
         max_stock_level: values.max_stock_level ?? values.current_stock ?? 0,
@@ -70,6 +74,12 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd }) => {
       confirmLoading={loading}
     >
       <Form form={form} layout="vertical">
+        {/* Nếu dùng trong context phòng cụ thể, room_id sẽ được truyền sẵn và ẩn */}
+        {!roomId && (
+          <Form.Item label="ID phòng (tuỳ chọn)" name="room_id">
+            <InputNumber min={1} style={{ width: "100%" }} placeholder="Nhập ID phòng nếu là vật tư trong phòng" />
+          </Form.Item>
+        )}
         <Form.Item label="Tên vật tư" name="name" rules={[{ required: true }]}>
           <Input />
         </Form.Item>

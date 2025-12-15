@@ -12,6 +12,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 interface AddRoomProps {
     visible: boolean;
     onClose: () => void;
+    initialRoomTypeId?: number;
+    initialPropertyId?: number;
 }
 
 interface Property {
@@ -29,7 +31,7 @@ interface Amenity {
     name: string;
 }
 
-const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
+const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, initialPropertyId }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [properties, setProperties] = useState<Property[]>([]);
@@ -44,12 +46,19 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
             loadProperties();
             loadRoomTypes();
             loadAmenities();
+            // Set initial values if provided
+            if (initialRoomTypeId || initialPropertyId) {
+                form.setFieldsValue({
+                    room_type_id: initialRoomTypeId,
+                    property_id: initialPropertyId,
+                });
+            }
         } else {
             form.resetFields();
             setFileList([]);
             setSelectedAmenities([]);
         }
-    }, [visible]);
+    }, [visible, initialRoomTypeId, initialPropertyId]);
 
     const loadProperties = async () => {
         try {
@@ -94,9 +103,7 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
                 room_type_id: values.room_type_id,
                 name: values.name,
                 description: values.description || "",
-                max_adults: values.max_adults,
-                max_children: values.max_children || 0,
-                price_per_night: values.price_per_night,
+                // Giá & sức chứa không nhập ở đây nữa, lấy từ RoomType
                 status: values.status || "available",
                 amenities: selectedAmenities,
             };
@@ -203,39 +210,7 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose }) => {
                     <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết về phòng..." />
                 </Form.Item>
 
-                <Row gutter={16}>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_adults"
-                            label="Số người lớn tối đa"
-                            rules={[{ required: true, message: "Vui lòng nhập số người lớn!" }]}
-                        >
-                            <InputNumber min={1} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_children"
-                            label="Số trẻ em tối đa"
-                        >
-                            <InputNumber min={0} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="price_per_night"
-                            label="Giá/đêm (VNĐ)"
-                            rules={[{ required: true, message: "Vui lòng nhập giá!" }]}
-                        >
-                            <InputNumber
-                                min={0}
-                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
-                                style={{ width: "100%" }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
+                {/* Giá và sức chứa hiện đã là dữ liệu chung trên RoomType nên không cần nhập ở đây */}
 
                 <Form.Item name="status" label="Trạng thái" initialValue="available">
                     <Select>

@@ -126,9 +126,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                 room_type_id: values.room_type_id,
                 name: values.name,
                 description: values.description || "",
-                max_adults: values.max_adults,
-                max_children: values.max_children || 0,
-                price_per_night: values.price_per_night,
+                // Giá & sức chứa giờ lấy từ RoomType nên không cập nhật ở đây
                 status: values.status,
                 amenities: selectedAmenities,
             };
@@ -303,39 +301,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                     <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết về phòng..." />
                 </Form.Item>
 
-                <Row gutter={16}>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_adults"
-                            label="Số người lớn tối đa"
-                            rules={[{ required: true, message: "Vui lòng nhập số người lớn!" }]}
-                        >
-                            <InputNumber min={1} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_children"
-                            label="Số trẻ em tối đa"
-                        >
-                            <InputNumber min={0} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="price_per_night"
-                            label="Giá/đêm (VNĐ)"
-                            rules={[{ required: true, message: "Vui lòng nhập giá!" }]}
-                        >
-                            <InputNumber
-                                min={0}
-                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
-                                style={{ width: "100%" }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
+                {/* Giá và sức chứa hiện đã là dữ liệu chung trên RoomType nên không chỉnh ở đây */}
 
                 <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
                     <Select>
