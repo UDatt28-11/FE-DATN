@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Space, Button, Select } from "antd";
+import { Modal, Form, Input, Upload, Space, Button, Select, message } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
+import { getProperties } from "../../../service/propertyService";
+
+interface Property {
+    id: number;
+    name: string;
+}
 
 interface AddCategoryProps {
     visible: boolean;
@@ -12,6 +18,35 @@ interface AddCategoryProps {
 const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) => {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [loadingProperties, setLoadingProperties] = useState(false);
+
+    // Load danh sách properties
+    useEffect(() => {
+        const loadProperties = async () => {
+            setLoadingProperties(true);
+            try {
+                const { properties: propertiesList } = await getProperties({ per_page: 100 });
+                if (propertiesList) {
+                    setProperties(propertiesList);
+
+                    // Nếu chỉ có 1 property, tự động chọn
+                    if (propertiesList.length === 1) {
+                        form.setFieldValue('property_id', propertiesList[0].id);
+                    }
+                }
+            } catch (error: any) {
+                console.error('Error loading properties:', error);
+                message.error('Không thể tải danh sách cơ sở lưu trú');
+            } finally {
+                setLoadingProperties(false);
+            }
+        };
+
+        if (visible) {
+            loadProperties();
+        }
+    }, [visible, form]);
 
     const handleOk = () => {
         form.validateFields().then((values) => {
@@ -44,7 +79,15 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
                 <Form.Item
                     name="name"
                     label="Tên loại phòng"
-                    rules={[{ required: true, message: "Vui lòng nhập tên loại phòng!" }]}
+                    rules={[
+                        { required: true, message: "Vui lòng nhập tên loại phòng!" },
+                        { min: 2, message: "Tên loại phòng phải có ít nhất 2 ký tự!" },
+                        { max: 255, message: "Tên loại phòng không được vượt quá 255 ký tự!" },
+                        {
+                            pattern: /^[^\d].*$/,
+                            message: "Tên loại phòng không được bắt đầu bằng chữ số!"
+                        },
+                    ]}
                 >
                     <Input placeholder="VD: Phòng Standard, Phòng Deluxe..." size="large" />
                 </Form.Item>
@@ -58,13 +101,19 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
 
                 <Form.Item
                     name="property_id"
-                    label="Property (Tùy chọn)"
+                    label="Cơ sở lưu trú"
+                    rules={[{ required: true, message: "Vui lòng chọn cơ sở lưu trú!" }]}
                 >
                     <Select
-                        placeholder="Chọn property (không bắt buộc)"
-                        allowClear
+                        placeholder="Chọn cơ sở lưu trú"
+                        loading={loadingProperties}
+                        disabled={loadingProperties || properties.length === 0}
                     >
-                        {/* Có thể thêm danh sách properties nếu cần */}
+                        {properties.map((property) => (
+                            <Select.Option key={property.id} value={property.id}>
+                                {property.name}
+                            </Select.Option>
+                        ))}
                     </Select>
                 </Form.Item>
 

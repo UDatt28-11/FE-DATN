@@ -75,13 +75,13 @@ const BookingInfoPage: React.FC = () => {
 
     // Lấy thông tin booking từ location state
     const locationState = location.state as BookingData | null;
-    
+
     // Chuyển đổi format cũ (1 phòng) sang format mới (mảng phòng) để xử lý thống nhất
     const normalizeBookingData = (): BookingData => {
         // Kiểm tra xem có phòng nào đã được lưu trong sessionStorage không (từ nút "Thêm phòng khác")
         const savedRooms = sessionStorage.getItem('booking_rooms');
         let existingRooms: BookingRoomItem[] = [];
-        
+
         if (savedRooms) {
             try {
                 existingRooms = JSON.parse(savedRooms);
@@ -97,11 +97,11 @@ const BookingInfoPage: React.FC = () => {
             }
             return {
                 rooms: [{
-        roomId: '1',
-        roomName: 'Deluxe Room',
-        price: 1500000,
-        nights: 1,
-        totalPrice: 1500000,
+                    roomId: '1',
+                    roomName: 'Deluxe Room',
+                    price: 1500000,
+                    nights: 1,
+                    totalPrice: 1500000,
                 }]
             };
         }
@@ -109,7 +109,7 @@ const BookingInfoPage: React.FC = () => {
         // Nếu đã có rooms array, merge với existing rooms nếu có
         if (locationState.rooms && locationState.rooms.length > 0) {
             // Kiểm tra xem phòng mới có trùng với phòng đã có không (theo roomId)
-            const newRooms = locationState.rooms.filter(newRoom => 
+            const newRooms = locationState.rooms.filter(newRoom =>
                 !existingRooms.some(existingRoom => existingRoom.roomId === newRoom.roomId)
             );
             const mergedRooms = [...existingRooms, ...newRooms];
@@ -131,14 +131,14 @@ const BookingInfoPage: React.FC = () => {
                 nights: locationState.nights,
                 totalPrice: locationState.totalPrice || locationState.price || 0,
             };
-            
+
             // Kiểm tra xem phòng mới có trùng với phòng đã có không
             const isDuplicate = existingRooms.some(room => room.roomId === newRoom.roomId);
             const mergedRooms = isDuplicate ? existingRooms : [...existingRooms, newRoom];
-            
+
             // Xóa sessionStorage sau khi đã merge
             sessionStorage.removeItem('booking_rooms');
-            
+
             return {
                 ...locationState,
                 rooms: mergedRooms
@@ -195,6 +195,13 @@ const BookingInfoPage: React.FC = () => {
                     checkOutDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
                 }
 
+                // Kiểm tra ngày checkout phải sau ngày checkin
+                const checkIn = dayjs(checkInDate);
+                const checkOut = dayjs(checkOutDate);
+                if (checkOut.isSameOrBefore(checkIn, 'day')) {
+                    throw new Error('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                }
+
                 const detail: any = {
                     check_in_date: checkInDate,
                     check_out_date: checkOutDate,
@@ -247,6 +254,13 @@ const BookingInfoPage: React.FC = () => {
                 }
             });
         } catch (error: any) {
+            // Handle validation errors from the frontend
+            if (error.message && !error.response) {
+                message.error(error.message);
+                setLoading(false);
+                return;
+            }
+
             // Không log error cho 401/403 vì axios interceptor sẽ xử lý redirect
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 console.error('Error creating booking:', error);
@@ -484,7 +498,7 @@ const BookingInfoPage: React.FC = () => {
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.checkIn} → {room.checkOut}
                                                     </Text>
-                                        <br />
+                                                    <br />
                                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                                         {room.nights} đêm
                                                     </Text>
@@ -503,7 +517,7 @@ const BookingInfoPage: React.FC = () => {
                                                     {(room.totalPrice || room.price * (room.nights || 1)).toLocaleString('vi-VN')} VNĐ
                                                 </Text>
                                             </div>
-                                    </div>
+                                        </div>
                                     ))}
 
                                     {rooms.length > 0 && rooms[0].checkIn && (
@@ -536,10 +550,10 @@ const BookingInfoPage: React.FC = () => {
                                         <Row justify="space-between" align="middle">
                                             <Col>
                                                 <Text strong style={{ fontSize: 16 }}>Tổng cộng</Text>
-                                                        <br />
-                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                <br />
+                                                <Text type="secondary" style={{ fontSize: 12 }}>
                                                     {rooms.length} phòng
-                                                        </Text>
+                                                </Text>
                                             </Col>
                                             <Col>
                                                 <Text
@@ -549,7 +563,7 @@ const BookingInfoPage: React.FC = () => {
                                                         color: '#cb8670'
                                                     }}
                                                 >
-                                                    {rooms.reduce((sum, room) => 
+                                                    {rooms.reduce((sum, room) =>
                                                         sum + (room.totalPrice || room.price * (room.nights || 1)), 0
                                                     ).toLocaleString('vi-VN')} VNĐ
                                                 </Text>

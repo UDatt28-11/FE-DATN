@@ -1,19 +1,18 @@
-import { Layout, Typography, Row, Col, Card, Statistic, Avatar, Divider, Timeline, Tag, Button } from "antd";
-import { SmileOutlined, TeamOutlined, HomeOutlined, TrophyOutlined, HeartOutlined, StarFilled, GlobalOutlined, RocketOutlined, CustomerServiceOutlined, DollarOutlined, ThunderboltOutlined, LockOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Layout, Typography, Row, Col, Card, Button, Image } from "antd";
+import { CheckCircleOutlined } from "@ant-design/icons";
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 
-
-
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 import AppHeader from "../../../components/Layout/AppHeader";
 import AppFooter from "../../../components/Layout/AppFooter";
 
 export default function AboutPage() {
     const banners = [
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
-        "https://images.unsplash.com/photo-1490645935967-10de6ba17061"
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+        "https://images.unsplash.com/photo-1582719508461-905c673771fd",
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"
     ];
 
     const [index, setIndex] = useState(0);
@@ -21,176 +20,439 @@ export default function AboutPage() {
     useEffect(() => {
         const interval = setInterval(() => {
             setIndex((prev) => (prev + 1) % banners.length);
-        }, 1500);
+        }, 5000);
 
         return () => clearInterval(interval);
     }, []);
+
     return (
         <Layout>
+            <Helmet>
+                <title>Về chúng tôi - The Palatin</title>
+                <meta name="description" content="Khám phá The Palatin - Nơi kết hợp hoàn hảo giữa sự sang trọng và tiện nghi hiện đại" />
+            </Helmet>
+
+            <AppHeader />
+
             {/* BANNER */}
-            < AppHeader />
             <div
                 style={{
                     marginTop: 70,
                     position: 'relative',
                     transition: 'background-image 1.5s ease-in-out',
-                    backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${banners[index]}')`,
+                    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${banners[index]}')`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    height: '75vh',
+                    height: '60vh',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    textAlign: 'center',
                 }}
             >
-                <div style={{ maxWidth: 900, padding: '0 20px' }}>
-                    <Title
-                        level={1}
-                        style={{
-                            color: '#fff',
-                            fontSize: 58,
-                            fontWeight: 800,
-                            marginBottom: 24,
-                            textShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                            lineHeight: 1.2,
-                        }}
-                    >
-                        Về HomestayBooking
-                    </Title>
-                    <Paragraph
-                        style={{
-                            color: '#fff',
-                            fontSize: 22,
-                            marginBottom: 40,
-                            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                            maxWidth: 700,
-                            margin: '0 auto 40px',
-                        }}
-                    >
-                        Nền tảng đặt homestay hàng đầu Việt Nam - Kết nối du khách với những trải nghiệm lưu trú độc đáo
-                    </Paragraph>
-                    <Button
-                        type="primary"
-                        size="large"
-                        style={{
-                            height: 54,
-                            fontSize: 17,
-                            fontWeight: 600,
-                            paddingLeft: 48,
-                            paddingRight: 48,
-                            borderRadius: 8,
-                        }}
-                    >
-                        Khám phá homestay ngay
-                    </Button>
-                </div>
+                <Title
+                    level={1}
+                    style={{
+                        color: '#fff',
+                        fontSize: 56,
+                        fontWeight: 700,
+                        textShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                        margin: 0,
+                    }}
+                >
+                    Về chúng tôi
+                </Title>
             </div>
 
-            {/* GIỚI THIỆU */}
-            <Content style={{ padding: '100px 50px', background: '#fff' }}>
-                <Row gutter={[80, 64]} align="middle" style={{ maxWidth: 1200, margin: '0 auto' }}>
-                    <Col xs={24} md={12}>
-                        <Tag color="blue" style={{ marginBottom: 16, fontSize: 13, padding: '4px 12px' }}>
-                            Câu chuyện của chúng tôi
-                        </Tag>
-                        <Title level={2} style={{ fontSize: 40, fontWeight: 700, marginBottom: 24 }}>
-                            Chúng tôi là ai?
+            {/* NỘI DUNG CHÍNH */}
+            <Content style={{ background: '#fff' }}>
+                {/* Giới thiệu */}
+                <div style={{ padding: '80px 50px', maxWidth: 1200, margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                        <div style={{
+                            width: 60,
+                            height: 4,
+                            background: '#d4af37',
+                            margin: '0 auto 20px'
+                        }} />
+                        <Title level={2} style={{ fontSize: 36, fontWeight: 700, marginBottom: 24 }}>
+                            Một nơi đáng nhớ
                         </Title>
-                        <Paragraph style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
-                            Tại BookStay, chúng tôi tin rằng việc nghỉ dưỡng không chỉ là ngủ qua đêm – mà là tận hưởng một trải nghiệm sống hoàn toàn khác.
-                            Vì vậy, chúng tôi chọn lọc những homestay có concept rõ ràng, có gu, có chiều sâu câu chuyện, và thật sự mang lại cảm xúc.
-                            Dữ liệu được cập nhật liên tục theo đánh giá, lượt đặt, mức độ yêu thích và mức độ tin tưởng từ cộng đồng du lịch.
+                        <Paragraph style={{
+                            fontSize: 16,
+                            color: '#666',
+                            maxWidth: 800,
+                            margin: '0 auto',
+                            lineHeight: 1.8
+                        }}>
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin gravida lorem eu consectetur
+                            imperdiet. Donec vel magna nunc. Ut ligula justo, consequat a egestas at, pretium ac urna.
+                            Mauris ut risus ut leo rhoncus iaculis. Sed at erat sit amet felis varius ultrices eget vel
+                            elit. Cras ultricies pharetra pulvinar.
                         </Paragraph>
+                        <Button
+                            size="large"
+                            style={{
+                                marginTop: 32,
+                                background: '#d4af37',
+                                borderColor: '#d4af37',
+                                color: '#fff',
+                                height: 48,
+                                fontSize: 16,
+                                paddingLeft: 40,
+                                paddingRight: 40,
+                                fontWeight: 600
+                            }}
+                        >
+                            ĐỌC THÊM
+                        </Button>
+                    </div>
 
-                        <Paragraph style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
-                            Bạn có thể dễ dàng khám phá homestay theo phong cách, vị trí, ngân sách hoặc vibe mong muốn – từ view núi mây ôm Sapa,
-                            phố cổ Hội An đầy hoài niệm, cho đến những căn nằm sát biển chỉ cần mở cửa là nghe sóng.
-                            BookStay hướng tới một nền tảng gọn – nhanh – trực quan, giúp bạn chọn đúng nơi, đúng cảm xúc, ngay lần đầu tìm kiếm.
-                        </Paragraph>
-
-                        <div style={{ display: 'flex', gap: 24, marginTop: 32, flexWrap: 'wrap' }}>
-                            <div>
-                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>200K+</Title>
-                                <Text style={{ color: '#8c8c8c' }}>Khách hàng tin tưởng</Text>
-                            </div>
-                            <div>
-                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>5000+</Title>
-                                <Text style={{ color: '#8c8c8c' }}>Homestay đối tác</Text>
-                            </div>
-                            <div>
-                                <Title level={3} style={{ color: '#1677ff', marginBottom: 4 }}>63</Title>
-                                <Text style={{ color: '#8c8c8c' }}>Tỉnh thành</Text>
-                            </div>
-                        </div>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <div style={{ position: 'relative' }}>
-                            <img
-                                src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85"
-                                alt="Về chúng tôi"
-                                style={{
-                                    width: '100%',
-                                    borderRadius: 20,
-                                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-                                }}
+                    <Row gutter={[40, 40]}>
+                        <Col xs={24} md={12}>
+                            <Image
+                                src="https://images.unsplash.com/photo-1571896349842-33c89424de2d"
+                                alt="Beach resort"
+                                style={{ width: '100%', borderRadius: 8 }}
+                                preview={false}
                             />
-                            <Card
-                                variant="borderless"
-                                style={{
-                                    position: 'absolute',
-                                    bottom: -40,
-                                    left: -40,
-                                    background: '#fff',
-                                    borderRadius: 16,
-                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                                    minWidth: 200,
-                                }}
-                                bodyStyle={{ padding: 24 }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                    <div
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <Image
+                                src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461"
+                                alt="Pool"
+                                style={{ width: '100%', borderRadius: 8 }}
+                                preview={false}
+                            />
+                        </Col>
+                    </Row>
+                </div>
+
+                {/* Thành tựu */}
+                <div style={{ background: '#2d2d2d', padding: '80px 50px', color: '#fff' }}>
+                    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                            <div style={{
+                                width: 60,
+                                height: 4,
+                                background: '#d4af37',
+                                margin: '0 auto 20px'
+                            }} />
+                            <Title level={2} style={{ color: '#fff', fontSize: 36, fontWeight: 700 }}>
+                                Các cột mốc của chúng tôi
+                            </Title>
+                        </div>
+
+                        <Row gutter={[40, 40]} justify="center">
+                            <Col xs={12} sm={12} md={6}>
+                                <Card
+                                    style={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid #444',
+                                        textAlign: 'center',
+                                        borderRadius: 8
+                                    }}
+                                    bodyStyle={{ padding: '40px 20px' }}
+                                >
+                                    <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
+                                        🏆
+                                    </div>
+                                    <Title level={3} style={{ color: '#fff', margin: 0, fontSize: 32 }}>
+                                        231
+                                    </Title>
+                                    <Text style={{ color: '#999' }}>Giải thưởng</Text>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={12} md={6}>
+                                <Card
+                                    style={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid #444',
+                                        textAlign: 'center',
+                                        borderRadius: 8
+                                    }}
+                                    bodyStyle={{ padding: '40px 20px' }}
+                                >
+                                    <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
+                                        🍽️
+                                    </div>
+                                    <Title level={3} style={{ color: '#fff', margin: 0, fontSize: 32 }}>
+                                        3
+                                    </Title>
+                                    <Text style={{ color: '#999' }}>Nhà hàng</Text>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={12} md={6}>
+                                <Card
+                                    style={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid #444',
+                                        textAlign: 'center',
+                                        borderRadius: 8
+                                    }}
+                                    bodyStyle={{ padding: '40px 20px' }}
+                                >
+                                    <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
+                                        🛏️
+                                    </div>
+                                    <Title level={3} style={{ color: '#fff', margin: 0, fontSize: 32 }}>
+                                        79
+                                    </Title>
+                                    <Text style={{ color: '#999' }}>Phòng</Text>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={12} md={6}>
+                                <Card
+                                    style={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid #444',
+                                        textAlign: 'center',
+                                        borderRadius: 8
+                                    }}
+                                    bodyStyle={{ padding: '40px 20px' }}
+                                >
+                                    <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
+                                        👥
+                                    </div>
+                                    <Title level={3} style={{ color: '#fff', margin: 0, fontSize: 32 }}>
+                                        26
+                                    </Title>
+                                    <Text style={{ color: '#999' }}>Nhân viên</Text>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
+                </div>
+
+                {/* Khách sạn */}
+                <div style={{ padding: '80px 50px', maxWidth: 1200, margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                        <div style={{
+                            width: 60,
+                            height: 4,
+                            background: '#d4af37',
+                            margin: '0 auto 20px'
+                        }} />
+                        <Title level={2} style={{ fontSize: 36, fontWeight: 700 }}>
+                            Khách sạn của chúng tôi
+                        </Title>
+                    </div>
+
+                    <Row gutter={[40, 40]}>
+                        <Col xs={24} md={12}>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Phòng được trang bị hiện đại, wifi tốc độ cao, 48 kênh
+                                    </Title>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Phòng sạch, thoải mái, wifi tốc độ cao
+                                    </Title>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Dịch vụ giặt là miễn phí
+                                    </Title>
+                                </div>
+                            </div>
+                            <Image
+                                src="https://images.unsplash.com/photo-1590490360182-c33d57733427"
+                                alt="Hotel lobby"
+                                style={{ width: '100%', borderRadius: 8, marginTop: 20 }}
+                                preview={false}
+                            />
+                        </Col>
+
+                        <Col xs={24} md={12}>
+                            <Image
+                                src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b"
+                                alt="Pool area"
+                                style={{ width: '100%', borderRadius: 8, marginBottom: 20 }}
+                                preview={false}
+                            />
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Phòng sạch, thoải mái, wifi tốc độ cao, 48 kênh
+                                    </Title>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Dịch vụ giặt là miễn phí trong 5 ngày
+                                    </Title>
+                                </div>
+                            </div>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={[40, 40]} style={{ marginTop: 40 }}>
+                        <Col xs={24} md={8}>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Phòng sạch, thoải mái, wifi tốc độ cao
+                                    </Title>
+                                </div>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Dịch vụ giặt là miễn phí, 48 kênh
+                                    </Title>
+                                </div>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                                <CheckCircleOutlined style={{ fontSize: 24, color: '#d4af37', flexShrink: 0, marginTop: 4 }} />
+                                <div>
+                                    <Title level={4} style={{ marginBottom: 8 }}>
+                                        Dịch vụ giặt là miễn phí trong 5 ngày
+                                    </Title>
+                                </div>
+                            </div>
+                        </Col>
+                    </Row>
+
+                    <div style={{ textAlign: 'center', marginTop: 60 }}>
+                        <Image
+                            src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4"
+                            alt="Beach view"
+                            style={{ width: '100%', maxWidth: 600, borderRadius: 8 }}
+                            preview={false}
+                        />
+                    </div>
+                </div>
+
+                {/* Đánh giá khách hàng */}
+                <div style={{ background: '#f8f8f8', padding: '80px 50px' }}>
+                    <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+                        <div style={{
+                            width: 60,
+                            height: 4,
+                            background: '#d4af37',
+                            margin: '0 auto 20px'
+                        }} />
+                        <Title level={2} style={{ fontSize: 36, fontWeight: 700, marginBottom: 40 }}>
+                            Khách hàng nói gì
+                        </Title>
+
+                        <Card
+                            style={{
+                                border: 'none',
+                                borderRadius: 12,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                            }}
+                            bodyStyle={{ padding: '50px 40px' }}
+                        >
+                            <Paragraph style={{
+                                fontSize: 18,
+                                color: '#666',
+                                lineHeight: 1.8,
+                                fontStyle: 'italic',
+                                marginBottom: 30
+                            }}>
+                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin gravida lorem eu
+                                consectetur imperdiet. Donec vel magna nunc. Ut ligula justo, consequat a egestas at,
+                                pretium ac urna. Mauris ut risus ut leo rhoncus iaculis. Sed at erat sit amet felis
+                                varius ultrices eget vel elit. Cras ultricies pharetra pulvinar."
+                            </Paragraph>
+                            <div style={{ marginTop: 30 }}>
+                                <img
+                                    src="https://logo.com/image-cdn/images/kts928pd/production/eb25c68b2f90b321c630fb8f3fcb1962e4c2a7e2-920x920.png?w=1080&q=72"
+                                    alt="TripAdvisor"
+                                    style={{ height: 40, opacity: 0.8 }}
+                                />
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Đăng ký nhận tin */}
+                <div style={{ background: '#2d2d2d', padding: '80px 50px', color: '#fff' }}>
+                    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                        <Row gutter={[60, 40]} align="middle">
+                            <Col xs={24} md={12}>
+                                <Title level={2} style={{ color: '#fff', fontSize: 32, fontWeight: 700, marginBottom: 20 }}>
+                                    Tìm chúng tôi trên bản đồ
+                                </Title>
+                                <Paragraph style={{ color: '#ccc', fontSize: 16, lineHeight: 1.8 }}>
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin gravida lorem eu
+                                    consectetur imperdiet. Donec vel magna nunc. Ut ligula justo, consequat a egestas at.
+                                </Paragraph>
+                                <div style={{
+                                    width: '100%',
+                                    height: 300,
+                                    background: '#1a1a1a',
+                                    borderRadius: 8,
+                                    marginTop: 30,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <Text style={{ color: '#666' }}>🗺️ Bản đồ</Text>
+                                </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Title level={2} style={{ color: '#fff', fontSize: 32, fontWeight: 700, marginBottom: 20 }}>
+                                    Đăng ký nhận tin tức
+                                </Title>
+                                <div style={{
+                                    background: '#1a1a1a',
+                                    padding: 40,
+                                    borderRadius: 8,
+                                    border: '1px solid #444'
+                                }}>
+                                    <input
+                                        type="email"
+                                        placeholder="Nhập email của bạn"
                                         style={{
-                                            width: 56,
-                                            height: 56,
-                                            borderRadius: '50%',
-                                            background: '#f0f5ff',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
+                                            width: '100%',
+                                            padding: '14px 20px',
+                                            border: '1px solid #555',
+                                            borderRadius: 4,
+                                            background: '#2d2d2d',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            marginBottom: 20
+                                        }}
+                                    />
+                                    <Button
+                                        block
+                                        size="large"
+                                        style={{
+                                            background: '#d4af37',
+                                            borderColor: '#d4af37',
+                                            color: '#fff',
+                                            height: 50,
+                                            fontSize: 16,
+                                            fontWeight: 600
                                         }}
                                     >
-                                        <StarFilled style={{ fontSize: 24, color: '#1677ff' }} />
-                                    </div>
-                                    <div>
-                                        <Title level={4} style={{ margin: 0, marginBottom: 4 }}>4.8/5.0</Title>
-                                        <Text type="secondary">Đánh giá trung bình</Text>
-                                    </div>
+                                        ĐĂNG KÝ
+                                    </Button>
                                 </div>
-                            </Card>
-                        </div>
-                    </Col>
-                </Row>
+                            </Col>
+                        </Row>
+                    </div>
+                </div>
             </Content>
-
-
-
-
-            {/* CAM KẾT */}
-            <Content style={{ padding: "80px 100px" }}>
-                <Divider />
-                <Title level={2} style={{ textAlign: "center" }}>
-                    Cam kết của chúng tôi
-                </Title>
-                <Paragraph style={{ textAlign: "center", maxWidth: 800, margin: "20px auto", color: "#555" }}>
-                    Chúng tôi cam kết mang đến cho bạn trải nghiệm đặt phòng nhanh chóng, an toàn và đáng tin cậy nhất.
-                    Mỗi homestay trên nền tảng đều được kiểm duyệt kỹ lưỡng để đảm bảo chất lượng,
-                    giúp bạn an tâm tận hưởng kỳ nghỉ tuyệt vời.
-                </Paragraph>
-            </Content>
-
-            {/* FOOTER */}
-
 
             <AppFooter />
         </Layout>
