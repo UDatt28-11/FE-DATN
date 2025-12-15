@@ -38,7 +38,7 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { RangePickerProps } from "antd/es/date-picker";
 import type { Dayjs } from "dayjs";
-import dayjs from "dayjs";
+import dayjs from "../../../utils/dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
 import { LoginModal, RegisterModal } from "../../../components/Auth";
