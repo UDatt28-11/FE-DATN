@@ -1,27 +1,38 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, Button, message, Typography, Space } from 'antd';
-import { MailOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import authService from '../../service/authService';
+import { Form, Input, Button, Typography, message, Space } from 'antd';
+import { MailOutlined, ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
+import authService from '../../../service/authService';
 
-const { Text, Title } = Typography;
+const { Title, Text } = Typography;
 
-interface ForgotPasswordModalProps {
-    open?: boolean;
-    visible?: boolean; // Deprecated, use open instead
-    onClose: () => void;
-    onBackToLogin: () => void;
-}
-
-const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
-    open,
-    visible, // Deprecated, use open instead
-    onClose,
-    onBackToLogin,
-}) => {
-    const isOpen = open !== undefined ? open : visible; // Support both for backward compatibility
+const ForgotPasswordPage: React.FC = () => {
+    const navigate = useNavigate();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
+
+    const overlayStyle: React.CSSProperties = {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
+    };
+
+    const formContainerStyle: React.CSSProperties = {
+        backgroundColor: "white",
+        width: "100%",
+        maxWidth: "450px",
+        borderRadius: "16px",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        padding: "40px 30px",
+        zIndex: 10,
+    };
 
     const handleSubmit = async (values: { email: string }) => {
         setLoading(true);
@@ -37,36 +48,42 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         }
     };
 
-    const handleClose = () => {
-        form.resetFields();
-        setEmailSent(false);
-        onClose();
+    const handleBackToLogin = () => {
+        navigate('/');
     };
 
-    const handleBackToLogin = () => {
-        form.resetFields();
+    const handleResendEmail = () => {
         setEmailSent(false);
-        onBackToLogin();
+        form.resetFields();
     };
 
     return (
-        <Modal
-            open={isOpen}
-            onCancel={handleClose}
-            footer={null}
-            width={500}
-            centered
-            destroyOnClose
-        >
-            <div style={{ padding: '20px 0' }}>
+        <div style={overlayStyle}>
+            <div style={formContainerStyle}>
                 {!emailSent ? (
                     <>
-                        <Title level={3} style={{ textAlign: 'center', marginBottom: 10 }}>
-                            Quên Mật Khẩu
-                        </Title>
-                        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 30 }}>
-                            Nhập email của bạn và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu
-                        </Text>
+                        <div style={{ textAlign: 'center', marginBottom: 30 }}>
+                            <div
+                                style={{
+                                    width: 80,
+                                    height: 80,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#f0f9ff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    margin: '0 auto 20px',
+                                }}
+                            >
+                                <MailOutlined style={{ fontSize: 40, color: '#cb8670' }} />
+                            </div>
+                            <Title level={3} style={{ marginBottom: 10, color: '#363636' }}>
+                                Quên Mật Khẩu
+                            </Title>
+                            <Text type="secondary" style={{ display: 'block', fontSize: 15 }}>
+                                Nhập email của bạn và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu
+                            </Text>
+                        </div>
 
                         <Form
                             form={form}
@@ -86,6 +103,10 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                     prefix={<MailOutlined style={{ color: '#cb8670' }} />}
                                     placeholder="example@email.com"
                                     size="large"
+                                    style={{
+                                        borderRadius: 6,
+                                        height: 48
+                                    }}
                                 />
                             </Form.Item>
 
@@ -100,6 +121,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                         backgroundColor: '#cb8670',
                                         borderColor: '#cb8670',
                                         height: 48,
+                                        fontSize: 16,
+                                        fontWeight: 600,
+                                        borderRadius: 6,
                                     }}
                                 >
                                     Gửi Email Khôi Phục
@@ -111,7 +135,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                 icon={<ArrowLeftOutlined />}
                                 onClick={handleBackToLogin}
                                 block
-                                style={{ color: '#cb8670' }}
+                                style={{ color: '#cb8670', padding: 0, height: 'auto' }}
                             >
                                 Quay lại đăng nhập
                             </Button>
@@ -138,12 +162,12 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                             Kiểm Tra Email Của Bạn
                         </Title>
 
-                        <Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 20, fontSize: 15 }}>
                             Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến email của bạn.
                             Vui lòng kiểm tra hộp thư và làm theo hướng dẫn.
                         </Text>
 
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space direction="vertical" style={{ width: '100%' }} size="middle">
                             <Button
                                 type="primary"
                                 size="large"
@@ -153,6 +177,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                     backgroundColor: '#cb8670',
                                     borderColor: '#cb8670',
                                     height: 48,
+                                    fontSize: 16,
+                                    fontWeight: 600,
+                                    borderRadius: 6,
                                 }}
                             >
                                 Quay Lại Đăng Nhập
@@ -160,18 +187,31 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
                             <Button
                                 type="link"
-                                onClick={() => setEmailSent(false)}
+                                onClick={handleResendEmail}
                                 block
-                                style={{ color: '#666' }}
+                                style={{ color: '#666', padding: 0, height: 'auto' }}
                             >
                                 Gửi lại email
                             </Button>
                         </Space>
+
+                        <div style={{ marginTop: 30, padding: 20, background: '#f5f7fa', borderRadius: 12, borderLeft: '4px solid #cb8670' }}>
+                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Text type="secondary" style={{ fontSize: 13, display: 'block' }}>
+                                    <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                    Kiểm tra cả hộp thư spam nếu không thấy email
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: 13, display: 'block' }}>
+                                    <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                    Link đặt lại mật khẩu có hiệu lực trong 15 phút
+                                </Text>
+                            </Space>
+                        </div>
                     </div>
                 )}
             </div>
-        </Modal>
+        </div>
     );
 };
 
-export default ForgotPasswordModal;
+export default ForgotPasswordPage;

@@ -32,6 +32,8 @@ import EditCategory from "./editcategory";
 import DetailCategory from "./detailcategory";
 import type { RoomType } from "../../../types/roomtype/roomtype";
 import roomtypeService from "../../../service/roomtypeService";
+import roomService from "../../../service/roomService";
+import supplyService from "../../../service/supplyService";
 
 const { confirm } = Modal;
 
@@ -52,6 +54,7 @@ const ListCategory: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null);
+  const [autoOpenAddRoom, setAutoOpenAddRoom] = useState<boolean>(false);
 
   // Load room types
   const loadRoomTypes = async (page = 1, search = "") => {
@@ -350,6 +353,11 @@ const ListCategory: React.FC = () => {
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("description", values.description || "");
+      // property_id là required, phải có giá trị
+      if (!values.property_id) {
+        toast.error("Vui lòng chọn cơ sở lưu trú!");
+        return;
+      }
       // Giá & sức chứa
       if (values.base_price != null) {
         formData.append("base_price", String(values.base_price));
@@ -360,9 +368,14 @@ const ListCategory: React.FC = () => {
       if (values.max_children != null) {
         formData.append("max_children", String(values.max_children));
       }
-      if (values.property_id) {
-        formData.append("property_id", values.property_id);
+      // Dịch vụ áp dụng (nếu có)
+      if (Array.isArray(values.service_ids)) {
+        values.service_ids.forEach((id: number) => {
+          formData.append("service_ids[]", String(id));
+        });
       }
+      formData.append("property_id", values.property_id.toString());
+
       if (fileList[0]?.originFileObj) {
         formData.append("image_file", fileList[0].originFileObj);
       }
@@ -371,12 +384,76 @@ const ListCategory: React.FC = () => {
       if (response.success) {
         toast.success("Đã thêm loại phòng mới!");
         setAddModalVisible(false);
+
+        const created = (response.data as RoomType) || null;
+
+        // Nếu có cấu hình tạo phòng nhanh, tiến hành tạo phòng + vật tư trên backend
+        const quickRooms = Array.isArray(values.quick_rooms) ? values.quick_rooms : [];
+        if (created && created.id && quickRooms.length > 0) {
+          try {
+            for (const quick of quickRooms) {
+              const roomPayload = {
+                property_id: created.property_id!,
+                room_type_id: created.id,
+                name: quick.name as string,
+                description: quick.description || values.description || created.description || "",
+                // dùng lại thông tin sức chứa & giá từ form room type
+                max_adults: values.max_adults,
+                max_children: values.max_children ?? 0,
+                price_per_night: values.base_price,
+                status: "available" as const,
+                amenities: [] as number[],
+              };
+
+              const roomRes = await roomService.createRoom(roomPayload);
+              if (roomRes.success && roomRes.data) {
+                const roomId = roomRes.data.id;
+                // Nếu cấu hình vật tư nhanh: supplies là mảng object
+                const quickSupplies = Array.isArray(quick.supplies) ? quick.supplies : [];
+                for (const s of quickSupplies) {
+                  if (!s?.name) continue;
+                  await supplyService.create({
+                    room_id: roomId,
+                    name: s.name,
+                    description: "",
+                    category: "Khác",
+                    unit: s.unit || "cái",
+                    current_stock: s.quantity ?? 0,
+                    min_stock_level: 0,
+                    max_stock_level: s.quantity ?? 0,
+                    unit_price: s.unit_price ?? 0,
+                    status: "active",
+                  } as any);
+                }
+              }
+            }
+          } catch (err: any) {
+            console.error("Lỗi khi tạo phòng/vật tư nhanh:", err);
+            toast.error("Loại phòng đã tạo, nhưng có lỗi khi tạo phòng/vật tư nhanh.");
+          }
+        }
+
+        if (created && created.id) {
+          setSelectedRoomType(created);
+          setAutoOpenAddRoom(false); // không cần auto mở nữa vì đã tạo sẵn phòng
+          setDetailModalVisible(true);
+        }
+
+        // Reload danh sách
         loadRoomTypes(pagination.current, searchText);
       } else {
         toast.error(response.message || "Có lỗi xảy ra khi thêm");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thêm");
+      console.error('Error creating room type:', error);
+      // Hiển thị lỗi validation chi tiết nếu có
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat();
+        toast.error(errorMessages.join(', '));
+      } else {
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thêm");
+      }
     }
   };
 
@@ -391,6 +468,11 @@ const ListCategory: React.FC = () => {
       formData.append("name", values.name);
       formData.append("description", values.description || "");
       formData.append("status", values.status || "active");
+      // property_id là required
+      if (!values.property_id) {
+        toast.error("Vui lòng chọn cơ sở lưu trú!");
+        return;
+      }
       // Giá & sức chứa
       if (values.base_price != null) {
         formData.append("base_price", String(values.base_price));
@@ -401,9 +483,13 @@ const ListCategory: React.FC = () => {
       if (values.max_children != null) {
         formData.append("max_children", String(values.max_children));
       }
-      if (values.property_id) {
-        formData.append("property_id", values.property_id);
+      if (Array.isArray(values.service_ids)) {
+        values.service_ids.forEach((id: number) => {
+          formData.append("service_ids[]", String(id));
+        });
       }
+      formData.append("property_id", values.property_id.toString());
+
       // Images are now handled directly in EditCategory component
       // No need to append image_file here anymore
       formData.append("_method", "PUT");
@@ -417,7 +503,15 @@ const ListCategory: React.FC = () => {
         toast.error(response.message || "Có lỗi xảy ra khi cập nhật");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+      console.error('Error updating room type:', error);
+      // Hiển thị lỗi validation chi tiết nếu có
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat();
+        toast.error(errorMessages.join(', '));
+      } else {
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+      }
     }
   };
 
@@ -442,11 +536,16 @@ const ListCategory: React.FC = () => {
       <DetailCategory
         visible={detailModalVisible}
         roomType={selectedRoomType}
-        onClose={() => setDetailModalVisible(false)}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setAutoOpenAddRoom(false);
+        }}
         onEdit={(rt) => {
           setSelectedRoomType(rt);
           setEditModalVisible(true);
         }}
+        autoOpenAddRoom={autoOpenAddRoom}
+        onAutoAddRoomHandled={() => setAutoOpenAddRoom(false)}
       />
     </>
   );

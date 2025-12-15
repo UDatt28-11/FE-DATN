@@ -126,7 +126,7 @@ const RoomList: React.FC = () => {
     // Sử dụng useAuth - nếu không có AuthProvider sẽ throw error
     // Component này cần được wrap trong AuthProvider ở App level
     const { isLoggedIn } = useAuth();
-    
+
     // Sử dụng BookingCartContext để quản lý cart globally
     const {
         // Mô hình mới: RoomType-based
@@ -193,23 +193,23 @@ const RoomList: React.FC = () => {
     // Đọc URL params và khởi tạo giá trị ban đầu (từ Homepage search bar)
     useEffect(() => {
         if (urlParamsInitialized) return;
-        
+
         const checkInParam = searchParams.get('check_in');
         const checkOutParam = searchParams.get('check_out');
         const adultsParam = searchParams.get('adults');
         const childrenParam = searchParams.get('children');
         const totalGuestsParam = searchParams.get('total_guests');
-        
+
         // Set ngày check-in/check-out nếu có
         if (checkInParam && checkOutParam) {
             const checkInDate = dayjs(checkInParam);
             const checkOutDate = dayjs(checkOutParam);
-            
+
             if (checkInDate.isValid() && checkOutDate.isValid() && checkOutDate.isAfter(checkInDate)) {
                 setDateRange([checkInDate, checkOutDate]);
             }
         }
-        
+
         // Set tổng số khách và hiển thị gợi ý chia phòng
         // Khi có total_guests, KHÔNG áp dụng filter maxAdults/maxChildren
         // Thay vào đó, hiển thị modal gợi ý chia phòng thông minh
@@ -229,7 +229,7 @@ const RoomList: React.FC = () => {
                     setMaxAdults(adults);
                 }
             }
-            
+
             if (childrenParam) {
                 const children = parseInt(childrenParam, 10);
                 if (!isNaN(children) && children >= 0) {
@@ -237,7 +237,7 @@ const RoomList: React.FC = () => {
                 }
             }
         }
-        
+
         setUrlParamsInitialized(true);
     }, [searchParams, setDateRange, urlParamsInitialized]);
 
@@ -279,9 +279,9 @@ const RoomList: React.FC = () => {
         // ========================================
         const optimalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
         let remainingGuests = totalGuests;
-        
+
         // Sắp xếp theo sức chứa giảm dần
-        const sortedByCapacity = [...availableRoomTypes].sort((a, b) => 
+        const sortedByCapacity = [...availableRoomTypes].sort((a, b) =>
             (b.max_adults || 2) - (a.max_adults || 2)
         );
 
@@ -291,7 +291,7 @@ const RoomList: React.FC = () => {
             const available = rt.available_count || 0;
             const needed = Math.ceil(remainingGuests / capacity);
             const quantity = Math.min(needed, available);
-            
+
             if (quantity > 0) {
                 optimalRooms.push({ roomType: rt, quantity });
                 remainingGuests -= quantity * capacity;
@@ -302,7 +302,7 @@ const RoomList: React.FC = () => {
             const totalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
             const totalPrice = optimalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             const totalCapacity = optimalRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
-            
+
             suggestions.push({
                 type: 'optimal',
                 label: '🎯 Tối ưu',
@@ -320,7 +320,7 @@ const RoomList: React.FC = () => {
         // ========================================
         const economicalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
         remainingGuests = totalGuests;
-        
+
         // Sắp xếp theo giá/người tăng dần (tính theo capacity)
         const sortedByPricePerPerson = [...availableRoomTypes].sort((a, b) => {
             const pricePerPersonA = (a.price_per_night || 0) / (a.max_adults || 2);
@@ -334,7 +334,7 @@ const RoomList: React.FC = () => {
             const available = rt.available_count || 0;
             const needed = Math.ceil(remainingGuests / capacity);
             const quantity = Math.min(needed, available);
-            
+
             if (quantity > 0) {
                 economicalRooms.push({ roomType: rt, quantity });
                 remainingGuests -= quantity * capacity;
@@ -345,11 +345,11 @@ const RoomList: React.FC = () => {
             const totalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
             const totalPrice = economicalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             const totalCapacity = economicalRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
-            
+
             // Chỉ thêm nếu khác với gợi ý tối ưu
             const isDifferent = JSON.stringify(economicalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity }))) !==
-                               JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
-            
+                JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
+
             if (isDifferent) {
                 suggestions.push({
                     type: 'economical',
@@ -369,9 +369,9 @@ const RoomList: React.FC = () => {
         // ========================================
         const comfortableRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
         remainingGuests = totalGuests;
-        
+
         // Ưu tiên phòng có sức chứa lớn nhưng chỉ xếp 50-70% capacity
-        const sortedForComfort = [...availableRoomTypes].sort((a, b) => 
+        const sortedForComfort = [...availableRoomTypes].sort((a, b) =>
             (b.max_adults || 2) - (a.max_adults || 2)
         );
 
@@ -383,7 +383,7 @@ const RoomList: React.FC = () => {
             const available = rt.available_count || 0;
             const needed = Math.ceil(remainingGuests / comfortCapacity);
             const quantity = Math.min(needed, available);
-            
+
             if (quantity > 0) {
                 comfortableRooms.push({ roomType: rt, quantity });
                 remainingGuests -= quantity * comfortCapacity;
@@ -394,12 +394,12 @@ const RoomList: React.FC = () => {
             const totalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
             const totalPrice = comfortableRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             const totalCapacity = comfortableRooms.reduce((sum, r) => sum + (r.roomType.max_adults || 2) * r.quantity, 0);
-            
+
             // Chỉ thêm nếu khác với các gợi ý trước
             const comfortKey = JSON.stringify(comfortableRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
             const optimalKey = JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
             const economicalKey = JSON.stringify(economicalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
-            
+
             if (comfortKey !== optimalKey && comfortKey !== economicalKey) {
                 suggestions.push({
                     type: 'comfortable',
@@ -436,13 +436,13 @@ const RoomList: React.FC = () => {
         for (const { roomType, quantity } of suggestion.rooms) {
             const pricePerNight = roomType.price_per_night || 0;
             addRoomTypeToCart(
-                roomType, 
-                quantity, 
-                checkInStr, 
-                checkOutStr, 
+                roomType,
+                quantity,
+                checkInStr,
+                checkOutStr,
                 nights,
                 pricePerNight,
-                roomType.max_adults || 2, 
+                roomType.max_adults || 2,
                 roomType.max_children || 0
             );
         }
@@ -467,7 +467,7 @@ const RoomList: React.FC = () => {
             try {
                 // Chỉ gọi 1 API lấy amenities, không gọi room-types nữa vì đã có từ fetchRoomTypes
                 const amenitiesRes = await api.get('/public/amenities', { params: { per_page: 100 } });
-                
+
                 if (amenitiesRes.data.success) {
                     setAmenities(amenitiesRes.data.data || []);
                 }
@@ -492,12 +492,12 @@ const RoomList: React.FC = () => {
             const params: any = {
                 per_page: 100, // Lấy tất cả để filter ở frontend
             };
-            
+
             if (dateRange && dateRange[0] && dateRange[1]) {
                 const today = dayjs().startOf('day');
                 const checkInDate = dateRange[0].startOf('day');
                 const checkOutDate = dateRange[1].startOf('day');
-                
+
                 // Chỉ gửi nếu cả hai ngày đều không phải quá khứ và check-out sau check-in
                 if (!checkInDate.isBefore(today) && checkOutDate.isAfter(checkInDate)) {
                     params.check_in = dateRange[0].format('YYYY-MM-DD');
@@ -511,40 +511,40 @@ const RoomList: React.FC = () => {
                 let filteredRoomTypes = [...response.data];
 
                 // Filter ở frontend
-            // Search
-            if (debouncedSearchQuery) {
+                // Search
+                if (debouncedSearchQuery) {
                     const query = debouncedSearchQuery.toLowerCase();
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         rt.name.toLowerCase().includes(query) ||
                         rt.description?.toLowerCase().includes(query) ||
                         rt.property?.name?.toLowerCase().includes(query)
                     );
-            }
+                }
 
                 // Room type filter đã bỏ (không cần filter theo loại phòng nữa)
 
-            // Price range
+                // Price range
                 if (priceRange[0] > 0 || priceRange[1] < 5000000) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const price = rt.price_per_night || 0;
                         return price >= priceRange[0] && price <= priceRange[1];
                     });
-            }
+                }
 
-            // Rating filter
-            if (minRating > 0) {
+                // Rating filter
+                if (minRating > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.rating || 0) >= minRating
                     );
-            }
+                }
 
-            // Guests filter
-            if (maxAdults > 1) {
+                // Guests filter
+                if (maxAdults > 1) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.max_adults || 0) >= maxAdults
                     );
-            }
-            if (maxChildren > 0) {
+                }
+                if (maxChildren > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.max_children || 0) >= maxChildren
                     );
@@ -588,10 +588,10 @@ const RoomList: React.FC = () => {
                             roomAmenities.some((a: any) => a.id === floorId && a.filter_category === 'floor')
                         );
                     });
-            }
+                }
 
-            // Sort
-            if (sortBy !== "default") {
+                // Sort
+                if (sortBy !== "default") {
                     filteredRoomTypes.sort((a, b) => {
                         let aValue: any = 0;
                         let bValue: any = 0;
@@ -636,7 +636,7 @@ const RoomList: React.FC = () => {
 
                 setRoomTypes(paginatedRoomTypes);
                 setTotalRoomTypes(filteredRoomTypes.length);
-                
+
                 // Cập nhật price range max nếu cần
                 if (response.data.length > 0) {
                     const maxPrice = Math.max(...response.data.map(rt => rt.price_per_night || 0));
@@ -723,23 +723,44 @@ const RoomList: React.FC = () => {
         if (!current) return false;
         const today = dayjs().startOf('day');
         const currentDate = current.startOf('day');
-        return currentDate.isBefore(today);
+
+        // Không cho chọn ngày quá khứ
+        if (currentDate.isBefore(today)) {
+            return true;
+        }
+
+        // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
+        if (dateRange && dateRange[0]) {
+            const checkInDate = dateRange[0].startOf('day');
+            // Ngày trả phòng phải sau ngày nhận ít nhất 1 ngày
+            if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
+                return true;
+            }
+        }
+
+        return false;
     };
 
     // Xử lý chọn ngày
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
         const newRange = dates as [Dayjs | null, Dayjs | null] | null;
-        
+
         // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
         if (newRange && newRange[0] && newRange[1]) {
             if (newRange[0].isSame(newRange[1], 'day')) {
                 message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                 return; // Không cập nhật state
             }
+
+            // Kiểm tra ngày checkout phải sau ngày checkin
+            if (newRange[1].isSameOrBefore(newRange[0], 'day')) {
+                message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                return; // Không cập nhật state
+            }
         }
-        
+
         setDateRange(newRange);
-        
+
         // Note: Cart sẽ tự động cập nhật khi dateRange thay đổi
         // Các phòng mới thêm vào sẽ dùng dateRange mới
         // Các phòng cũ vẫn giữ dateRange cũ (có thể cần clear cart nếu muốn đồng bộ)
@@ -865,11 +886,11 @@ const RoomList: React.FC = () => {
     // Helper để map amenities thành format UI
     const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
         if (!amenities || amenities.length === 0) return [];
-        
+
         return amenities.map(amenity => {
             const name = amenity.name.toLowerCase();
             let icon = <CheckCircleFilled style={{ color: '#52c41a' }} />;
-            
+
             if (name.includes('wifi') || name.includes('internet')) {
                 icon = <WifiOutlined />;
             } else if (name.includes('coffee') || name.includes('cà phê') || name.includes('minibar')) {
@@ -879,7 +900,7 @@ const RoomList: React.FC = () => {
             } else if (name.includes('tv') || name.includes('tivi')) {
                 icon = <ThunderboltOutlined />;
             }
-            
+
             return {
                 icon,
                 text: amenity.name
@@ -947,27 +968,27 @@ const RoomList: React.FC = () => {
                     <div style={{ marginBottom: 32 }}>
                         <Row justify="space-between" align="middle">
                             <Col>
-                        <Title level={2} style={{ marginBottom: 8 }}>
-                            Danh sách phòng
-                        </Title>
-                        <Space split={<Divider type="vertical" />}>
-                            <Text type="secondary">
+                                <Title level={2} style={{ marginBottom: 8 }}>
+                                    Danh sách phòng
+                                </Title>
+                                <Space split={<Divider type="vertical" />}>
+                                    <Text type="secondary">
                                         Tìm thấy <Text strong style={{ color: '#cb8670' }}>{totalRoomTypes}</Text> loại phòng
-                            </Text>
+                                    </Text>
                                     {(debouncedSearchQuery || (selectedAmenityIds?.length || 0) > 0) && (
-                                <Button
-                                    type="link"
-                                    icon={<ReloadOutlined />}
-                                    onClick={handleResetFilters}
-                                    size="small"
-                                >
-                                    Xóa bộ lọc
-                                </Button>
-                            )}
-                        </Space>
+                                        <Button
+                                            type="link"
+                                            icon={<ReloadOutlined />}
+                                            onClick={handleResetFilters}
+                                            size="small"
+                                        >
+                                            Xóa bộ lọc
+                                        </Button>
+                                    )}
+                                </Space>
                             </Col>
                             <Col>
-                                    <Space className="search-actions-wrapper">
+                                <Space className="search-actions-wrapper">
                                     {/* DatePicker cho ngày check-in/check-out */}
                                     <div className="date-picker-wrapper">
                                         <RangePicker
@@ -991,10 +1012,10 @@ const RoomList: React.FC = () => {
                                             <span className="btn-text">Giỏ hàng</span>
                                         </Button>
                                     </Badge>
-                                                </Space>
+                                </Space>
                             </Col>
                         </Row>
-                                    </div>
+                    </div>
 
                     {/* Button mở Filter Modal - Thay thế sidebar */}
                     <div className="filter-sort-bar">
@@ -1005,33 +1026,33 @@ const RoomList: React.FC = () => {
                             className="filter-btn"
                         >
                             Bộ lọc
-                                {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 || 
-                                  (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
-                                  (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
-                                  maxAdults > 1 || maxChildren > 0) && (
-                                    <Badge count={(selectedAmenityIds?.length || 0) + (selectedKeyAmenityIds?.length || 0) + 
-                                                  (selectedViewIds?.length || 0) + (selectedFloorIds?.length || 0) + 
-                                                  ((priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 ? 1 : 0) +
-                                                  (minRating > 0 ? 1 : 0) + (maxAdults > 1 ? 1 : 0) + (maxChildren > 0 ? 1 : 0)} 
-                                           offset={[8, 0]} />
+                            {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 ||
+                                (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
+                                (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
+                                maxAdults > 1 || maxChildren > 0) && (
+                                    <Badge count={(selectedAmenityIds?.length || 0) + (selectedKeyAmenityIds?.length || 0) +
+                                        (selectedViewIds?.length || 0) + (selectedFloorIds?.length || 0) +
+                                        ((priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 ? 1 : 0) +
+                                        (minRating > 0 ? 1 : 0) + (maxAdults > 1 ? 1 : 0) + (maxChildren > 0 ? 1 : 0)}
+                                        offset={[8, 0]} />
                                 )}
-                            </Button>
+                        </Button>
                         <div className="sort-section">
-                                <Text className="sort-label">Sắp xếp:</Text>
-                                    <Select
-                                        value={getSortDisplayValue()}
-                                        onChange={handleSortChange}
-                                        className="sort-select"
-                                    >
-                                        <Option value="default">Mặc định</Option>
-                                    <Option value="best-seller">Bán chạy</Option>
-                                        <Option value="price-asc">Giá ↑</Option>
-                                        <Option value="price-desc">Giá ↓</Option>
-                                        <Option value="rating">Đánh giá</Option>
-                                        <Option value="name">Tên A-Z</Option>
-                                    </Select>
-                            </div>
-                            </div>
+                            <Text className="sort-label">Sắp xếp:</Text>
+                            <Select
+                                value={getSortDisplayValue()}
+                                onChange={handleSortChange}
+                                className="sort-select"
+                            >
+                                <Option value="default">Mặc định</Option>
+                                <Option value="best-seller">Bán chạy</Option>
+                                <Option value="price-asc">Giá ↑</Option>
+                                <Option value="price-desc">Giá ↓</Option>
+                                <Option value="rating">Đánh giá</Option>
+                                <Option value="name">Tên A-Z</Option>
+                            </Select>
+                        </div>
+                    </div>
 
                     {/* Danh sách phòng - Full width */}
                     <Row gutter={[24, 24]}>
@@ -1165,15 +1186,15 @@ const RoomList: React.FC = () => {
                                                                         </Title>
 
                                                                         {roomTypeRating > 0 && (
-                                                                        <Space>
+                                                                            <Space>
                                                                                 <Rate disabled defaultValue={roomTypeRating} allowHalf style={{ fontSize: 14 }} />
                                                                                 <Text strong style={{ color: '#cb8670' }}>{roomTypeRating.toFixed(1)}</Text>
                                                                                 {roomType.reviews_count && (
-                                                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
                                                                                         ({roomType.reviews_count})
-                                                                                </Text>
-                                                                            )}
-                                                                        </Space>
+                                                                                    </Text>
+                                                                                )}
+                                                                            </Space>
                                                                         )}
 
                                                                         <Space>
@@ -1205,17 +1226,17 @@ const RoomList: React.FC = () => {
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                                                         {/* Price */}
                                                                         {roomType.price_per_night && (
-                                                                        <div>
-                                                                            <Text style={{ fontSize: 20, color: '#cb8670', fontWeight: 'bold' }}>
+                                                                            <div>
+                                                                                <Text style={{ fontSize: 20, color: '#cb8670', fontWeight: 'bold' }}>
                                                                                     {formatVNDWithUnit(roomType.price_per_night, '/đêm')}
-                                                                            </Text>
-                                                                        </div>
+                                                                                </Text>
+                                                                            </div>
                                                                         )}
-                                                                        
+
                                                                         {/* Buttons - Stack vertically on small screens, horizontal on larger */}
-                                                                        <Space 
-                                                                            direction="vertical" 
-                                                                            size="small" 
+                                                                        <Space
+                                                                            direction="vertical"
+                                                                            size="small"
                                                                             style={{ width: '100%' }}
                                                                             className="room-card-buttons"
                                                                         >
@@ -1235,10 +1256,10 @@ const RoomList: React.FC = () => {
                                                                                     Đã chọn
                                                                                 </Button>
                                                                             ) : (
-                                                                        <Button
-                                                                            type="primary"
+                                                                                <Button
+                                                                                    type="primary"
                                                                                     block
-                                                                            style={{
+                                                                                    style={{
                                                                                         backgroundColor: '#52c41a',
                                                                                         borderColor: '#52c41a',
                                                                                         height: 40
@@ -1257,11 +1278,11 @@ const RoomList: React.FC = () => {
                                                                                     borderColor: '#cb8670',
                                                                                     color: '#cb8670',
                                                                                     height: 40
-                                                                            }}
+                                                                                }}
                                                                                 onClick={() => handleViewDetail(roomType.id)}
-                                                                        >
-                                                                            Chi tiết
-                                                                        </Button>
+                                                                            >
+                                                                                Chi tiết
+                                                                            </Button>
                                                                         </Space>
                                                                     </div>
                                                                 </div>
@@ -1339,11 +1360,11 @@ const RoomList: React.FC = () => {
                             renderItem={(item) => {
                                 const roomTypeImage = getRoomTypeImage(item.roomType);
                                 const quantity = item.quantity || 1;
-                                
+
                                 // Lấy available_count mới nhất từ danh sách roomTypes (từ API) thay vì dùng giá trị cũ trong cart
                                 const currentRoomType = roomTypes.find(rt => rt.id === item.roomType.id);
                                 const latestAvailableCount = currentRoomType?.available_count ?? (item.roomType as any).available_count ?? 0;
-                                
+
                                 // Tính tổng số lượng của cùng RoomType đã có trong cart (bao gồm cả item hiện tại)
                                 const totalQuantityInCart = (selectedRoomTypes || []).reduce((sum, cartItem) => {
                                     if (cartItem.roomType.id === item.roomType.id) {
@@ -1351,17 +1372,17 @@ const RoomList: React.FC = () => {
                                     }
                                     return sum;
                                 }, 0);
-                                
+
                                 // Số lượng của item hiện tại
                                 const currentItemQuantity = item.quantity || 1;
-                                
+
                                 // Số lượng của các item khác cùng RoomType (không bao gồm item hiện tại)
                                 const otherItemsQuantity = totalQuantityInCart - currentItemQuantity;
-                                
+
                                 // Số lượng tối đa có thể đặt cho item hiện tại = available_count mới nhất - số lượng đã có của các item khác
                                 // Nếu không tìm thấy trong roomTypes, dùng giá trị từ cart và trừ đi số lượng đã có trong cart
                                 const maxQuantity = Math.max(1, latestAvailableCount - otherItemsQuantity);
-                                
+
                                 // Debug log (chỉ trong dev mode)
                                 if (import.meta.env.DEV) {
                                     console.log(`RoomType ${item.roomType.name}:`, {
@@ -1372,7 +1393,7 @@ const RoomList: React.FC = () => {
                                         maxQuantity
                                     });
                                 }
-                                
+
                                 return (
                                     <List.Item
                                         style={{ padding: '16px 0', borderBottom: '1px solid #f0f0f0' }}
@@ -1404,11 +1425,11 @@ const RoomList: React.FC = () => {
                                                                     // Lấy available_count mới nhất
                                                                     const currentRoomType = roomTypes.find(rt => rt.id === item.roomType.id);
                                                                     const latestAvailableCount = currentRoomType?.available_count || (item.roomType as any).available_count || 0;
-                                                                    
+
                                                                     // Tính lại maxQuantity: available_count mới nhất - số lượng của các item khác (không đổi)
                                                                     // otherItemsQuantity không thay đổi vì chỉ tính các item khác, không tính item hiện tại
                                                                     const newMaxQuantity = Math.max(1, latestAvailableCount - otherItemsQuantity);
-                                                                    
+
                                                                     if (value <= newMaxQuantity) {
                                                                         updateRoomTypeQuantity(item.roomType.id, value);
                                                                     } else {
@@ -1616,10 +1637,10 @@ const RoomList: React.FC = () => {
                             </div>
 
                             {/* 🎯 Chia phòng thông minh cho nhóm đông */}
-                            <div style={{ 
-                                marginBottom: 24, 
-                                padding: 16, 
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                            <div style={{
+                                marginBottom: 24,
+                                padding: 16,
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 borderRadius: 12,
                                 color: 'white'
                             }}>
@@ -1648,8 +1669,8 @@ const RoomList: React.FC = () => {
                                     />
                                 </Space.Compact>
                                 {totalGuests >= 2 && (
-                                    <Button 
-                                        type="default" 
+                                    <Button
+                                        type="default"
                                         size="small"
                                         style={{ marginTop: 8, background: 'white', color: '#667eea' }}
                                         onClick={() => setShowRoomSuggestions(true)}
@@ -1814,36 +1835,7 @@ const RoomList: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Tiện ích khác */}
-                            <div>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Tiện ích khác
-                                </Text>
-                                {loadingOptions ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    <Checkbox.Group
-                                        style={{ width: '100%' }}
-                                        value={selectedAmenityIds}
-                                        onChange={(values) => setSelectedAmenityIds(values as number[])}
-                                    >
-                                        <Space direction="vertical" style={{ width: '100%', maxHeight: 200, overflowY: 'auto' }}>
-                                            {amenities
-                                                .filter(amenity => !amenity.filter_category || amenity.filter_category === null)
-                                                .map((amenity) => (
-                                                    <Checkbox key={amenity.id} value={amenity.id}>
-                                                        {amenity.name}
-                                                    </Checkbox>
-                                                ))}
-                                            {(!amenities || amenities.filter(amenity => !amenity.filter_category || amenity.filter_category === null).length === 0) && (
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    Không có tiện ích nào
-                                                </Text>
-                                            )}
-                                        </Space>
-                                    </Checkbox.Group>
-                                )}
-                            </div>
+                            {/* Bộ lọc tiện ích đã được ẩn. Tiện ích/dịch vụ hiện là thông tin chung cấp homestay. */}
                         </Col>
                     </Row>
                 </div>
@@ -1871,7 +1863,7 @@ const RoomList: React.FC = () => {
                     </div>
                 ) : roomSuggestions.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <Empty 
+                        <Empty
                             description={
                                 <span>
                                     Không đủ phòng trống cho {totalGuests} khách trong khoảng thời gian đã chọn.
@@ -1883,14 +1875,14 @@ const RoomList: React.FC = () => {
                     </div>
                 ) : (
                     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                        <div style={{ 
-                            padding: 16, 
-                            background: '#f0f5ff', 
+                        <div style={{
+                            padding: 16,
+                            background: '#f0f5ff',
                             borderRadius: 8,
                             border: '1px solid #d6e4ff'
                         }}>
                             <Text>
-                                <strong>Ngày nhận phòng:</strong> {dateRange[0]?.format('DD/MM/YYYY')} → 
+                                <strong>Ngày nhận phòng:</strong> {dateRange[0]?.format('DD/MM/YYYY')} →
                                 <strong> Ngày trả phòng:</strong> {dateRange[1]?.format('DD/MM/YYYY')}
                                 <span style={{ marginLeft: 16, color: '#1890ff' }}>
                                     ({dateRange[1]?.diff(dateRange[0], 'day')} đêm)
@@ -1899,10 +1891,10 @@ const RoomList: React.FC = () => {
                         </div>
 
                         {roomSuggestions.map((suggestion, index) => (
-                            <Card 
+                            <Card
                                 key={suggestion.type}
                                 size="small"
-                                style={{ 
+                                style={{
                                     borderRadius: 12,
                                     border: suggestion.type === 'optimal' ? '2px solid #52c41a' : '1px solid #e8e8e8',
                                     background: suggestion.type === 'optimal' ? '#f6ffed' : 'white'
@@ -1916,7 +1908,7 @@ const RoomList: React.FC = () => {
                                     </Space>
                                 }
                                 extra={
-                                    <Button 
+                                    <Button
                                         type={suggestion.type === 'optimal' ? 'primary' : 'default'}
                                         onClick={() => applyRoomSuggestion(suggestion)}
                                         icon={<ShoppingCartOutlined />}
@@ -1932,11 +1924,11 @@ const RoomList: React.FC = () => {
                                     <Col span={24}>
                                         <Space wrap size={[8, 8]}>
                                             {suggestion.rooms.map((room, idx) => (
-                                                <Card 
+                                                <Card
                                                     key={idx}
-                                                    size="small" 
-                                                    style={{ 
-                                                        width: 200, 
+                                                    size="small"
+                                                    style={{
+                                                        width: 200,
                                                         borderRadius: 8,
                                                         background: '#fafafa'
                                                     }}
@@ -1995,9 +1987,9 @@ const RoomList: React.FC = () => {
                             </Card>
                         ))}
 
-                        <div style={{ 
-                            padding: 12, 
-                            background: '#fffbe6', 
+                        <div style={{
+                            padding: 12,
+                            background: '#fffbe6',
                             borderRadius: 8,
                             border: '1px solid #ffe58f'
                         }}>

@@ -29,6 +29,13 @@ export interface RoomType {
   };
   rooms_count?: number;
   images?: RoomTypeImage[];
+  /** Danh sách dịch vụ áp dụng cho loại phòng (nếu backend trả về) */
+  services?: {
+    id: number;
+    name: string;
+    price: number;
+    unit: string;
+  }[];
 }
 
 export interface RoomTypeResponse {

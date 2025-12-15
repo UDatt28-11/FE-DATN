@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, InputNumber, Select, Row, Col, Checkbox, Upload } from "antd";
+import { Modal, Form, Input, Button, InputNumber, Select, Row, Col, Upload } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "react-toastify";
@@ -26,26 +26,18 @@ interface RoomType {
     name: string;
 }
 
-interface Amenity {
-    id: number;
-    name: string;
-}
-
 const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, initialPropertyId }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [properties, setProperties] = useState<Property[]>([]);
     const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-    const [amenities, setAmenities] = useState<Amenity[]>([]);
-    const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-    // Load properties, room types, amenities
+    // Load properties, room types
     useEffect(() => {
         if (visible) {
             loadProperties();
             loadRoomTypes();
-            loadAmenities();
             // Set initial values if provided
             if (initialRoomTypeId || initialPropertyId) {
                 form.setFieldsValue({
@@ -56,7 +48,7 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
         } else {
             form.resetFields();
             setFileList([]);
-            setSelectedAmenities([]);
+           
         }
     }, [visible, initialRoomTypeId, initialPropertyId]);
 
@@ -82,17 +74,6 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
         }
     };
 
-    const loadAmenities = async () => {
-        try {
-            const response = await axios.get(`${API_URL}/admin/amenities`);
-            if (response.data.success) {
-                setAmenities(Array.isArray(response.data.data) ? response.data.data : []);
-            }
-        } catch (error) {
-            console.error("Error loading amenities:", error);
-        }
-    };
-
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
@@ -105,7 +86,6 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
                 description: values.description || "",
                 // Giá & sức chứa không nhập ở đây nữa, lấy từ RoomType
                 status: values.status || "available",
-                amenities: selectedAmenities,
             };
 
             const response = await roomService.createRoom(roomData);
@@ -137,7 +117,6 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
                 
                 form.resetFields();
                 setFileList([]);
-                setSelectedAmenities([]);
                 onClose();
             } else {
                 toast.error(response.message || "Có lỗi xảy ra khi thêm phòng");
@@ -218,22 +197,6 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
                         <Select.Option value="maintenance">Bảo trì</Select.Option>
                         <Select.Option value="occupied">Đã thuê</Select.Option>
                     </Select>
-                </Form.Item>
-
-                <Form.Item label="Tiện ích">
-                    <Checkbox.Group
-                        value={selectedAmenities}
-                        onChange={(values) => setSelectedAmenities(values as number[])}
-                        style={{ width: "100%" }}
-                    >
-                        <Row gutter={[16, 16]}>
-                            {amenities.map((amenity) => (
-                                <Col span={8} key={amenity.id}>
-                                    <Checkbox value={amenity.id}>{amenity.name}</Checkbox>
-                                </Col>
-                            ))}
-                        </Row>
-                    </Checkbox.Group>
                 </Form.Item>
 
                 <Form.Item label="Hình ảnh phòng">

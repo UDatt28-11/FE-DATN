@@ -49,11 +49,11 @@ const { RangePicker } = DatePicker;
 // Helper function để map amenities thành format UI
 const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
     if (!amenities || amenities.length === 0) return [];
-    
+
     return amenities.map(amenity => {
         const name = amenity.name.toLowerCase();
         let icon = <CheckCircleFilled style={{ color: '#52c41a' }} />;
-        
+
         if (name.includes('wifi') || name.includes('internet')) {
             icon = <WifiOutlined />;
         } else if (name.includes('coffee') || name.includes('cà phê') || name.includes('minibar')) {
@@ -63,7 +63,7 @@ const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
         } else if (name.includes('tv') || name.includes('tivi')) {
             icon = <ThunderboltOutlined />;
         }
-        
+
         return {
             icon,
             text: amenity.name
@@ -131,16 +131,19 @@ const RoomTypeDetailPage: React.FC = () => {
     // Fetch room type detail với date range
     const fetchRoomTypeWithDates = async (showLoading: boolean = true) => {
         if (!id) return;
-        
+
         if (showLoading) setLoading(true);
         try {
-            // Tạo options với date range nếu có
+            // Tạo options với date range nếu có và hợp lệ (checkout > checkin)
             const options: { check_in?: string; check_out?: string } = {};
             if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
-                options.check_in = cartDateRange[0].format('YYYY-MM-DD');
-                options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+                // Chỉ gửi dates nếu checkout sau checkin
+                if (cartDateRange[1].isAfter(cartDateRange[0], 'day')) {
+                    options.check_in = cartDateRange[0].format('YYYY-MM-DD');
+                    options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+                }
             }
-            
+
             const roomTypeResponse = await getRoomTypeByIdWithDetails(id, options);
 
             if (roomTypeResponse.success && roomTypeResponse.data) {
@@ -164,16 +167,19 @@ const RoomTypeDetailPage: React.FC = () => {
     useEffect(() => {
         const fetchRoomTypeDetail = async () => {
             if (!id) return;
-            
+
             setLoading(true);
             try {
-                // Tạo options với date range nếu có
+                // Tạo options với date range nếu có và hợp lệ (checkout > checkin)
                 const options: { check_in?: string; check_out?: string } = {};
                 if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
-                    options.check_in = cartDateRange[0].format('YYYY-MM-DD');
-                    options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+                    // Chỉ gửi dates nếu checkout sau checkin
+                    if (cartDateRange[1].isAfter(cartDateRange[0], 'day')) {
+                        options.check_in = cartDateRange[0].format('YYYY-MM-DD');
+                        options.check_out = cartDateRange[1].format('YYYY-MM-DD');
+                    }
                 }
-                
+
                 // Load room type detail và reviews song song
                 const [roomTypeResponse, reviewsResponse] = await Promise.all([
                     getRoomTypeByIdWithDetails(id, options),
@@ -387,7 +393,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                 <Title level={2} style={{ marginBottom: 16 }}>
                                     {roomType.name}
                                 </Title>
-                                
+
                                 {roomType.property && (
                                     <Space style={{ marginBottom: 16 }}>
                                         <EnvironmentOutlined />
@@ -466,77 +472,8 @@ const RoomTypeDetailPage: React.FC = () => {
                                 )}
                             </Card>
 
-                            {/* Phân loại Amenities */}
-                            {roomType.amenities && roomType.amenities.length > 0 && (() => {
-                                const categorized = categorizeAmenities(roomType.amenities);
-                                return (
-                                    <>
-                                        {/* Tiện nghi đặc biệt */}
-                                        {categorized.keyAmenities.length > 0 && (
-                                            <Card title="Tiện nghi đặc biệt" style={{ marginBottom: 24 }}>
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-
-                                        {/* Hướng nhìn */}
-                                        {categorized.views.length > 0 && (
-                                            <Card title="Hướng nhìn" style={{ marginBottom: 24 }}>
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-
-                                        {/* Vị trí tầng */}
-                                        {categorized.floors.length > 0 && (
-                                            <Card title="Vị trí tầng" style={{ marginBottom: 24 }}>
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-
-                                        {/* Tiện ích khác */}
-                                        {categorized.others.length > 0 && (
-                                            <Card title="Tiện ích khác" style={{ marginBottom: 32 }}>
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-                                    </>
-                                );
-                            })()}
+                            {/* Phần tiện ích chi tiết theo loại phòng đã được ẩn. 
+                                Tiện ích/dịch vụ hiện sẽ là thông tin chung cấp homestay. */}
 
                             {/* Reviews */}
                             <Card title={`Đánh giá từ khách hàng (${reviewsTotal})`}>
@@ -626,14 +563,40 @@ const RoomTypeDetailPage: React.FC = () => {
                                             style={{ width: '100%' }}
                                             value={cartDateRange}
                                             onChange={(dates) => {
+                                                // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
                                                 if (dates && dates[0] && dates[1]) {
+                                                    if (dates[0].isSame(dates[1], 'day')) {
+                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                        return;
+                                                    }
+                                                    if (dates[1].isSameOrBefore(dates[0], 'day')) {
+                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                        return;
+                                                    }
                                                     setCartDateRange([dates[0], dates[1]]);
                                                 } else {
                                                     setCartDateRange(null);
                                                 }
                                             }}
                                             disabledDate={(current) => {
-                                                return current && current < dayjs().startOf('day');
+                                                if (!current) return false;
+                                                const today = dayjs().startOf('day');
+                                                const currentDate = current.startOf('day');
+
+                                                // Không cho chọn ngày quá khứ
+                                                if (currentDate.isBefore(today)) {
+                                                    return true;
+                                                }
+
+                                                // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
+                                                if (cartDateRange && cartDateRange[0]) {
+                                                    const checkInDate = cartDateRange[0].startOf('day');
+                                                    if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
+                                                        return true;
+                                                    }
+                                                }
+
+                                                return false;
                                             }}
                                         />
                                     </div>

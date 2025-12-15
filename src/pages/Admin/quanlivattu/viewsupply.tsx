@@ -90,9 +90,6 @@ const ViewSupply: React.FC<ViewSupplyProps> = ({ visible, onCancel, supplyId, su
         <Descriptions.Item label="Mô tả">{supply.description || "Không có"}</Descriptions.Item>
         <Descriptions.Item label="Loại">{supply.category}</Descriptions.Item>
         <Descriptions.Item label="Đơn vị">{supply.unit}</Descriptions.Item>
-        <Descriptions.Item label="Tồn kho hiện tại">{supply.current_stock}</Descriptions.Item>
-        <Descriptions.Item label="Mức tồn kho tối thiểu">{supply.min_stock_level}</Descriptions.Item>
-        <Descriptions.Item label="Mức tồn kho tối đa">{supply.max_stock_level}</Descriptions.Item>
         <Descriptions.Item label="Giá nhập (₫)">
           {supply.unit_price.toLocaleString("vi-VN")} ₫
         </Descriptions.Item>

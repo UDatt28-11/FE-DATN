@@ -24,7 +24,7 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId 
       // đảm bảo các giá trị số có mặc định
       const payload = {
         ...values,
-        // Nếu có roomId, gán vật tư cho phòng đó
+        // Nếu có roomId (đang mở từ context phòng), gán vật tư trực tiếp cho phòng đó
         room_id: roomId ?? values.room_id,
         current_stock: values.current_stock ?? 0,
         min_stock_level: values.min_stock_level ?? 0,
@@ -94,26 +94,6 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId 
 
         <Form.Item label="Đơn vị" name="unit" rules={[{ required: true }]}>
           <Input />
-        </Form.Item>
-
-        <Form.Item
-          label="Tồn kho hiện tại"
-          name="current_stock"
-          initialValue={0}
-        >
-          <InputNumber min={0} style={{ width: "100%" }} />
-        </Form.Item>
-
-        <Form.Item
-          label="Mức tồn kho tối thiểu"
-          name="min_stock_level"
-          initialValue={0}
-        >
-          <InputNumber min={0} style={{ width: "100%" }} />
-        </Form.Item>
-
-        <Form.Item label="Mức tồn kho tối đa" name="max_stock_level">
-          <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item

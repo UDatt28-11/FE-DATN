@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Row, Col, Typography, Image, Descriptions, Space, Button, Tag, Spin, Empty, Table, Divider, Tooltip } from "antd";
-import { EyeOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, PictureOutlined, HomeOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Modal, Row, Col, Typography, Image, Descriptions, Space, Button, Tag, Spin, Empty, Table, Divider, Tooltip, Upload } from "antd";
+import { EyeOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, PictureOutlined, HomeOutlined, PlusOutlined, DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { toast } from "react-toastify";
 import type { RoomType } from "../../../types/roomtype/roomtype";
 import type { Room } from "../../../types/room/room";
 import roomService from "../../../service/roomService";
 import axios from "../../../service/axiosConfig";
+import roomtypeService from "../../../service/roomtypeService";
 import AddRoom from "../quanliphong/addroom";
 import EditRoom from "../quanliphong/editroom";
 import type { Supply } from "../../../types/supply/supplies";
@@ -29,9 +30,19 @@ interface DetailCategoryProps {
     roomType: RoomType | null;
     onClose: () => void;
     onEdit: (roomType: RoomType) => void;
+    /** Khi mở từ thêm mới, tự động bật modal Thêm phòng một lần */
+    autoOpenAddRoom?: boolean;
+    onAutoAddRoomHandled?: () => void;
 }
 
-const DetailCategory: React.FC<DetailCategoryProps> = ({ visible, roomType, onClose, onEdit }) => {
+const DetailCategory: React.FC<DetailCategoryProps> = ({
+    visible,
+    roomType,
+    onClose,
+    onEdit,
+    autoOpenAddRoom,
+    onAutoAddRoomHandled,
+}) => {
     const [roomImages, setRoomImages] = useState<RoomImage[]>([]);
     const [loadingImages, setLoadingImages] = useState(false);
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -51,16 +62,22 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({ visible, roomType, onCl
     const [addSupplyVisible, setAddSupplyVisible] = useState(false);
     const [editSupplyVisible, setEditSupplyVisible] = useState(false);
     const [viewSupplyVisible, setViewSupplyVisible] = useState(false);
+    const [uploadingRoomImages, setUploadingRoomImages] = useState(false);
 
     useEffect(() => {
         if (visible && roomType) {
             loadRoomImages();
             loadRooms();
+            // Nếu được yêu cầu auto-open AddRoom (trường hợp vừa tạo mới)
+            if (autoOpenAddRoom) {
+                setAddRoomVisible(true);
+                onAutoAddRoomHandled && onAutoAddRoomHandled();
+            }
         } else {
             setRoomImages([]);
             setRooms([]);
         }
-    }, [visible, roomType]);
+    }, [visible, roomType, autoOpenAddRoom, onAutoAddRoomHandled]);
 
     const loadRoomImages = async () => {
         if (!roomType) return;
@@ -319,9 +336,40 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({ visible, roomType, onCl
             
             {/* Album hình ảnh */}
             <div style={{ marginTop: 24 }}>
-                <Title level={4}>
-                    <PictureOutlined /> Album hình ảnh
-                </Title>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={4} style={{ margin: 0 }}>
+                        <PictureOutlined /> Album hình ảnh
+                    </Title>
+                    <Upload
+                        multiple
+                        showUploadList={false}
+                        disabled={uploadingRoomImages}
+                        beforeUpload={async (file) => {
+                            const formData = new FormData();
+                            formData.append("images[]", file);
+                            setUploadingRoomImages(true);
+                            try {
+                                const res = await roomtypeService.uploadImages(roomType.id, formData);
+                                if (res.success) {
+                                    toast.success("Đã thêm ảnh vào album");
+                                    loadRoomImages();
+                                } else {
+                                    toast.error("Không thể tải ảnh, vui lòng thử lại");
+                                }
+                            } catch (error: any) {
+                                console.error("Error uploading room type image:", error);
+                                toast.error(error.response?.data?.message || "Có lỗi khi tải ảnh");
+                            } finally {
+                                setUploadingRoomImages(false);
+                            }
+                            return false;
+                        }}
+                    >
+                        <Button icon={<UploadOutlined />} loading={uploadingRoomImages}>
+                            Thêm ảnh nhanh
+                        </Button>
+                    </Upload>
+                </div>
                 <Spin spinning={loadingImages}>
                     {roomImages.length > 0 ? (
                         <Row gutter={[8, 8]}>
@@ -461,14 +509,49 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({ visible, roomType, onCl
                             {selectedRoomForSupplies?.floor_number ?? "-"}
                         </span>
                     </div>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => setAddSupplyVisible(true)}
-                        disabled={!selectedRoomForSupplies}
-                    >
-                        Thêm vật tư cho phòng
-                    </Button>
+                    <Space>
+                        {/* Upload ảnh nhanh cho phòng (thực chất là ảnh loại phòng) */}
+                        {roomType && (
+                            <Upload
+                                multiple
+                                showUploadList={false}
+                                beforeUpload={async (file) => {
+                                    if (!roomType) return false;
+                                    const formData = new FormData();
+                                    formData.append("images[]", file);
+                                    setUploadingRoomImages(true);
+                                    try {
+                                        const res = await roomtypeService.uploadImages(roomType.id, formData);
+                                        if (res.success) {
+                                            toast.success("Đã tải lên 1 ảnh cho loại phòng");
+                                            // Refresh danh sách ảnh ở modal loại phòng
+                                            loadRoomImages();
+                                        } else {
+                                            toast.error("Không thể tải ảnh, vui lòng thử lại");
+                                        }
+                                    } catch (error: any) {
+                                        console.error("Error uploading room image:", error);
+                                        toast.error(error.response?.data?.message || "Có lỗi khi tải ảnh");
+                                    } finally {
+                                        setUploadingRoomImages(false);
+                                    }
+                                    return false; // ngăn antd tự upload
+                                }}
+                            >
+                                <Button icon={<UploadOutlined />} loading={uploadingRoomImages}>
+                                    Thêm ảnh nhanh
+                                </Button>
+                            </Upload>
+                        )}
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={() => setAddSupplyVisible(true)}
+                            disabled={!selectedRoomForSupplies}
+                        >
+                            Thêm vật tư cho phòng
+                        </Button>
+                    </Space>
                 </div>
 
                 <Spin spinning={loadingSupplies}>
