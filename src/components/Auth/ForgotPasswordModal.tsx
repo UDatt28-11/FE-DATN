@@ -56,7 +56,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             footer={null}
             width={500}
             centered
-            destroyOnClose
+            destroyOnHidden
         >
             <div style={{ padding: '20px 0' }}>
                 {!emailSent ? (

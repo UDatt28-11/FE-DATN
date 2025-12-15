@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Row, Col, Typography, Image } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
+import { Row, Col, Typography, Image, Breadcrumb } from 'antd';
+import { CheckOutlined, HomeOutlined } from '@ant-design/icons';
+import BookingFilter from '../../components/Booking/BookingFilter';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -213,6 +214,7 @@ const styles = {
 };
 
 const About: React.FC = () => {
+  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const milestonesRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +223,22 @@ const About: React.FC = () => {
   const poolCount = useCountUp(3, 1500, isVisible);
   const roomCount = useCountUp(79, 2000, isVisible);
   const apartmentCount = useCountUp(25, 1800, isVisible);
+
+  const handleBookNow = (values: any) => {
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    navigate(`/rooms?${params.toString()}`);
+  };
 
   // Inject CSS animations on mount
   useEffect(() => {
@@ -256,37 +274,112 @@ const About: React.FC = () => {
 
   return (
     <div>
-      {/* ##### Breadcumb Area Start ##### */}
-      <section style={styles.breadcrumbArea}>
-        <div style={styles.breadcrumbOverlay} />
-        <div style={styles.breadcrumbContent}>
+      {/* Hero Section */}
+      <section style={{
+        position: 'relative',
+        height: 450,
+        backgroundImage: "url('https://images.unsplash.com/photo-1566073771259-6a8506099945')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          top: 0,
+          left: 0,
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
+          zIndex: 1,
+        }} />
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          textAlign: 'center',
+          padding: '0 20px',
+        }}>
+          <div style={{
+            width: 60,
+            height: 3,
+            background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+            margin: '0 auto 25px',
+            borderRadius: 2,
+          }} />
           <Title 
             level={1} 
             style={{ 
               color: '#fff', 
-              fontSize: 48, 
-              fontWeight: 700,
-              margin: 0,
-              fontFamily: '"Poppins", sans-serif',
-              letterSpacing: 2,
+              fontSize: 52, 
+              fontWeight: 400,
+              marginBottom: 20,
+              fontFamily: '"Playfair Display", Georgia, serif',
+              fontStyle: 'italic',
             }}
           >
-            Về chúng tôi
+            Về Chúng Tôi
           </Title>
+          <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+            Khám phá câu chuyện và giá trị của BookStay
+          </Paragraph>
+          <Breadcrumb
+            style={{ justifyContent: 'center', display: 'flex' }}
+            items={[
+              {
+                title: (
+                  <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
+                    <HomeOutlined /> Trang chủ
+                  </Link>
+                ),
+              },
+              {
+                title: <span style={{ color: '#fff', fontSize: 15 }}>Giới thiệu</span>,
+              },
+            ]}
+          />
         </div>
       </section>
-      {/* ##### Breadcumb Area End ##### */}
+
+      {/* Book Now Area */}
+      <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* ##### About Us Area Start ##### */}
-      <section style={styles.aboutSection}>
+      <section style={{
+        ...styles.aboutSection,
+        background: 'linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)',
+      }}>
         <div className="container" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 15px' }}>
           <Row gutter={[60, 40]} align="middle">
             <Col xs={24} lg={12}>
               <div style={{ marginBottom: 100 }}>
-                <div style={styles.sectionHeading}>
-                  <div style={styles.line} />
-                  <Title level={2} style={{ fontSize: 36, fontWeight: 700, marginBottom: 0, color: '#303030' }}>
-                    Một nơi đáng nhớ
+                <div style={{ marginBottom: 30 }}>
+                  <div style={{
+                    width: 70,
+                    height: 4,
+                    background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                    marginBottom: 25,
+                    borderRadius: 3,
+                    boxShadow: '0 2px 8px rgba(203, 134, 112, 0.3)',
+                  }} />
+                  <Title level={2} style={{ 
+                    fontSize: 42, 
+                    fontWeight: 600, 
+                    marginBottom: 0, 
+                    color: '#1a1a1a',
+                    fontFamily: '"Playfair Display", Georgia, serif',
+                    letterSpacing: '-0.5px',
+                  }}>
+                    Một Nơi Đáng Nhớ
                   </Title>
                 </div>
                 <Paragraph style={{ fontSize: 16, color: '#7d7d7d', lineHeight: 2, marginBottom: 0 }}>

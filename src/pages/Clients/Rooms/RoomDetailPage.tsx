@@ -496,36 +496,85 @@ const RoomDetailPage: React.FC = () => {
                 <meta name="twitter:image" content={pageImage} />
             </Helmet>
 
-            {/* Breadcrumb */}
-            <div className="breadcrumb-wrapper" style={{ padding: '20px 0', background: '#f5f5f5' }}>
-                <div className="container">
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 350,
+                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(26,26,26,0.75) 100%), url('${galleryImages[0] || "/img/bg-img/1.jpg"}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                    maxWidth: 900,
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 20px',
+                        borderRadius: 2,
+                    }} />
+                    <Title 
+                        level={1} 
+                        style={{ 
+                            color: '#fff', 
+                            fontSize: 42, 
+                            fontWeight: 400,
+                            marginBottom: 15,
+                            fontFamily: '"Playfair Display", Georgia, serif',
+                        }}
+                    >
+                        {currentRoom.name}
+                    </Title>
+                    <Space size="large" style={{ marginBottom: 20 }}>
+                        <Space>
+                            <Rate disabled value={roomRating} allowHalf style={{ fontSize: 18 }} />
+                            <Text strong style={{ color: '#fff', fontSize: 16 }}>{roomRating.toFixed(1)}</Text>
+                        </Space>
+                        <Space style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16 }}>
+                            <EnvironmentOutlined />
+                            <Text style={{ color: 'rgba(255,255,255,0.9)' }}>{roomLocation}</Text>
+                        </Space>
+                    </Space>
                     <Breadcrumb
+                        style={{ justifyContent: 'center', display: 'flex' }}
                         items={[
                             {
                                 title: (
-                                    <Link to="/">
+                                    <Link to="/" style={{ color: '#cb8670', fontSize: 14 }}>
                                         <HomeOutlined /> Trang chủ
                                     </Link>
                                 ),
                             },
                             {
-                                title: <Link to="/rooms">Phòng</Link>,
+                                title: <Link to="/rooms" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>Phòng</Link>,
                             },
                             {
-                                title: currentRoom?.name || "Chi tiết phòng",
+                                title: <span style={{ color: '#fff', fontSize: 14 }}>{currentRoom?.name || "Chi tiết"}</span>,
                             },
                         ]}
                     />
                 </div>
-            </div>
+            </section>
 
-            <Content style={{ padding: '40px 0', minHeight: '80vh' }}>
+            <Content style={{ padding: '40px 0', minHeight: '80vh', background: '#fff' }}>
                 <div className="container">
                     {/* Nút Trở về */}
                     <Button
                         icon={<ArrowLeftOutlined />}
                         onClick={() => navigate(-1)}
-                        style={{ marginBottom: 24 }}
+                        style={{ 
+                            marginBottom: 24,
+                            borderColor: '#cb8670',
+                            color: '#cb8670',
+                        }}
                         size="large"
                     >
                         Trở về
@@ -554,7 +603,7 @@ const RoomDetailPage: React.FC = () => {
                                 </div>
 
                                 {/* Gallery ảnh */}
-                                <Card variant="borderless" bodyStyle={{ padding: 0 }}>
+                                <Card variant="borderless" styles={{ body: { padding: 0 } }}>
                                     <Image.PreviewGroup>
                                         <Row gutter={[8, 8]}>
                                             <Col span={24}>
@@ -608,7 +657,15 @@ const RoomDetailPage: React.FC = () => {
                                 </Card>
 
                                 {/* Thông tin phòng */}
-                                <Card title="Thông tin phòng" variant="borderless">
+                                <Card 
+                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Thông tin phòng</Text>} 
+                                    variant="borderless"
+                                    style={{
+                                        borderRadius: 12,
+                                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                                        border: '1px solid #f0f0f0',
+                                    }}
+                                >
                                     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                                         <Row gutter={[16, 16]}>
                                             <Col span={8}>
@@ -633,7 +690,15 @@ const RoomDetailPage: React.FC = () => {
                                 </Card>
 
                                 {/* Tiện nghi */}
-                                <Card title="Tiện nghi phòng" variant="borderless">
+                                <Card 
+                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện nghi phòng</Text>}
+                                    variant="borderless"
+                                    style={{
+                                        borderRadius: 12,
+                                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                                        border: '1px solid #f0f0f0',
+                                    }}
+                                >
                                     {roomAmenities.length > 0 ? (
                                         <Row gutter={[16, 16]}>
                                             {roomAmenities.map((amenity, index) => (
@@ -652,8 +717,13 @@ const RoomDetailPage: React.FC = () => {
 
                                 {/* Đánh giá */}
                                 <Card
-                                    title={`Đánh giá (${totalReviews})`}
+                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Đánh giá ({totalReviews})</Text>}
                                     variant="borderless"
+                                    style={{
+                                        borderRadius: 12,
+                                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                                        border: '1px solid #f0f0f0',
+                                    }}
                                     extra={
                                         <Space>
                                             {canReview && (
@@ -769,18 +839,31 @@ const RoomDetailPage: React.FC = () => {
                         {/* Cột phải: Form đặt phòng */}
                         <Col xs={24} lg={8}>
                             <Card
-                                title="Đặt phòng"
+                                title={
+                                    <Text style={{ 
+                                        fontSize: 22, 
+                                        fontFamily: '"Playfair Display", Georgia, serif', 
+                                        fontWeight: 600,
+                                        background: 'linear-gradient(135deg, #cb8670 0%, #b87560 100%)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}>
+                                        Đặt phòng
+                                    </Text>
+                                }
                                 bordered={false}
                                 style={{
                                     position: 'sticky',
                                     top: 20,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    borderRadius: 16,
+                                    boxShadow: '0 8px 24px rgba(203, 134, 112, 0.15)',
+                                    border: '2px solid rgba(203, 134, 112, 0.2)',
                                 }}
                             >
                                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                                     {/* Giá */}
-                                    <div>
-                                        <Text style={{ fontSize: 28, color: '#cb8670', fontWeight: 'bold' }}>
+                                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                                        <Text style={{ fontSize: 32, color: '#cb8670', fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}>
                                             {formatVNDWithUnit(currentRoom.price_per_night, '/đêm')}
                                         </Text>
                                     </div>
@@ -888,14 +971,17 @@ const RoomDetailPage: React.FC = () => {
                                         loading={addingToCart}
                                         disabled={!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1] || isInCart(currentRoom?.id || 0) || addingToCart}
                                         style={{
-                                            backgroundColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
-                                            borderColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
-                                            height: 50,
-                                            fontSize: 16,
-                                            fontWeight: 'bold'
+                                            background: isInCart(currentRoom?.id || 0) ? 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)' : 'linear-gradient(135deg, #cb8670 0%, #b87560 100%)',
+                                            borderColor: 'transparent',
+                                            height: 54,
+                                            fontSize: 17,
+                                            fontWeight: 600,
+                                            borderRadius: 10,
+                                            letterSpacing: 0.5,
+                                            boxShadow: '0 4px 12px rgba(203, 134, 112, 0.3)',
                                         }}
                                     >
-                                        {addingToCart ? 'Đang kiểm tra...' : isInCart(currentRoom?.id || 0) ? 'Đã thêm vào booking cart' : 'Thêm vào booking cart'}
+                                        {addingToCart ? 'Đang kiểm tra...' : isInCart(currentRoom?.id || 0) ? '✓ Đã thêm vào booking cart' : 'Thêm vào booking cart'}
                                     </Button>
 
                                     <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
@@ -911,9 +997,26 @@ const RoomDetailPage: React.FC = () => {
                     {/* Phòng tương tự */}
                     <Divider style={{ margin: '60px 0 40px' }} />
                     <div>
-                        <Title level={3} style={{ marginBottom: 24, textAlign: 'center' }}>
-                            Phòng tương tự
-                        </Title>
+                        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+                            <div style={{
+                                width: 60,
+                                height: 3,
+                                background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                                margin: '0 auto 20px',
+                                borderRadius: 2,
+                            }} />
+                            <Title level={2} style={{ 
+                                marginBottom: 10,
+                                fontFamily: '"Playfair Display", Georgia, serif',
+                                fontWeight: 400,
+                                color: '#1a1a1a',
+                            }}>
+                                Phòng Tương Tự
+                            </Title>
+                            <Text style={{ color: '#6c757d', fontSize: 16 }}>
+                                Khám phá thêm các lựa chọn phù hợp với bạn
+                            </Text>
+                        </div>
                         <Row gutter={[24, 24]}>
                             {similarRooms.length > 0 ? (
                                 similarRooms.map((room) => {

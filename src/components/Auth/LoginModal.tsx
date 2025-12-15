@@ -88,7 +88,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
             footer={null}
             width={450}
             centered
-            destroyOnClose
+            destroyOnHidden
             styles={{
                 body: { padding: '40px 30px' }
             }}

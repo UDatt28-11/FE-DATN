@@ -1,17 +1,16 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Row, Col, Form, Input, Button, Typography, Breadcrumb } from 'antd';
 import { HomeOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, ClockCircleOutlined, SendOutlined } from '@ant-design/icons';
+import BookingFilter from '../../../components/Booking/BookingFilter';
 import './Contact.css';
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-// Inject custom styles
-const injectStyles = () => {
-  const styleId = 'contact-page-styles';
-  if (document.getElementById(styleId)) return;
-  
+// Inject custom styles only once (outside component to avoid re-injection)
+const styleId = 'contact-page-styles';
+if (!document.getElementById(styleId)) {
   const style = document.createElement('style');
   style.id = styleId;
   style.textContent = `
@@ -81,7 +80,7 @@ const injectStyles = () => {
     }
   `;
   document.head.appendChild(style);
-};
+}
 
 const styles = {
   // Hero Section
@@ -175,10 +174,23 @@ const styles = {
 
 const Contact: React.FC = () => {
   const [form] = Form.useForm();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    injectStyles();
-  }, []);
+  const handleBookNow = (values: any) => {
+    const params = new URLSearchParams();
+    
+    if (values.checkIn) {
+      params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+    }
+    if (values.checkOut) {
+      params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+    }
+    
+    const totalGuests = values.guests || 2;
+    params.set('total_guests', totalGuests.toString());
+    
+    navigate(`/rooms?${params.toString()}`);
+  };
 
   const handleSubmit = (values: any) => {
     console.log('Form values:', values);
@@ -248,6 +260,17 @@ const Contact: React.FC = () => {
           />
         </div>
       </section>
+
+      {/* Book Now Area */}
+      <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+        <div className="container">
+          <Row justify="center">
+            <Col xs={24} lg={20}>
+              <BookingFilter onSubmit={handleBookNow} showButton={true} />
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* ##### Contact Info Section ##### */}
       <section style={{ padding: '100px 0', background: '#f8f9fa' }}>

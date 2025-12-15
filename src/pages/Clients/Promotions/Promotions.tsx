@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Tag, Button, Input, Modal, message, Breadcrumb, Spin } from 'antd';
 import { GiftOutlined, CopyOutlined, CheckCircleOutlined, HomeOutlined, PercentageOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { LoginModal, RegisterModal } from '../../../components/Auth';
+
+import BookingFilter from '../../../components/Booking/BookingFilter';
+
 import { getPublicVouchers, type Voucher } from '../../../service/voucherService';
 import { formatVND } from '../../../utils/currency';
 import dayjs from '../../../utils/dayjs';
+
 import './Promotions.css';
 
 const { Search } = Input;
 
 const Promotions: React.FC = () => {
     const { isLoggedIn } = useAuth();
+    const navigate = useNavigate();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -22,6 +27,145 @@ const Promotions: React.FC = () => {
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
+
+    const handleBookNow = (values: any) => {
+        const params = new URLSearchParams();
+        
+        if (values.checkIn) {
+            params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+        }
+        if (values.checkOut) {
+            params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+        }
+        
+        const totalGuests = values.guests || 2;
+        params.set('total_guests', totalGuests.toString());
+        
+        navigate(`/rooms?${params.toString()}`);
+    };
+
+    const promotions: Promotion[] = [
+        {
+            id: 1,
+            code: 'SUMMER2025',
+            title: 'Giảm Giá Mùa Hè',
+            description: 'Giảm 30% cho tất cả các loại phòng trong tháng 6-8',
+            discount: '30%',
+            validUntil: '31/08/2025',
+            minOrder: '2.000.000đ',
+            maxDiscount: '1.000.000đ',
+            type: 'percent',
+            status: 'active',
+            image: '/img/bg-img/1.jpg',
+            termsAndConditions: [
+                'Áp dụng cho đặt phòng từ 2 đêm trở lên',
+                'Không áp dụng cho các ngày lễ, Tết',
+                'Giảm tối đa 1.000.000đ cho mỗi đơn hàng',
+                'Không kết hợp với các chương trình khuyến mãi khác',
+                'Áp dụng khi đặt phòng trực tiếp qua website'
+            ]
+        },
+        {
+            id: 2,
+            code: 'WELCOME50',
+            title: 'Ưu Đãi Khách Hàng Mới',
+            description: 'Giảm 50% cho lần đặt phòng đầu tiên',
+            discount: '50%',
+            validUntil: '31/12/2025',
+            minOrder: '1.500.000đ',
+            maxDiscount: '750.000đ',
+            type: 'percent',
+            status: 'active',
+            image: '/img/bg-img/8.jpg',
+            termsAndConditions: [
+                'Chỉ áp dụng cho khách hàng đặt phòng lần đầu',
+                'Giảm tối đa 750.000đ',
+                'Áp dụng cho tất cả các loại phòng',
+                'Phải đăng ký tài khoản mới',
+                'Mã chỉ sử dụng được 1 lần'
+            ]
+        },
+        {
+            id: 3,
+            code: 'WEEKEND200',
+            title: 'Cuối Tuần Siêu Tiết Kiệm',
+            description: 'Giảm 200.000đ cho đặt phòng cuối tuần',
+            discount: '200.000đ',
+            validUntil: '30/11/2025',
+            minOrder: '1.000.000đ',
+            maxDiscount: '200.000đ',
+            type: 'fixed',
+            status: 'active',
+            image: '/img/bg-img/9.jpg',
+            termsAndConditions: [
+                'Áp dụng cho đặt phòng vào thứ 6, 7, Chủ Nhật',
+                'Đơn hàng tối thiểu 1.000.000đ',
+                'Áp dụng cho tất cả các loại phòng',
+                'Có thể kết hợp với ưu đãi khác',
+                'Giảm ngay 200.000đ vào tổng hóa đơn'
+            ]
+        },
+        {
+            id: 4,
+            code: 'LONGSTAY15',
+            title: 'Ưu Đãi Lưu Trú Dài Hạn',
+            description: 'Giảm 15% khi đặt phòng từ 5 đêm trở lên',
+            discount: '15%',
+            validUntil: '31/12/2025',
+            minOrder: '3.000.000đ',
+            maxDiscount: '2.000.000đ',
+            type: 'percent',
+            status: 'active',
+            image: '/img/bg-img/5.jpg',
+            termsAndConditions: [
+                'Áp dụng cho đặt phòng từ 5 đêm trở lên',
+                'Giảm tối đa 2.000.000đ',
+                'Áp dụng cho Suite và phòng Deluxe',
+                'Thanh toán trước toàn bộ chi phí',
+                'Không hoàn tiền khi hủy phòng'
+            ]
+        },
+        {
+            id: 5,
+            code: 'BIRTHDAY20',
+            title: 'Ưu Đãi Sinh Nhật',
+            description: 'Giảm 20% + Quà tặng đặc biệt cho khách sinh nhật',
+            discount: '20%',
+            validUntil: '31/12/2025',
+            minOrder: '1.500.000đ',
+            maxDiscount: '500.000đ',
+            type: 'gift',
+            status: 'active',
+            image: '/img/bg-img/6.jpg',
+            termsAndConditions: [
+                'Áp dụng trong tháng sinh nhật',
+                'Phải xuất trình CMND/CCCD khi check-in',
+                'Tặng kèm bánh sinh nhật và champagne',
+                'Giảm 20% tổng hóa đơn phòng',
+                'Đăng ký trước 3 ngày'
+            ]
+        },
+        {
+            id: 6,
+            code: 'COUPLE25',
+            title: 'Ưu Đãi Cặp Đôi',
+            description: 'Giảm 25% cho phòng Honeymoon Suite',
+            discount: '25%',
+            validUntil: '14/02/2026',
+            minOrder: '2.500.000đ',
+            maxDiscount: '1.500.000đ',
+            type: 'percent',
+            status: 'active',
+            image: '/img/bg-img/7.jpg',
+            termsAndConditions: [
+                'Chỉ áp dụng cho phòng Honeymoon Suite',
+                'Trang trí phòng lãng mạn miễn phí',
+                'Bữa sáng phục vụ tại phòng',
+                'Đặt trước tối thiểu 7 ngày',
+                'Áp dụng cho các cặp đôi đang hẹn hò hoặc mới cưới'
+            ]
+        }
+
     // Một vài ảnh nền mặc định cho thẻ khuyến mãi
     const promotionImages = [
         '/img/bg-img/1.jpg',
@@ -30,6 +174,7 @@ const Promotions: React.FC = () => {
         '/img/bg-img/7.jpg',
         '/img/bg-img/8.jpg',
         '/img/bg-img/9.jpg',
+
     ];
 
     const getVoucherStatus = (voucher: Voucher): 'active' | 'expired' | 'upcoming' => {
@@ -152,57 +297,81 @@ const Promotions: React.FC = () => {
 
     return (
         <div className="promotions-page">
-            {/* Breadcrumb Section */}
-            <section
-                className="breadcrumb-area"
-                style={{
-                    backgroundImage: "url('/img/bg-img/18.jpg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    padding: '100px 0',
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 450,
+                backgroundImage: "url('/img/bg-img/16.jpg')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    top: 0,
+                    left: 0,
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
+                    zIndex: 1,
+                }} />
+                <div style={{
                     position: 'relative',
-                }}
-            >
-                <div
-                    style={{
-                        position: 'absolute',
-                        width: '100%',
-                        height: '100%',
-                        top: 0,
-                        left: 0,
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        zIndex: 0,
-                    }}
-                />
-                <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 25px',
+                        borderRadius: 2,
+                    }} />
+                    <h1 style={{ 
+                        color: '#fff', 
+                        fontSize: 52, 
+                        fontWeight: 400,
+                        marginBottom: 20,
+                        fontFamily: '"Playfair Display", Georgia, serif',
+                        fontStyle: 'italic',
+                    }}>
+                        Mã Giảm Giá
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+                        Khám phá các ưu đãi hấp dẫn dành riêng cho bạn
+                    </p>
+                    <Breadcrumb
+                        style={{ justifyContent: 'center', display: 'flex' }}
+                        items={[
+                            {
+                                title: (
+                                    <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
+                                        <HomeOutlined /> Trang chủ
+                                    </Link>
+                                ),
+                            },
+                            {
+                                title: <span style={{ color: '#fff', fontSize: 15 }}>Khuyến mại</span>,
+                            },
+                        ]}
+                    />
+                </div>
+            </section>
+
+            {/* Book Now Area */}
+            <div className="book-now-area" style={{ marginTop: '-7px', marginBottom: '10px', position: 'relative', zIndex: 10 }}>
+                <div className="container">
                     <Row justify="center">
-                        <Col xs={24}>
-                            <div style={{ textAlign: 'center', color: '#fff' }}>
-                                <h1 style={{ fontSize: '3rem', marginBottom: '20px', color: '#fff' }} data-aos="fade-up">
-                                    Mã Giảm Giá
-                                </h1>
-                                <Breadcrumb
-                                    data-aos="fade-up"
-                                    data-aos-delay="200"
-                                    style={{ justifyContent: 'center', display: 'flex' }}
-                                    items={[
-                                        {
-                                            title: (
-                                                <Link to="/" style={{ color: '#cb8670' }}>
-                                                    <HomeOutlined /> Trang chủ
-                                                </Link>
-                                            ),
-                                        },
-                                        {
-                                            title: <span style={{ color: '#fff' }}>Mã giảm giá</span>,
-                                        },
-                                    ]}
-                                />
-                            </div>
+                        <Col xs={24} lg={20}>
+                            <BookingFilter onSubmit={handleBookNow} showButton={true} />
                         </Col>
                     </Row>
                 </div>
-            </section>
+            </div>
 
             {/* Promotions Content */}
             <section style={{ padding: '100px 0', backgroundColor: '#f8f9fa' }}>
@@ -296,7 +465,7 @@ const Promotions: React.FC = () => {
                                         display: 'flex',
                                         flexDirection: 'column',
                                     }}
-                                    bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                    styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                                 >
                                     <div style={{ marginBottom: '15px' }}>
                                         {getTypeIcon(voucher)}

@@ -151,7 +151,7 @@ export default function AboutPage() {
                                         textAlign: 'center',
                                         borderRadius: 8
                                     }}
-                                    bodyStyle={{ padding: '40px 20px' }}
+                                    styles={{ body: { padding: '40px 20px' } }}
                                 >
                                     <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
                                         🏆
@@ -170,7 +170,7 @@ export default function AboutPage() {
                                         textAlign: 'center',
                                         borderRadius: 8
                                     }}
-                                    bodyStyle={{ padding: '40px 20px' }}
+                                    styles={{ body: { padding: '40px 20px' } }}
                                 >
                                     <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
                                         🍽️
@@ -189,7 +189,7 @@ export default function AboutPage() {
                                         textAlign: 'center',
                                         borderRadius: 8
                                     }}
-                                    bodyStyle={{ padding: '40px 20px' }}
+                                    styles={{ body: { padding: '40px 20px' } }}
                                 >
                                     <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
                                         🛏️
@@ -208,7 +208,7 @@ export default function AboutPage() {
                                         textAlign: 'center',
                                         borderRadius: 8
                                     }}
-                                    bodyStyle={{ padding: '40px 20px' }}
+                                    styles={{ body: { padding: '40px 20px' } }}
                                 >
                                     <div style={{ fontSize: 48, color: '#d4af37', marginBottom: 12 }}>
                                         👥
@@ -359,7 +359,7 @@ export default function AboutPage() {
                                 borderRadius: 12,
                                 boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
                             }}
-                            bodyStyle={{ padding: '50px 40px' }}
+                            styles={{ body: { padding: '50px 40px' } }}
                         >
                             <Paragraph style={{
                                 fontSize: 18,
