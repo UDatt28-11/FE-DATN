@@ -44,7 +44,6 @@ import { getUserBookings, getUserBooking, getUserInvoices, cancelUserBooking, ge
 import type { BookingOrder, BookingDetail } from '../../../types/booking/booking';
 import { formatVND } from '../../../utils/currency';
 import { useAuth } from '../../../context/AuthContext';
-import RequestCheckoutModal from '../../../components/Booking/RequestCheckoutModal';
 import PaymentModal from '../../../components/Booking/PaymentModal';
 import ViewInvoiceModal from '../../../components/Booking/ViewInvoiceModal';
 import RequestServiceModal from '../../../components/Booking/RequestServiceModal';
@@ -210,8 +209,6 @@ const MyBookingsPage: React.FC = () => {
         completed: 0,
         cancelled: 0,
     });
-    const [requestCheckoutModalVisible, setRequestCheckoutModalVisible] = useState(false);
-    const [requestCheckoutBooking, setRequestCheckoutBooking] = useState<BookingOrder | null>(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
     const [paymentInvoiceId, setPaymentInvoiceId] = useState<number | null>(null);
     const [paymentTotalAmount, setPaymentTotalAmount] = useState<number>(0);
@@ -425,39 +422,6 @@ const MyBookingsPage: React.FC = () => {
         }
     };
 
-
-    const handleRequestCheckout = async (booking: BookingOrder) => {
-        try {
-            // Kiểm tra xem đã có checkout request pending chưa
-            const hasPendingCheckoutRequest = booking.checkout_requests?.some(
-                (req) => req.status === 'pending'
-            );
-            
-            if (hasPendingCheckoutRequest) {
-                message.warning('Bạn đã gửi yêu cầu checkout cho đơn đặt phòng này. Vui lòng chờ admin/staff xử lý.');
-                return;
-            }
-            
-            // Fetch full booking details để đảm bảo có đầy đủ thông tin
-            const fullBooking = await getUserBooking(booking.id, 'details,details.room,details.room.roomType,details.room.roomType.images,details.guests,checkoutRequests');
-            setRequestCheckoutBooking(fullBooking);
-            setRequestCheckoutModalVisible(true);
-        } catch (error: any) {
-            console.error("Error fetching booking detail for checkout:", error);
-            message.error("Không thể tải chi tiết đặt phòng.");
-            // Fallback to basic booking info
-            setRequestCheckoutBooking(booking);
-            setRequestCheckoutModalVisible(true);
-        }
-    };
-
-    const handleRequestCheckoutSuccess = () => {
-        fetchBookingCounts();
-        fetchBookings();
-        fetchAllBookingsForCount(); // Cập nhật số lượng
-        setRequestCheckoutModalVisible(false);
-        setRequestCheckoutBooking(null);
-    };
 
     const handlePaymentSuccess = () => {
         fetchBookingCounts();
@@ -678,43 +642,6 @@ const MyBookingsPage: React.FC = () => {
                                             >
                                                 Yêu cầu tiện ích
                                             </Button>
-                                            {/* Kiểm tra xem đã có checkout request pending chưa */}
-                                            {(() => {
-                                                const hasPendingCheckoutRequest = booking.checkout_requests?.some(
-                                                    (req) => req.status === 'pending'
-                                                );
-                                                
-                                                if (hasPendingCheckoutRequest) {
-                                                    return (
-                                                        <Button
-                                                            type="default"
-                                                            icon={<LogoutOutlined />}
-                                                            disabled
-                                                            style={{
-                                                                backgroundColor: '#f0f0f0',
-                                                                borderColor: '#d9d9d9',
-                                                                color: '#999',
-                                                            }}
-                                                        >
-                                                            Đã gửi yêu cầu checkout
-                                                        </Button>
-                                                    );
-                                                }
-                                                
-                                                return (
-                                                    <Button
-                                                        type="primary"
-                                                        icon={<LogoutOutlined />}
-                                                        onClick={() => handleRequestCheckout(booking)}
-                                                        style={{
-                                                            backgroundColor: '#fa8c16',
-                                                            borderColor: '#fa8c16',
-                                                        }}
-                                                    >
-                                                        Yêu cầu checkout
-                                                    </Button>
-                                                );
-                                            })()}
                                         </>
                                     )}
                                     {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') && (
@@ -1093,16 +1020,6 @@ const MyBookingsPage: React.FC = () => {
                             Đặt lại
                         </Button>
                     ),
-                    <Button
-                        key="print"
-                        type="primary"
-                        style={{
-                            backgroundColor: '#cb8670',
-                            borderColor: '#cb8670',
-                        }}
-                    >
-                        In phiếu đặt phòng
-                    </Button>,
                     selectedBooking && (
                         <Button
                             key="view-invoice"
@@ -1251,16 +1168,6 @@ const MyBookingsPage: React.FC = () => {
                     </Space>
                 ) : null}
             </Modal>
-
-            <RequestCheckoutModal
-                open={requestCheckoutModalVisible}
-                booking={requestCheckoutBooking}
-                onCancel={() => {
-                    setRequestCheckoutModalVisible(false);
-                    setRequestCheckoutBooking(null);
-                }}
-                onSuccess={handleRequestCheckoutSuccess}
-            />
 
             <PaymentModal
                 open={paymentModalVisible}
