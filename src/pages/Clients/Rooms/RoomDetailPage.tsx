@@ -57,12 +57,12 @@ const { RangePicker } = DatePicker;
 // Helper function để map amenities thành format UI
 const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
     if (!amenities || amenities.length === 0) return [];
-    
+
     // Map tên amenity thành icon và text
     return amenities.map(amenity => {
         const name = amenity.name.toLowerCase();
         let icon = <CheckCircleFilled style={{ color: '#52c41a' }} />;
-        
+
         if (name.includes('wifi') || name.includes('internet')) {
             icon = <WifiOutlined />;
         } else if (name.includes('coffee') || name.includes('cà phê') || name.includes('minibar')) {
@@ -72,7 +72,7 @@ const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
         } else if (name.includes('tv') || name.includes('tivi')) {
             icon = <ThunderboltOutlined />;
         }
-        
+
         return {
             icon,
             text: amenity.name
@@ -136,7 +136,7 @@ const RoomDetailPage: React.FC = () => {
     const [similarRooms, setSimilarRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
-    
+
     // State cho review form
     const [reviewModalVisible, setReviewModalVisible] = useState<boolean>(false);
     const [reviewForm] = Form.useForm();
@@ -148,14 +148,14 @@ const RoomDetailPage: React.FC = () => {
     useEffect(() => {
         const fetchRoomDetail = async () => {
             if (!id) return;
-            
+
             setLoading(true);
             try {
                 // Fetch room detail trước để lấy property_id và room_type_id
                 const roomResponse = await getRoomById(id);
                 if (roomResponse.success && roomResponse.data) {
                     setCurrentRoom(roomResponse.data);
-                    
+
                     // Fetch services và similar rooms song song (reviews sẽ fetch riêng)
                     const similarParams: any = {
                         per_page: 4,
@@ -166,12 +166,12 @@ const RoomDetailPage: React.FC = () => {
                     if (roomResponse.data.room_type_id) {
                         similarParams.room_type_id = roomResponse.data.room_type_id;
                     }
-                    
+
                     // Fetch similar rooms
                     const similarResponse = await Promise.allSettled([
                         getRooms(similarParams),
                     ]);
-                    
+
                     // Xử lý similar rooms response
                     if (similarResponse[0].status === 'fulfilled' && similarResponse[0].value.success && similarResponse[0].value.data) {
                         const filtered = similarResponse[0].value.data
@@ -207,14 +207,14 @@ const RoomDetailPage: React.FC = () => {
     useEffect(() => {
         const fetchReviews = async () => {
             if (!id || !currentRoom) return;
-            
+
             setLoadingReviews(true);
             try {
-                const reviewsResponse = await getRoomReviews(id, { 
-                    page: reviewsPage, 
-                    per_page: reviewsPageSize 
+                const reviewsResponse = await getRoomReviews(id, {
+                    page: reviewsPage,
+                    per_page: reviewsPageSize
                 });
-                
+
                 if (reviewsResponse.success) {
                     const reviewsData = reviewsResponse.data || [];
                     setReviews(Array.isArray(reviewsData) ? reviewsData : []);
@@ -256,8 +256,8 @@ const RoomDetailPage: React.FC = () => {
                 // Kiểm tra xem có booking nào đã check-out cho phòng này không
                 const eligibleBooking = bookingsResponse.data.find((booking: BookingOrder) => {
                     return booking.details?.some((detail) => {
-                        return detail.room_id === currentRoom.id && 
-                               (detail.status === 'checked_out' || booking.status === 'completed');
+                        return detail.room_id === currentRoom.id &&
+                            (detail.status === 'checked_out' || booking.status === 'completed');
                     });
                 });
 
@@ -303,39 +303,45 @@ const RoomDetailPage: React.FC = () => {
     // Disable dates: không cho chọn ngày quá khứ và ngày trả phòng phải sau ngày nhận
     const disabledDate: RangePickerProps['disabledDate'] = (current) => {
         if (!current) return false;
-        
+
         // Lấy ngày hôm nay (bắt đầu của ngày, không có giờ phút giây)
         const today = dayjs().startOf('day');
         const currentDate = current.startOf('day');
-        
+
         // Không cho chọn ngày quá khứ (trước hôm nay)
         if (currentDate.isBefore(today)) {
             return true;
         }
-        
+
         // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
         if (effectiveDateRange && effectiveDateRange[0]) {
             const checkInDate = effectiveDateRange[0].startOf('day');
             // Ngày trả phòng phải sau ngày nhận ít nhất 1 ngày
-            if (currentDate.isSame(checkInDate) || currentDate.isBefore(checkInDate)) {
+            if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
                 return true;
             }
         }
-        
+
         return false;
     };
 
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
         const newRange = dates as [Dayjs | null, Dayjs | null] | null;
-        
+
         // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
         if (newRange && newRange[0] && newRange[1]) {
             if (newRange[0].isSame(newRange[1], 'day')) {
                 message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
                 return; // Không cập nhật state
             }
+
+            // Kiểm tra ngày checkout phải sau ngày checkin
+            if (newRange[1].isSameOrBefore(newRange[0], 'day')) {
+                message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                return; // Không cập nhật state
+            }
         }
-        
+
         // Cập nhật trực tiếp vào context (sẽ tự động sync với localStorage)
         setCartDateRange(newRange);
     };
@@ -344,14 +350,14 @@ const RoomDetailPage: React.FC = () => {
     const handleSubmitReview = async () => {
         try {
             const values = await reviewForm.validateFields();
-            
+
             if (!bookingDetailId) {
                 message.error('Không tìm thấy thông tin đặt phòng để đánh giá');
                 return;
             }
 
             setSubmittingReview(true);
-            
+
             await reviewService.create({
                 bookingDetailsId: bookingDetailId.toString(),
                 rating: values.rating,
@@ -362,14 +368,14 @@ const RoomDetailPage: React.FC = () => {
             message.success('Đánh giá của bạn đã được gửi và đang chờ duyệt');
             setReviewModalVisible(false);
             reviewForm.resetFields();
-            
+
             // Refresh reviews
             if (id) {
-                const reviewsResponse = await getRoomReviews(id, { 
-                    page: reviewsPage, 
-                    per_page: reviewsPageSize 
+                const reviewsResponse = await getRoomReviews(id, {
+                    page: reviewsPage,
+                    per_page: reviewsPageSize
                 });
-                
+
                 if (reviewsResponse.success) {
                     const reviewsData = reviewsResponse.data || [];
                     setReviews(Array.isArray(reviewsData) ? reviewsData : []);
@@ -391,7 +397,7 @@ const RoomDetailPage: React.FC = () => {
     // Không cần sync nữa vì đã dùng trực tiếp từ context
 
     const [addingToCart, setAddingToCart] = useState(false);
-    
+
     const handleAddToCart = async () => {
         if (!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1]) {
             message.warning('Vui lòng chọn ngày nhận và trả phòng!');
@@ -416,7 +422,7 @@ const RoomDetailPage: React.FC = () => {
         setAddingToCart(true);
         try {
             const availability = await checkRoomAvailability(currentRoom.id, checkInAPI, checkOutAPI);
-            
+
             if (!availability.available) {
                 message.error(`Phòng "${currentRoom.name}" đã được đặt trong khoảng thời gian ${checkInFormatted} - ${checkOutFormatted}. Vui lòng chọn ngày khác!`);
                 return;
@@ -469,8 +475,8 @@ const RoomDetailPage: React.FC = () => {
 
     // SEO Metadata
     const pageTitle = currentRoom ? `${currentRoom.name} - BookStay` : "Chi tiết phòng - BookStay";
-    const pageDescription = currentRoom?.description 
-        ? `${currentRoom.description.substring(0, 160)}...` 
+    const pageDescription = currentRoom?.description
+        ? `${currentRoom.description.substring(0, 160)}...`
         : `Đặt phòng ${currentRoom?.name || ""} với giá tốt nhất. Xem chi tiết, đánh giá và đặt ngay!`;
     const pageImage = galleryImages[0] || "/img/bg-img/1.jpg";
 
@@ -559,11 +565,11 @@ const RoomDetailPage: React.FC = () => {
                                                     alt={currentRoom.name}
                                                     style={{ objectFit: 'cover', borderRadius: 8 }}
                                                     placeholder={
-                                                        <div style={{ 
-                                                            width: '100%', 
-                                                            height: 400, 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
+                                                        <div style={{
+                                                            width: '100%',
+                                                            height: 400,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
                                                             justifyContent: 'center',
                                                             background: '#f0f0f0'
                                                         }}>
@@ -582,11 +588,11 @@ const RoomDetailPage: React.FC = () => {
                                                         alt={`${currentRoom.name} ${idx + 2}`}
                                                         style={{ objectFit: 'cover', borderRadius: 8 }}
                                                         placeholder={
-                                                            <div style={{ 
-                                                                width: '100%', 
-                                                                height: 150, 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: 150,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 background: '#f0f0f0'
                                                             }}>
@@ -645,8 +651,8 @@ const RoomDetailPage: React.FC = () => {
                                 </Card>
 
                                 {/* Đánh giá */}
-                                <Card 
-                                    title={`Đánh giá (${totalReviews})`} 
+                                <Card
+                                    title={`Đánh giá (${totalReviews})`}
                                     variant="borderless"
                                     extra={
                                         <Space>
@@ -690,9 +696,9 @@ const RoomDetailPage: React.FC = () => {
                                                     <List.Item>
                                                         <List.Item.Meta
                                                             avatar={
-                                                                <Avatar 
-                                                                    src={review.user?.avatar} 
-                                                                    icon={<UserOutlined />} 
+                                                                <Avatar
+                                                                    src={review.user?.avatar}
+                                                                    icon={<UserOutlined />}
                                                                 />
                                                             }
                                                             title={
@@ -765,140 +771,140 @@ const RoomDetailPage: React.FC = () => {
                             <Card
                                 title="Đặt phòng"
                                 bordered={false}
-                                style={{ 
-                                    position: 'sticky', 
+                                style={{
+                                    position: 'sticky',
                                     top: 20,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)' 
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                 }}
                             >
-                                    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                                        {/* Giá */}
-                                        <div>
-                                            <Text style={{ fontSize: 28, color: '#cb8670', fontWeight: 'bold' }}>
-                                                {formatVNDWithUnit(currentRoom.price_per_night, '/đêm')}
-                                            </Text>
-                                        </div>
-
-                                        <Divider style={{ margin: '8px 0' }} />
-
-                                        {/* Chọn ngày */}
-                                        <div>
-                                            <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                                <CalendarOutlined /> Chọn ngày
-                                            </Text>
-                                            <RangePicker
-                                                style={{ width: '100%' }}
-                                                format="DD/MM/YYYY"
-                                                value={effectiveDateRange}
-                                                onChange={handleDateChange}
-                                                disabledDate={disabledDate}
-                                                placeholder={['Nhận phòng', 'Trả phòng']}
-                                                allowClear
-                                            />
-                                        </div>
-
-                                        {/* Thông tin số khách */}
-                                        {currentRoom && (
-                                            <div style={{ 
-                                                padding: '12px', 
-                                                background: '#f5f5f5', 
-                                                borderRadius: 8,
-                                                border: '1px solid #e8e8e8'
-                                            }}>
-                                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                                    <UserOutlined /> Thông tin số khách
-                                                </Text>
-                                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                                                    <Row justify="space-between">
-                                                        <Col>
-                                                            <Text type="secondary">Người lớn tối đa:</Text>
-                                                        </Col>
-                                                        <Col>
-                                                            <Text strong>{currentRoom.max_adults} người</Text>
-                                                        </Col>
-                                                    </Row>
-                                                    <Row justify="space-between">
-                                                        <Col>
-                                                            <Text type="secondary">Trẻ em tối đa:</Text>
-                                                        </Col>
-                                                        <Col>
-                                                            <Text strong>{currentRoom.max_children} trẻ</Text>
-                                                        </Col>
-                                                    </Row>
-                                                    <Divider style={{ margin: '8px 0' }} />
-                                                    <Row justify="space-between">
-                                                        <Col>
-                                                            <Text strong>Tổng sức chứa:</Text>
-                                                        </Col>
-                                                        <Col>
-                                                            <Text strong style={{ color: '#cb8670', fontSize: 16 }}>
-                                                                {currentRoom.max_adults + currentRoom.max_children} người
-                                                            </Text>
-                                                        </Col>
-                                                    </Row>
-                                                </Space>
-                                            </div>
-                                        )}
-
-                                        <Divider style={{ margin: '8px 0' }} />
-
-                                        {/* Tổng tiền */}
-                                        <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: 8 }}>
-                                            {effectiveDateRange && effectiveDateRange[0] && effectiveDateRange[1] && (
-                                                <>
-                                                    <Row justify="space-between" style={{ marginBottom: 8 }}>
-                                                        <Col>
-                                                            <Text type="secondary">
-                                                                {effectiveDateRange[1].diff(effectiveDateRange[0], 'day')} đêm × {formatVND(currentRoom?.price_per_night || 0)}
-                                                            </Text>
-                                                        </Col>
-                                                        <Col>
-                                                            <Text>
-                                                                {formatVND((currentRoom?.price_per_night || 0) * effectiveDateRange[1].diff(effectiveDateRange[0], 'day'))}
-                                                            </Text>
-                                                        </Col>
-                                                    </Row>
-                                                </>
-                                            )}
-                                            <Divider style={{ margin: '8px 0' }} />
-                                            <Row justify="space-between" align="middle">
-                                                <Col>
-                                                    <Text strong style={{ fontSize: 16 }}>Tổng cộng:</Text>
-                                                </Col>
-                                                <Col>
-                                                    <Text style={{ fontSize: 24, color: '#cb8670', fontWeight: 'bold' }}>
-                                                        {formatVND(totalPrice)}
-                                                    </Text>
-                                                </Col>
-                                            </Row>
-                                        </div>
-
-                                        {/* Nút đặt phòng */}
-                                        <Button
-                                            type="primary"
-                                            size="large"
-                                            block
-                                            onClick={handleAddToCart}
-                                            loading={addingToCart}
-                                            disabled={!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1] || isInCart(currentRoom?.id || 0) || addingToCart}
-                                            style={{
-                                                backgroundColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
-                                                borderColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
-                                                height: 50,
-                                                fontSize: 16,
-                                                fontWeight: 'bold'
-                                            }}
-                                        >
-                                            {addingToCart ? 'Đang kiểm tra...' : isInCart(currentRoom?.id || 0) ? 'Đã thêm vào booking cart' : 'Thêm vào booking cart'}
-                                        </Button>
-
-                                        <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
-                                            {isInCart(currentRoom?.id || 0) 
-                                                ? 'Phòng này đã có trong booking cart của bạn' 
-                                                : 'Bạn có thể thêm nhiều phòng vào booking cart và đặt cùng lúc'}
+                                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                                    {/* Giá */}
+                                    <div>
+                                        <Text style={{ fontSize: 28, color: '#cb8670', fontWeight: 'bold' }}>
+                                            {formatVNDWithUnit(currentRoom.price_per_night, '/đêm')}
                                         </Text>
-                                    </Space>
-                                </Card>
+                                    </div>
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Chọn ngày */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            <CalendarOutlined /> Chọn ngày
+                                        </Text>
+                                        <RangePicker
+                                            style={{ width: '100%' }}
+                                            format="DD/MM/YYYY"
+                                            value={effectiveDateRange}
+                                            onChange={handleDateChange}
+                                            disabledDate={disabledDate}
+                                            placeholder={['Nhận phòng', 'Trả phòng']}
+                                            allowClear
+                                        />
+                                    </div>
+
+                                    {/* Thông tin số khách */}
+                                    {currentRoom && (
+                                        <div style={{
+                                            padding: '12px',
+                                            background: '#f5f5f5',
+                                            borderRadius: 8,
+                                            border: '1px solid #e8e8e8'
+                                        }}>
+                                            <Text strong style={{ display: 'block', marginBottom: 12 }}>
+                                                <UserOutlined /> Thông tin số khách
+                                            </Text>
+                                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                <Row justify="space-between">
+                                                    <Col>
+                                                        <Text type="secondary">Người lớn tối đa:</Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text strong>{currentRoom.max_adults} người</Text>
+                                                    </Col>
+                                                </Row>
+                                                <Row justify="space-between">
+                                                    <Col>
+                                                        <Text type="secondary">Trẻ em tối đa:</Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text strong>{currentRoom.max_children} trẻ</Text>
+                                                    </Col>
+                                                </Row>
+                                                <Divider style={{ margin: '8px 0' }} />
+                                                <Row justify="space-between">
+                                                    <Col>
+                                                        <Text strong>Tổng sức chứa:</Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text strong style={{ color: '#cb8670', fontSize: 16 }}>
+                                                            {currentRoom.max_adults + currentRoom.max_children} người
+                                                        </Text>
+                                                    </Col>
+                                                </Row>
+                                            </Space>
+                                        </div>
+                                    )}
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Tổng tiền */}
+                                    <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: 8 }}>
+                                        {effectiveDateRange && effectiveDateRange[0] && effectiveDateRange[1] && (
+                                            <>
+                                                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                                                    <Col>
+                                                        <Text type="secondary">
+                                                            {effectiveDateRange[1].diff(effectiveDateRange[0], 'day')} đêm × {formatVND(currentRoom?.price_per_night || 0)}
+                                                        </Text>
+                                                    </Col>
+                                                    <Col>
+                                                        <Text>
+                                                            {formatVND((currentRoom?.price_per_night || 0) * effectiveDateRange[1].diff(effectiveDateRange[0], 'day'))}
+                                                        </Text>
+                                                    </Col>
+                                                </Row>
+                                            </>
+                                        )}
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <Row justify="space-between" align="middle">
+                                            <Col>
+                                                <Text strong style={{ fontSize: 16 }}>Tổng cộng:</Text>
+                                            </Col>
+                                            <Col>
+                                                <Text style={{ fontSize: 24, color: '#cb8670', fontWeight: 'bold' }}>
+                                                    {formatVND(totalPrice)}
+                                                </Text>
+                                            </Col>
+                                        </Row>
+                                    </div>
+
+                                    {/* Nút đặt phòng */}
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block
+                                        onClick={handleAddToCart}
+                                        loading={addingToCart}
+                                        disabled={!effectiveDateRange || !effectiveDateRange[0] || !effectiveDateRange[1] || isInCart(currentRoom?.id || 0) || addingToCart}
+                                        style={{
+                                            backgroundColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
+                                            borderColor: isInCart(currentRoom?.id || 0) ? '#52c41a' : '#cb8670',
+                                            height: 50,
+                                            fontSize: 16,
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {addingToCart ? 'Đang kiểm tra...' : isInCart(currentRoom?.id || 0) ? 'Đã thêm vào booking cart' : 'Thêm vào booking cart'}
+                                    </Button>
+
+                                    <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
+                                        {isInCart(currentRoom?.id || 0)
+                                            ? 'Phòng này đã có trong booking cart của bạn'
+                                            : 'Bạn có thể thêm nhiều phòng vào booking cart và đặt cùng lúc'}
+                                    </Text>
+                                </Space>
+                            </Card>
                         </Col>
                     </Row>
 
@@ -914,7 +920,7 @@ const RoomDetailPage: React.FC = () => {
                                     const similarImages = getGalleryImages(room);
                                     const similarLocation = getRoomLocation(room);
                                     const similarRating = room.rating || 0;
-                                    
+
                                     return (
                                         <Col xs={24} sm={12} lg={8} key={room.id}>
                                             <Card
