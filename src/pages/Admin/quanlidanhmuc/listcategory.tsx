@@ -402,6 +402,7 @@ const ListCategory: React.FC = () => {
                 max_children: values.max_children ?? 0,
                 price_per_night: values.base_price,
                 status: "available" as const,
+                verification_status: "verified" as const,
                 amenities: [] as number[],
               };
 

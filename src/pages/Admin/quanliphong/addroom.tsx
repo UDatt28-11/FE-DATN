@@ -86,6 +86,7 @@ const AddRoom: React.FC<AddRoomProps> = ({ visible, onClose, initialRoomTypeId, 
                 description: values.description || "",
                 // Giá & sức chứa không nhập ở đây nữa, lấy từ RoomType
                 status: values.status || "available",
+                verification_status: "verified" as const,
             };
 
             const response = await roomService.createRoom(roomData);

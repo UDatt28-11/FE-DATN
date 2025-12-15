@@ -213,6 +213,21 @@ export async function getUserBookingCounts(): Promise<{
     const { data } = await api.get("/user/bookings/counts");
     return data.data;
   } catch (error: any) {
+    // Nếu chưa đăng nhập hoặc token hết hạn thì trả về 0 để tránh spam lỗi trên Header
+    if (error.response?.status === 401) {
+      return {
+        all: 0,
+        active: 0,
+        pending: 0,
+        confirmed: 0,
+        checked_in: 0,
+        partially_checked_in: 0,
+        checked_out: 0,
+        partially_checked_out: 0,
+        completed: 0,
+        cancelled: 0,
+      };
+    }
     console.error("Error fetching user booking counts:", error);
     throw error;
   }

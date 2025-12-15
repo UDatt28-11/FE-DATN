@@ -25,6 +25,7 @@ interface CreateRoomData {
   price_per_night: number;
   status?: 'available' | 'maintenance' | 'occupied';
   amenities?: number[];
+  verification_status?: 'pending' | 'verified' | 'rejected';
 }
 
 interface UpdateRoomData extends Partial<CreateRoomData> {
