@@ -38,6 +38,7 @@ import type { Dayjs } from "dayjs";
 import dayjs from "../../../utils/dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
+import BookingFilterSidebar from "../../../components/Booking/BookingFilterSidebar";
 import { getRoomTypeByIdWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";
 import { formatVND, formatVNDWithUnit } from "../../../utils/currency";
 import "./RoomDetail.css";
@@ -623,52 +624,47 @@ const RoomTypeDetailPage: React.FC = () => {
 
                                     <Divider />
 
-                                    {/* Date Picker */}
-                                    <div>
-                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                            <CalendarOutlined /> Chọn ngày
-                                        </Text>
-                                        <RangePicker
-                                            style={{ width: '100%' }}
-                                            value={cartDateRange}
-                                            onChange={(dates) => {
-                                                // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
-                                                if (dates && dates[0] && dates[1]) {
-                                                    if (dates[0].isSame(dates[1], 'day')) {
-                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
-                                                        return;
-                                                    }
-                                                    if (dates[1].isSameOrBefore(dates[0], 'day')) {
-                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
-                                                        return;
-                                                    }
-                                                    setCartDateRange([dates[0], dates[1]]);
-                                                } else {
-                                                    setCartDateRange(null);
+                                    {/* Booking Filter Sidebar Component */}
+                                    <BookingFilterSidebar
+                                        dateRange={cartDateRange}
+                                        onDateChange={(dates) => {
+                                            // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+                                            if (dates && dates[0] && dates[1]) {
+                                                if (dates[0].isSame(dates[1], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
                                                 }
-                                            }}
-                                            disabledDate={(current) => {
-                                                if (!current) return false;
-                                                const today = dayjs().startOf('day');
-                                                const currentDate = current.startOf('day');
+                                                if (dates[1].isSameOrBefore(dates[0], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
+                                                }
+                                                setCartDateRange([dates[0], dates[1]]);
+                                            } else {
+                                                setCartDateRange(null);
+                                            }
+                                        }}
+                                        disabledDate={(current) => {
+                                            if (!current) return false;
+                                            const today = dayjs().startOf('day');
+                                            const currentDate = current.startOf('day');
 
-                                                // Không cho chọn ngày quá khứ
-                                                if (currentDate.isBefore(today)) {
+                                            // Không cho chọn ngày quá khứ
+                                            if (currentDate.isBefore(today)) {
+                                                return true;
+                                            }
+
+                                            // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
+                                            if (cartDateRange && cartDateRange[0]) {
+                                                const checkInDate = cartDateRange[0].startOf('day');
+                                                if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
                                                     return true;
                                                 }
+                                            }
 
-                                                // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
-                                                if (cartDateRange && cartDateRange[0]) {
-                                                    const checkInDate = cartDateRange[0].startOf('day');
-                                                    if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
-                                                        return true;
-                                                    }
-                                                }
-
-                                                return false;
-                                            }}
-                                        />
-                                    </div>
+                                            return false;
+                                        }}
+                                        showButton={false}
+                                    />
 
                                     {numNights > 0 && (
                                         <div>

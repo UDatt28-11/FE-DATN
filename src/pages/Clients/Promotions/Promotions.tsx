@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Row, Col, Card, Tag, Button, Input, Modal, message, Breadcrumb } from 'antd';
 import { GiftOutlined, CopyOutlined, CheckCircleOutlined, HomeOutlined, PercentageOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { LoginModal, RegisterModal } from '../../../components/Auth';
+import BookingFilter from '../../../components/Booking/BookingFilter';
 import './Promotions.css';
 
 const { Search } = Input;
@@ -25,12 +26,29 @@ interface Promotion {
 
 const Promotions: React.FC = () => {
     const { isLoggedIn } = useAuth();
+    const navigate = useNavigate();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
     const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const handleBookNow = (values: any) => {
+        const params = new URLSearchParams();
+        
+        if (values.checkIn) {
+            params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
+        }
+        if (values.checkOut) {
+            params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
+        }
+        
+        const totalGuests = values.guests || 2;
+        params.set('total_guests', totalGuests.toString());
+        
+        navigate(`/rooms?${params.toString()}`);
+    };
 
     const promotions: Promotion[] = [
         {
@@ -270,6 +288,17 @@ const Promotions: React.FC = () => {
                     </Row>
                 </div>
             </section>
+
+            {/* Book Now Area */}
+            <div className="book-now-area" style={{ marginTop: '50px', position: 'relative', zIndex: 10 }}>
+                <div className="container">
+                    <Row justify="center">
+                        <Col xs={24} lg={20}>
+                            <BookingFilter onSubmit={handleBookNow} showButton={true} />
+                        </Col>
+                    </Row>
+                </div>
+            </div>
 
             {/* Promotions Content */}
             <section style={{ padding: '100px 0', backgroundColor: '#f8f9fa' }}>
