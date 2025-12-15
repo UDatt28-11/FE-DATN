@@ -1,38 +1,32 @@
-import React, { useState } from 'react';
-import { Row, Col, Card, Tag, Button, Input, Modal, message, Breadcrumb } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Card, Tag, Button, Input, Modal, message, Breadcrumb, Spin } from 'antd';
 import { GiftOutlined, CopyOutlined, CheckCircleOutlined, HomeOutlined, PercentageOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { LoginModal, RegisterModal } from '../../../components/Auth';
+
 import BookingFilter from '../../../components/Booking/BookingFilter';
+
+import { getPublicVouchers, type Voucher } from '../../../service/voucherService';
+import { formatVND } from '../../../utils/currency';
+import dayjs from '../../../utils/dayjs';
+
 import './Promotions.css';
 
 const { Search } = Input;
-
-interface Promotion {
-    id: number;
-    code: string;
-    title: string;
-    description: string;
-    discount: string;
-    validUntil: string;
-    minOrder: string;
-    maxDiscount: string;
-    type: 'percent' | 'fixed' | 'gift';
-    status: 'active' | 'expired' | 'upcoming';
-    image: string;
-    termsAndConditions: string[];
-}
 
 const Promotions: React.FC = () => {
     const { isLoggedIn } = useAuth();
     const navigate = useNavigate();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
-    const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+    const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
     const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [vouchers, setVouchers] = useState<Voucher[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+
 
     const handleBookNow = (values: any) => {
         const params = new URLSearchParams();
@@ -171,7 +165,71 @@ const Promotions: React.FC = () => {
                 'Áp dụng cho các cặp đôi đang hẹn hò hoặc mới cưới'
             ]
         }
+
+    // Một vài ảnh nền mặc định cho thẻ khuyến mãi
+    const promotionImages = [
+        '/img/bg-img/1.jpg',
+        '/img/bg-img/5.jpg',
+        '/img/bg-img/6.jpg',
+        '/img/bg-img/7.jpg',
+        '/img/bg-img/8.jpg',
+        '/img/bg-img/9.jpg',
+
     ];
+
+    const getVoucherStatus = (voucher: Voucher): 'active' | 'expired' | 'upcoming' => {
+        const now = dayjs();
+        const start = voucher.start_date ? dayjs(voucher.start_date) : null;
+        const end = voucher.end_date ? dayjs(voucher.end_date) : null;
+
+        if (voucher.is_active === false) {
+            return end.isBefore(now, 'day') ? 'expired' : 'upcoming';
+        }
+
+        if (start && now.isBefore(start, 'day')) return 'upcoming';
+        if (end && now.isAfter(end, 'day')) return 'expired';
+        return 'active';
+    };
+
+    const formatDiscountLabel = (voucher: Voucher): string => {
+        if (voucher.discount_type === 'percentage') {
+            return `${voucher.discount_value}%`;
+        }
+        return formatVND(voucher.discount_value, false);
+    };
+
+    const formatValidUntil = (voucher: Voucher): string =>
+        voucher.end_date ? dayjs(voucher.end_date).format('DD/MM/YYYY') : 'Không giới hạn';
+
+    const formatMinOrder = (voucher: Voucher): string =>
+        voucher.min_order_amount
+            ? formatVND(voucher.min_order_amount)
+            : 'Không yêu cầu';
+
+    const formatMaxDiscount = (voucher: Voucher): string =>
+        voucher.max_discount_amount
+            ? formatVND(voucher.max_discount_amount)
+            : 'Không giới hạn';
+
+    useEffect(() => {
+        const fetchPromotions = async () => {
+            try {
+                setLoading(true);
+                // Lấy danh sách voucher public từ backend
+                const { vouchers } = await getPublicVouchers({
+                    per_page: 20,
+                });
+                setVouchers(vouchers);
+            } catch (error) {
+                console.error(error);
+                message.error('Không thể tải danh sách voucher. Vui lòng thử lại sau.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPromotions();
+    }, []);
 
     const handleCopyCode = (code: string) => {
         // Kiểm tra đăng nhập trước khi sao chép mã
@@ -187,7 +245,7 @@ const Promotions: React.FC = () => {
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
-    const showPromotionDetails = (promotion: Promotion) => {
+    const showPromotionDetails = (voucher: Voucher) => {
         // Kiểm tra đăng nhập trước khi xem chi tiết
         if (!isLoggedIn) {
             message.warning('Vui lòng đăng nhập để xem chi tiết mã giảm giá!');
@@ -195,7 +253,7 @@ const Promotions: React.FC = () => {
             return;
         }
 
-        setSelectedPromotion(promotion);
+        setSelectedVoucher(voucher);
         setIsModalVisible(true);
     };
 
@@ -203,13 +261,17 @@ const Promotions: React.FC = () => {
         setSearchTerm(value.toLowerCase());
     };
 
-    const filteredPromotions = promotions.filter(promo =>
-        promo.title.toLowerCase().includes(searchTerm) ||
-        promo.code.toLowerCase().includes(searchTerm) ||
-        promo.description.toLowerCase().includes(searchTerm)
-    );
+    const filteredVouchers = vouchers.filter((voucher) => {
+        const title = voucher.name || voucher.description || `Mã giảm giá ${voucher.code}`;
+        const search = searchTerm.toLowerCase();
+        return (
+            title.toLowerCase().includes(search) ||
+            voucher.code.toLowerCase().includes(search) ||
+            (voucher.description || '').toLowerCase().includes(search)
+        );
+    });
 
-    const getStatusTag = (status: string) => {
+    const getStatusTag = (status: 'active' | 'expired' | 'upcoming') => {
         switch (status) {
             case 'active':
                 return <Tag color="success">Đang áp dụng</Tag>;
@@ -222,13 +284,11 @@ const Promotions: React.FC = () => {
         }
     };
 
-    const getTypeIcon = (type: string) => {
-        switch (type) {
-            case 'percent':
+    const getTypeIcon = (voucher: Voucher) => {
+        switch (voucher.discount_type) {
+            case 'percentage':
                 return <PercentageOutlined style={{ fontSize: '24px', color: '#cb8670' }} />;
-            case 'fixed':
-                return <GiftOutlined style={{ fontSize: '24px', color: '#cb8670' }} />;
-            case 'gift':
+            case 'fixed_amount':
                 return <GiftOutlined style={{ fontSize: '24px', color: '#cb8670' }} />;
             default:
                 return null;
@@ -347,18 +407,29 @@ const Promotions: React.FC = () => {
                         </Col>
                     </Row>
 
-                    {/* Promotions Grid */}
-                    <Row gutter={[30, 30]}>
-                        {filteredPromotions.map((promo, index) => (
-                            <Col xs={24} md={12} lg={8} key={promo.id} data-aos="fade-up" data-aos-delay={index * 100}>
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                            <Spin size="large" />
+                        </div>
+                    ) : (
+                        <>
+                            {/* Vouchers Grid */}
+                            <Row gutter={[30, 30]}>
+                        {filteredVouchers.map((voucher, index) => {
+                            const status = getVoucherStatus(voucher);
+                            const title = voucher.name || voucher.description || `Mã giảm giá ${voucher.code}`;
+                            const image = promotionImages[index % promotionImages.length];
+
+                            return (
+                            <Col xs={24} md={12} lg={8} key={voucher.id} data-aos="fade-up" data-aos-delay={index * 100}>
                                 <Card
                                     hoverable
                                     className="promotion-card"
                                     cover={
                                         <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
                                             <img
-                                                alt={promo.title}
-                                                src={promo.image}
+                                                alt={title}
+                                                src={image}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             />
                                             <div
@@ -368,7 +439,7 @@ const Promotions: React.FC = () => {
                                                     right: '15px',
                                                 }}
                                             >
-                                                {getStatusTag(promo.status)}
+                                                {getStatusTag(status)}
                                             </div>
                                             <div
                                                 style={{
@@ -383,7 +454,7 @@ const Promotions: React.FC = () => {
                                                     fontWeight: 'bold',
                                                 }}
                                             >
-                                                {promo.discount}
+                                                {formatDiscountLabel(voucher)}
                                             </div>
                                         </div>
                                     }
@@ -397,13 +468,13 @@ const Promotions: React.FC = () => {
                                     styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                                 >
                                     <div style={{ marginBottom: '15px' }}>
-                                        {getTypeIcon(promo.type)}
+                                        {getTypeIcon(voucher)}
                                     </div>
                                     <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#2a2a2a' }}>
-                                        {promo.title}
+                                        {title}
                                     </h3>
                                     <p style={{ color: '#6c757d', marginBottom: '15px', flex: 1 }}>
-                                        {promo.description}
+                                        {voucher.description}
                                     </p>
                                     <div
                                         style={{
@@ -428,24 +499,24 @@ const Promotions: React.FC = () => {
                                                     letterSpacing: '2px',
                                                 }}
                                             >
-                                                {promo.code}
+                                                {voucher.code}
                                             </div>
                                         </div>
                                         <Button
-                                            icon={copiedCode === promo.code ? <CheckCircleOutlined /> : <CopyOutlined />}
-                                            onClick={() => handleCopyCode(promo.code)}
-                                            type={copiedCode === promo.code ? 'primary' : 'default'}
+                                            icon={copiedCode === voucher.code ? <CheckCircleOutlined /> : <CopyOutlined />}
+                                            onClick={() => handleCopyCode(voucher.code)}
+                                            type={copiedCode === voucher.code ? 'primary' : 'default'}
                                             style={{
-                                                backgroundColor: copiedCode === promo.code ? '#52c41a' : undefined,
-                                                borderColor: copiedCode === promo.code ? '#52c41a' : undefined,
+                                                backgroundColor: copiedCode === voucher.code ? '#52c41a' : undefined,
+                                                borderColor: copiedCode === voucher.code ? '#52c41a' : undefined,
                                             }}
                                         >
-                                            {copiedCode === promo.code ? 'Đã sao chép' : (isLoggedIn ? 'Sao chép' : 'Đăng nhập')}
+                                            {copiedCode === voucher.code ? 'Đã sao chép' : (isLoggedIn ? 'Sao chép' : 'Đăng nhập')}
                                         </Button>
                                     </div>
                                     <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
-                                        <div>Hạn sử dụng: <strong>{promo.validUntil}</strong></div>
-                                        <div>Đơn tối thiểu: <strong>{promo.minOrder}</strong></div>
+                                        <div>Hạn sử dụng: <strong>{formatValidUntil(voucher)}</strong></div>
+                                        <div>Đơn tối thiểu: <strong>{formatMinOrder(voucher)}</strong></div>
                                         {!isLoggedIn && (
                                             <div style={{
                                                 marginTop: '10px',
@@ -464,7 +535,7 @@ const Promotions: React.FC = () => {
                                     <Button
                                         type="primary"
                                         block
-                                        onClick={() => showPromotionDetails(promo)}
+                                        onClick={() => showPromotionDetails(voucher)}
                                         style={{
                                             backgroundColor: '#cb8670',
                                             borderColor: '#cb8670',
@@ -477,15 +548,18 @@ const Promotions: React.FC = () => {
                                     </Button>
                                 </Card>
                             </Col>
-                        ))}
+                            );
+                        })}
                     </Row>
 
-                    {filteredPromotions.length === 0 && (
+                    {!loading && filteredVouchers.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '50px 0' }}>
                             <GiftOutlined style={{ fontSize: '64px', color: '#d9d9d9', marginBottom: '20px' }} />
                             <h3 style={{ color: '#6c757d' }}>Không tìm thấy mã giảm giá phù hợp</h3>
                             <p style={{ color: '#999' }}>Vui lòng thử từ khóa khác</p>
                         </div>
+                    )}
+                        </>
                     )}
                 </div>
             </section>
@@ -494,7 +568,7 @@ const Promotions: React.FC = () => {
             <Modal
                 title={
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#cb8670' }}>
-                        {selectedPromotion?.title}
+                        {selectedVoucher?.name || selectedVoucher?.code}
                     </div>
                 }
                 open={isModalVisible}
@@ -507,7 +581,7 @@ const Promotions: React.FC = () => {
                         key="copy"
                         type="primary"
                         icon={<CopyOutlined />}
-                        onClick={() => selectedPromotion && handleCopyCode(selectedPromotion.code)}
+                        onClick={() => selectedVoucher && handleCopyCode(selectedVoucher.code)}
                         style={{ backgroundColor: '#cb8670', borderColor: '#cb8670' }}
                     >
                         Sao Chép Mã
@@ -515,12 +589,12 @@ const Promotions: React.FC = () => {
                 ]}
                 width={700}
             >
-                {selectedPromotion && (
+                {selectedVoucher && (
                     <div>
                         <div style={{ marginBottom: '20px' }}>
                             <img
-                                src={selectedPromotion.image}
-                                alt={selectedPromotion.title}
+                                src={promotionImages[0]}
+                                alt={selectedVoucher.name || selectedVoucher.code}
                                 style={{ width: '100%', borderRadius: '8px', marginBottom: '15px' }}
                             />
                             <div
@@ -535,31 +609,31 @@ const Promotions: React.FC = () => {
                                     <Col span={12}>
                                         <div style={{ fontSize: '14px', color: '#6c757d' }}>Mã giảm giá</div>
                                         <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#cb8670' }}>
-                                            {selectedPromotion.code}
+                                            {selectedVoucher.code}
                                         </div>
                                     </Col>
                                     <Col span={12}>
                                         <div style={{ fontSize: '14px', color: '#6c757d' }}>Giảm giá</div>
                                         <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
-                                            {selectedPromotion.discount}
+                                            {formatDiscountLabel(selectedVoucher)}
                                         </div>
                                     </Col>
                                     <Col span={12}>
                                         <div style={{ fontSize: '14px', color: '#6c757d' }}>Đơn tối thiểu</div>
                                         <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                                            {selectedPromotion.minOrder}
+                                            {formatMinOrder(selectedVoucher)}
                                         </div>
                                     </Col>
                                     <Col span={12}>
                                         <div style={{ fontSize: '14px', color: '#6c757d' }}>Giảm tối đa</div>
                                         <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                                            {selectedPromotion.maxDiscount}
+                                            {formatMaxDiscount(selectedVoucher)}
                                         </div>
                                     </Col>
                                     <Col span={24}>
                                         <div style={{ fontSize: '14px', color: '#6c757d' }}>Hạn sử dụng</div>
                                         <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                                            {selectedPromotion.validUntil}
+                                            {formatValidUntil(selectedVoucher)}
                                         </div>
                                     </Col>
                                 </Row>
@@ -568,15 +642,11 @@ const Promotions: React.FC = () => {
 
                         <div>
                             <h4 style={{ fontSize: '18px', marginBottom: '15px', color: '#2a2a2a' }}>
-                                Điều kiện và điều khoản:
+                                Chi tiết khuyến mãi:
                             </h4>
-                            <ul style={{ paddingLeft: '20px', color: '#6c757d' }}>
-                                {selectedPromotion.termsAndConditions.map((term, index) => (
-                                    <li key={index} style={{ marginBottom: '10px', lineHeight: '1.6' }}>
-                                        {term}
-                                    </li>
-                                ))}
-                            </ul>
+                            <p style={{ color: '#6c757d', lineHeight: 1.6 }}>
+                                {selectedVoucher.description || 'Vui lòng liên hệ khách sạn để biết thêm chi tiết điều kiện áp dụng.'}
+                            </p>
                         </div>
                     </div>
                 )}
