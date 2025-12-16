@@ -898,7 +898,7 @@ const MyBookingsPage: React.FC = () => {
                 </div>
             </div>
 
-            <Content style={{ padding: '40px 0', minHeight: '70vh', background: '#fff' }}>
+            <Content style={{ padding: '30px 0', minHeight: '70vh', background: '#fff' }}>
                 <div className="container">
                     <Title level={2} style={{ marginBottom: 24 }}>
                         <HomeOutlined /> Đơn đặt phòng của tôi

@@ -3,6 +3,10 @@
     min-height: 100vh;
     padding: 80px 20px 40px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .settings-header {
@@ -17,6 +21,19 @@
     font-weight: 600;
 }
 
+.settings-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 12px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 12px;
+    max-width: 900px;
+    margin: 0 auto 30px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
 /* Settings Content */
 .settings-content {
     max-width: 900px;
@@ -26,7 +43,7 @@
 /* Settings Card */
 .settings-card {
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 22px rgba(17, 24, 39, 0.06);
     animation: fadeIn 0.6s ease-out;
 }
 
@@ -41,6 +58,25 @@
     color: #333;
 }
 
+.card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(216,144,112,0.12), rgba(216,144,112,0.06));
+    color: #d89070;
+    box-shadow: 0 4px 10px rgba(208, 150, 120, 0.08);
+}
+
+.settings-card:hover {
+    transform: translateY(-4px);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    box-shadow: 0 10px 30px rgba(17,24,39,0.08);
+}
+
 .settings-card .ant-card-body {
     padding: 24px;
 }
@@ -50,7 +86,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
+    padding: 14px 0;
+    transition: background 160ms ease, transform 160ms ease;
+    border-radius: 8px;
+}
+
+.setting-item:hover {
+    background: rgba(220,220,220,0.03);
 }
 
 .setting-info {
@@ -69,11 +111,16 @@
     font-size: 13px;
     color: #666;
     margin: 0;
+    line-height: 1.45;
 }
 
 /* Switch customization */
 .setting-item .ant-switch-checked {
     background-color: #d89070;
+}
+
+.ant-switch {
+    min-width: 56px;
 }
 
 /* Select customization */
@@ -85,6 +132,10 @@
 .setting-item .ant-select-focused .ant-select-selector {
     border-color: #d89070;
     box-shadow: 0 0 0 2px rgba(216, 144, 112, 0.2);
+}
+
+.setting-item .ant-select-selector {
+    min-width: 150px;
 }
 
 /* Divider */
@@ -140,6 +191,7 @@
         flex-direction: column;
         align-items: flex-start;
         padding: 12px 0;
+        gap: 8px;
     }
 
     .setting-info {
