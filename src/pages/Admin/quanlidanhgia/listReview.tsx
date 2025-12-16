@@ -42,9 +42,37 @@ const ListReview: React.FC = () => {
     setLoading(true);
     try {
       const res = await reviewService.getAll({ per_page: 50 });
-      const reviewList: Review[] = Array.isArray(res?.data)
-        ? res.data
-        : res?.data?.data || [];
+      const rawList = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
+
+      // Chuẩn hóa dữ liệu từ API (snake_case + quan hệ) sang dạng FE dùng
+      const reviewList: Review[] = rawList.map((item: any) => ({
+        id: String(item.id),
+        bookingDetailsId: item.booking_details_id
+          ? String(item.booking_details_id)
+          : null,
+        // Hiển thị tên người dùng nếu có, fallback về user_id
+        userId: item.user?.full_name || String(item.user_id ?? ""),
+        // Hiển thị tên cơ sở lưu trú nếu có, fallback về property_id
+        propertyId: item.property?.name || String(item.property_id ?? ""),
+        roomId: item.room?.name || (item.room_id ? String(item.room_id) : null),
+
+        rating: item.rating ?? 0,
+        title: item.title ?? null,
+        comment: item.comment ?? null,
+        photos: item.photos ?? [],
+
+        isVerifiedPurchase: Boolean(item.is_verified_purchase),
+        isHelpfulCount: item.is_helpful_count ?? 0,
+        isNotHelpfulCount: item.is_not_helpful_count ?? 0,
+
+        status: item.status,
+        adminNotes: item.admin_notes ?? null,
+        reviewedAt: item.reviewed_at ?? null,
+
+        createdAt: item.created_at ?? "",
+        updatedAt: item.updated_at ?? "",
+      }));
+
       setReviews(reviewList);
       setFiltered(reviewList);
     } catch (error: any) {
@@ -67,6 +95,7 @@ const ListReview: React.FC = () => {
         (r) =>
           r.userId.toLowerCase().includes(lower) ||
           r.propertyId.toLowerCase().includes(lower) ||
+          r.title?.toLowerCase().includes(lower) ||
           r.comment?.toLowerCase().includes(lower)
       );
     }
@@ -144,6 +173,17 @@ const ListReview: React.FC = () => {
       dataIndex: "comment",
       key: "comment",
       ellipsis: true,
+      render: (_, record) => (
+        <span>
+          {record.title && (
+            <>
+              <strong>{record.title}</strong>
+              {" - "}
+            </>
+          )}
+          {record.comment || "-"}
+        </span>
+      ),
     },
     {
       title: "Ngày tạo",
