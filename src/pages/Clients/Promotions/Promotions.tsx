@@ -297,7 +297,7 @@ const Promotions: React.FC = () => {
     };
 
     return (
-        <div className="promotions-page" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+        <div className="promotions-page" style={{ }}>
             {/* Hero Section */}
             <section style={{
                 position: 'relative',
