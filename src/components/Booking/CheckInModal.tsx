@@ -3,7 +3,6 @@ import {
     Modal,
     Form,
     Input,
-    DatePicker,
     Select,
     Upload,
     Button,
@@ -29,6 +28,41 @@ import { checkInUserBooking } from '../../service/bookingService';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
+
+// Generate options for day, month, year selects
+const generateDayOptions = (month?: number, year?: number) => {
+    let maxDay = 31;
+    if (month) {
+        if ([4, 6, 9, 11].includes(month)) {
+            maxDay = 30;
+        } else if (month === 2) {
+            if (year && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+                maxDay = 29;
+            } else {
+                maxDay = 28;
+            }
+        }
+    }
+    return Array.from({ length: maxDay }, (_, i) => ({
+        value: i + 1,
+        label: String(i + 1).padStart(2, '0'),
+    }));
+};
+
+const generateMonthOptions = () => {
+    return Array.from({ length: 12 }, (_, i) => ({
+        value: i + 1,
+        label: `Tháng ${i + 1}`,
+    }));
+};
+
+const generateYearOptions = () => {
+    const currentYear = dayjs().year();
+    return Array.from({ length: 101 }, (_, i) => ({
+        value: currentYear - i,
+        label: String(currentYear - i),
+    }));
+};
 
 interface CheckInModalProps {
     open?: boolean;
@@ -115,11 +149,17 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
                 const fileList = guestData?.identity_image?.fileList as UploadFile[];
                 const file = fileList?.[0]?.originFileObj as File | undefined;
 
+                // Combine day, month, year into date_of_birth
+                let dateOfBirth: string | undefined;
+                if (guestData.birth_day && guestData.birth_month && guestData.birth_year) {
+                    const day = String(guestData.birth_day).padStart(2, '0');
+                    const month = String(guestData.birth_month).padStart(2, '0');
+                    dateOfBirth = `${guestData.birth_year}-${month}-${day}`;
+                }
+
                 return {
                     full_name: guestData.full_name,
-                    date_of_birth: guestData.date_of_birth
-                        ? dayjs(guestData.date_of_birth).format('YYYY-MM-DD')
-                        : undefined,
+                    date_of_birth: dateOfBirth,
                     identity_type: guestData.identity_type,
                     identity_number: guestData.identity_number,
                     identity_image: file,
@@ -247,17 +287,64 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
                         </Form.Item>
 
                         <Row gutter={16}>
+                            {/* Ngày sinh - 3 dropdown nhỏ gọn */}
                             <Col span={12}>
-                                <Form.Item
-                                    name={[`guests_${index}`, 'date_of_birth']}
-                                    label="Ngày sinh"
-                                >
-                                    <DatePicker
-                                        style={{ width: '100%' }}
-                                        format="DD/MM/YYYY"
-                                        placeholder="Chọn ngày sinh"
-                                        disabledDate={(current) => current && current > dayjs().endOf('day')}
-                                    />
+                                <Form.Item label="Ngày sinh" style={{ marginBottom: 16 }}>
+                                    <Form.Item
+                                        noStyle
+                                        shouldUpdate={(prevValues, currentValues) => 
+                                            prevValues[`guests_${index}`]?.birth_month !== currentValues[`guests_${index}`]?.birth_month ||
+                                            prevValues[`guests_${index}`]?.birth_year !== currentValues[`guests_${index}`]?.birth_year
+                                        }
+                                    >
+                                        {({ getFieldValue }) => {
+                                            const month = getFieldValue([`guests_${index}`, 'birth_month']);
+                                            const year = getFieldValue([`guests_${index}`, 'birth_year']);
+                                            const dayOptions = generateDayOptions(month, year);
+                                            
+                                            return (
+                                                <Space.Compact style={{ width: '100%' }}>
+                                                    <Form.Item
+                                                        name={[`guests_${index}`, 'birth_day']}
+                                                        noStyle
+                                                    >
+                                                        <Select
+                                                            placeholder="Ngày"
+                                                            options={dayOptions}
+                                                            showSearch
+                                                            optionFilterProp="label"
+                                                            allowClear
+                                                            style={{ width: '33%' }}
+                                                        />
+                                                    </Form.Item>
+                                                    <Form.Item
+                                                        name={[`guests_${index}`, 'birth_month']}
+                                                        noStyle
+                                                    >
+                                                        <Select
+                                                            placeholder="Tháng"
+                                                            options={generateMonthOptions()}
+                                                            allowClear
+                                                            style={{ width: '34%' }}
+                                                        />
+                                                    </Form.Item>
+                                                    <Form.Item
+                                                        name={[`guests_${index}`, 'birth_year']}
+                                                        noStyle
+                                                    >
+                                                        <Select
+                                                            placeholder="Năm"
+                                                            options={generateYearOptions()}
+                                                            showSearch
+                                                            optionFilterProp="label"
+                                                            allowClear
+                                                            style={{ width: '33%' }}
+                                                        />
+                                                    </Form.Item>
+                                                </Space.Compact>
+                                            );
+                                        }}
+                                    </Form.Item>
                                 </Form.Item>
                             </Col>
                             <Col span={12}>
