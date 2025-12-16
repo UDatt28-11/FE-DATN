@@ -93,7 +93,7 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="home-wrapper">
+    <div className="home-wrapper" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* Preloader */}
       {loading && (
         <div className="preloader d-flex align-items-center justify-content-center">
