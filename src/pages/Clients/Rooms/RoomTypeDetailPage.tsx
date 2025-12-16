@@ -49,6 +49,7 @@ import dayjs from "../../../utils/dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
 import BookingFilterSidebar from "../../../components/Booking/BookingFilterSidebar";
+import { LoginModal, RegisterModal } from "../../../components/Auth";
 import { getRoomTypeByIdWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";
 import { formatVND, formatVNDWithUnit } from "../../../utils/currency";
 import "./RoomDetail.css";
@@ -138,6 +139,7 @@ const RoomTypeDetailPage: React.FC = () => {
     const [averageRating, setAverageRating] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
     const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
+
     const [activeTab, setActiveTab] = useState<string>('overview');
     const [isScrolled, setIsScrolled] = useState<boolean>(false);
 
@@ -1243,6 +1245,27 @@ const RoomTypeDetailPage: React.FC = () => {
                     </Row>
                 </div>
             </Content>
+
+            {/* Login Modal */}
+            <LoginModal
+                open={isLoginModalVisible}
+                onClose={() => setIsLoginModalVisible(false)}
+                onSwitchToRegister={() => {
+                    setIsLoginModalVisible(false);
+                    setIsRegisterModalVisible(true);
+                }}
+                skipRedirect={true}
+            />
+
+            {/* Register Modal */}
+            <RegisterModal
+                open={isRegisterModalVisible}
+                onClose={() => setIsRegisterModalVisible(false)}
+                onSwitchToLogin={() => {
+                    setIsRegisterModalVisible(false);
+                    setIsLoginModalVisible(true);
+                }}
+            />
         </div>
     );
 };
