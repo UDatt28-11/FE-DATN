@@ -116,7 +116,6 @@ const styles = {
     fontWeight: 400,
     color: '#1a1a1a',
     marginBottom: 15,
-    fontFamily: '"Playfair Display", Georgia, serif',
   },
   goldLine: {
     width: 60,
@@ -316,7 +315,7 @@ const Contact: React.FC = () => {
               <div style={styles.formCard}>
                 <div style={{ marginBottom: 40 }}>
                   <div style={{ ...styles.goldLine, margin: '0 0 20px 0' }} />
-                  <Title level={3} style={{ fontSize: 28, marginBottom: 10, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                  <Title level={3} style={{ fontSize: 28, marginBottom: 10,  }}>
                     Gửi Tin Nhắn
                   </Title>
                   <Paragraph style={{ color: '#6c757d', margin: 0 }}>
@@ -472,7 +471,6 @@ const Contact: React.FC = () => {
             color: '#fff', 
             fontSize: 36, 
             marginBottom: 20,
-            fontFamily: '"Playfair Display", Georgia, serif',
             fontWeight: 400,
           }}>
             Sẵn sàng cho kỳ nghỉ tuyệt vời?

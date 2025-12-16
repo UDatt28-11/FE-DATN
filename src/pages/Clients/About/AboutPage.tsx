@@ -365,7 +365,6 @@ export default function AboutPage() {
                                 fontSize: 18,
                                 color: '#666',
                                 lineHeight: 1.8,
-                                fontStyle: 'italic',
                                 marginBottom: 30
                             }}>
                                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin gravida lorem eu

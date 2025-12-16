@@ -363,7 +363,6 @@ const RoomTypeDetailPage: React.FC = () => {
                             fontSize: 42, 
                             fontWeight: 400,
                             marginBottom: 15,
-                            fontFamily: '"Playfair Display", Georgia, serif',
                         }}
                     >
                         {roomType.name}
@@ -474,7 +473,6 @@ const RoomTypeDetailPage: React.FC = () => {
                                 }}>
                                     <Title level={3} style={{ 
                                         marginBottom: 0,
-                                        fontFamily: '"Playfair Display", Georgia, serif',
                                         color: '#1a1a1a',
                                     }}>
                                         {roomType.name}
@@ -568,7 +566,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         {/* Tiện nghi đặc biệt */}
                                         {categorized.keyAmenities.length > 0 && (
                                             <Card 
-                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện nghi đặc biệt</Text>}
+                                                title={<Text style={{ fontSize: 18,  }}>Tiện nghi đặc biệt</Text>}
                                                 style={{ 
                                                     marginBottom: 24,
                                                     borderRadius: 12,
@@ -592,7 +590,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         {/* Hướng nhìn */}
                                         {categorized.views.length > 0 && (
                                             <Card 
-                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Hướng nhìn</Text>}
+                                                title={<Text style={{ fontSize: 18,  }}>Hướng nhìn</Text>}
                                                 style={{ 
                                                     marginBottom: 24,
                                                     borderRadius: 12,
@@ -616,7 +614,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         {/* Vị trí tầng */}
                                         {categorized.floors.length > 0 && (
                                             <Card 
-                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Vị trí tầng</Text>}
+                                                title={<Text style={{ fontSize: 18, }}>Vị trí tầng</Text>}
                                                 style={{ 
                                                     marginBottom: 24,
                                                     borderRadius: 12,
@@ -640,7 +638,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         {/* Tiện ích khác */}
                                         {categorized.others.length > 0 && (
                                             <Card 
-                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện ích khác</Text>}
+                                                title={<Text style={{ fontSize: 18, }}>Tiện ích khác</Text>}
                                                 style={{ 
                                                     marginBottom: 32,
                                                     borderRadius: 12,

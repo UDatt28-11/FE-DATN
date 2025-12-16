@@ -735,7 +735,6 @@ const About: React.FC = () => {
                     fontSize: 18, 
                     color: '#7d7d7d', 
                     lineHeight: 2,
-                    fontStyle: 'italic',
                     marginBottom: 30,
                   }}>
                     "Homestay thật sự tuyệt vời! Không gian ấm cúng, sạch sẽ và đầy đủ tiện nghi. Chủ nhà
