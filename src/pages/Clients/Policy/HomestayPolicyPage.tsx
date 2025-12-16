@@ -160,7 +160,7 @@ const HomestayPolicyPage: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* Hero Section */}
       <section style={{
         position: 'relative',
@@ -202,8 +202,6 @@ const HomestayPolicyPage: React.FC = () => {
               fontSize: 52, 
               fontWeight: 400,
               marginBottom: 20,
-              fontFamily: '"Playfair Display", Georgia, serif',
-              fontStyle: 'italic',
             }}
           >
             Chính Sách & Nội Quy
