@@ -85,3 +85,59 @@
 .promotion-card {
     animation: fadeInUp 0.6s ease-out;
 }
+
+/* Centered responsive search */
+.promotions-search {
+    margin: 0 auto;
+    display: block;
+    max-width: 700px;
+    width: 100%;
+}
+
+.promotions-search .ant-input {
+    height: 40px;
+    font-size: 16px;
+}
+
+.promotions-search .ant-input-affix-wrapper:focus,
+.promotions-search .ant-input-affix-wrapper.ant-input-affix-wrapper-focused {
+    box-shadow: 0 6px 18px rgba(203,134,112,0.12);
+    border-color: #cb8670;
+}
+
+@media (max-width: 768px) {
+    .promotions-search { max-width: 100%; }
+    .promotions-search .ant-input { height: 40px; }
+}
+
+/* Fix alignment: ensure input and button share same height and are vertically centered */
+.promotions-search {
+    display: block;
+    box-sizing: border-box;
+}
+
+.promotions-search .ant-input-affix-wrapper,
+.promotions-search .ant-input {
+    height: 56px;
+    line-height: 56px;
+    box-sizing: border-box;
+}
+
+.promotions-search .ant-input-search-button,
+.promotions-search .ant-btn {
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .promotions-search .ant-input-affix-wrapper,
+    .promotions-search .ant-input,
+    .promotions-search .ant-input-search-button,
+    .promotions-search .ant-btn {
+        height: 48px;
+        line-height: 48px;
+    }
+}
