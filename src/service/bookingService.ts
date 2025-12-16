@@ -25,6 +25,34 @@ export type ListBookingsParams = {
   include?: string;
 };
 
+export interface BookingStatistics {
+  total: number;
+  by_status: {
+    pending: number;
+    confirmed: number;
+    cancelled: number;
+    completed: number;
+    [key: string]: number;
+  };
+  revenue: {
+    total: number;
+    expected: number;
+    cancelled: number;
+  };
+  cancellation_rate: number;
+}
+
+export async function getBookingStatistics(params?: {
+  date_from?: string;
+  date_to?: string;
+  period?: "day" | "week" | "month";
+}): Promise<BookingStatistics> {
+  const { data } = await api.get("/admin/booking-orders/statistics", {
+    params,
+  });
+  return data.data as BookingStatistics;
+}
+
 export async function listBookings(params: ListBookingsParams) {
   const q = { ...params } as any;
   if (Array.isArray(params.status)) q.status = params.status.join(",");
