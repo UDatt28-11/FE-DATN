@@ -15,8 +15,28 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
     const [form] = Form.useForm();
 
     const handleSubmit = (values: any) => {
+        const { checkIn, checkOut, guests } = values;
+
+        // Validate ngày nhận/trả phòng
+        if (!checkIn || !checkOut) {
+            return;
+        }
+
+        const checkInDate = checkIn.startOf('day');
+        const checkOutDate = checkOut.startOf('day');
+
+        if (!checkOutDate.isAfter(checkInDate)) {
+            window.alert('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+            return;
+        }
+
         if (onSubmit) {
-            onSubmit(values);
+            onSubmit({
+                ...values,
+                checkIn: checkInDate,
+                checkOut: checkOutDate,
+                guests: guests || 1,
+            });
         }
     };
 

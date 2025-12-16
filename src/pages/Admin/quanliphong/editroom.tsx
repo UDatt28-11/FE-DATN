@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Checkbox, Button, Space, Tag, Upload, Image, Popconfirm } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Button, Space, Tag, Upload, Image, Popconfirm } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "react-toastify";
@@ -27,18 +27,11 @@ interface RoomType {
     name: string;
 }
 
-interface Amenity {
-    id: number;
-    name: string;
-}
-
 const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [properties, setProperties] = useState<Property[]>([]);
     const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-    const [amenities, setAmenities] = useState<Amenity[]>([]);
-    const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [existingImages, setExistingImages] = useState<RoomTypeImage[]>([]);
 
@@ -47,13 +40,11 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
         if (visible && room) {
             loadProperties();
             loadRoomTypes();
-            loadAmenities();
             setFormValues();
         } else if (!visible) {
             form.resetFields();
             setFileList([]);
             setExistingImages([]);
-            setSelectedAmenities([]);
         }
     }, [visible, room]);
 
@@ -65,11 +56,9 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                 name: room.name,
                 description: room.description,
                 max_adults: room.max_adults,
-                max_children: room.max_children,
-                price_per_night: room.price_per_night,
+                // max_children, price_per_night hiện lấy từ RoomType
                 status: room.status,
             });
-            setSelectedAmenities(room.amenities?.map(a => a.id) || []);
             // Load existing images from roomType instead of room
             if (room.roomType?.images && room.roomType.images.length > 0) {
                 setExistingImages(room.roomType.images);
@@ -105,17 +94,6 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
         }
     };
 
-    const loadAmenities = async () => {
-        try {
-            const response = await axios.get(`${API_URL}/admin/amenities`);
-            if (response.data.success) {
-                setAmenities(Array.isArray(response.data.data) ? response.data.data : []);
-            }
-        } catch (error) {
-            console.error("Error loading amenities:", error);
-        }
-    };
-
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
@@ -126,11 +104,8 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                 room_type_id: values.room_type_id,
                 name: values.name,
                 description: values.description || "",
-                max_adults: values.max_adults,
-                max_children: values.max_children || 0,
-                price_per_night: values.price_per_night,
+                // Giá & sức chứa giờ lấy từ RoomType nên không cập nhật ở đây
                 status: values.status,
-                amenities: selectedAmenities,
             };
 
             const response = await roomService.updateRoom(room.id, roomData);
@@ -303,39 +278,7 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                     <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết về phòng..." />
                 </Form.Item>
 
-                <Row gutter={16}>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_adults"
-                            label="Số người lớn tối đa"
-                            rules={[{ required: true, message: "Vui lòng nhập số người lớn!" }]}
-                        >
-                            <InputNumber min={1} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="max_children"
-                            label="Số trẻ em tối đa"
-                        >
-                            <InputNumber min={0} max={50} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item
-                            name="price_per_night"
-                            label="Giá/đêm (VNĐ)"
-                            rules={[{ required: true, message: "Vui lòng nhập giá!" }]}
-                        >
-                            <InputNumber
-                                min={0}
-                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
-                                style={{ width: "100%" }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
+                {/* Giá và sức chứa hiện đã là dữ liệu chung trên RoomType nên không chỉnh ở đây */}
 
                 <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
                     <Select>
@@ -343,22 +286,6 @@ const EditRoom: React.FC<EditRoomProps> = ({ visible, room, onClose }) => {
                         <Select.Option value="maintenance">Bảo trì</Select.Option>
                         <Select.Option value="occupied">Đã thuê</Select.Option>
                     </Select>
-                </Form.Item>
-
-                <Form.Item label="Tiện ích">
-                    <Checkbox.Group
-                        value={selectedAmenities}
-                        onChange={(values) => setSelectedAmenities(values as number[])}
-                        style={{ width: "100%" }}
-                    >
-                        <Row gutter={[16, 16]}>
-                            {amenities.map((amenity) => (
-                                <Col span={8} key={amenity.id}>
-                                    <Checkbox value={amenity.id}>{amenity.name}</Checkbox>
-                                </Col>
-                            ))}
-                        </Row>
-                    </Checkbox.Group>
                 </Form.Item>
 
                 {/* Hình ảnh hiện có */}

@@ -32,10 +32,11 @@ const supplyService = {
     return res.data?.data || res.data || res;
   },
 
-  // Lấy vật tư theo room_id
+  // Lấy vật tư theo room_id (admin)
   async getByRoom(roomId: number | string): Promise<Supply[]> {
     try {
-      const res = await api.get(`/supplies/room/${roomId}`);
+      // Endpoint này được đặt trong nhóm /admin ở backend
+      const res = await api.get(`/admin/supplies/room/${roomId}`);
       const data = res.data.data || res.data;
       return Array.isArray(data) ? data : [];
     } catch (error: any) {

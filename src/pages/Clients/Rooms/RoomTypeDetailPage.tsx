@@ -559,6 +559,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                 )}
                             </Card>
 
+
                             {/* Phân loại Amenities */}
                             {roomType.amenities && roomType.amenities.length > 0 && (() => {
                                 const categorized = categorizeAmenities(roomType.amenities);
@@ -663,6 +664,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                 );
                             })()}
 
+
                             {/* Reviews */}
                             <Card title={`Đánh giá từ khách hàng (${reviewsTotal})`}>
                                 {loadingReviews ? (
@@ -742,6 +744,28 @@ const RoomTypeDetailPage: React.FC = () => {
 
                                     <Divider />
 
+                                    {/* Date Picker */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            <CalendarOutlined /> Chọn ngày
+                                        </Text>
+                                        <RangePicker
+                                            style={{ width: '100%' }}
+                                            value={cartDateRange}
+                                            onChange={(dates) => {
+                                                // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+                                                if (dates && dates[0] && dates[1]) {
+                                                    if (dates[0].isSame(dates[1], 'day')) {
+                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                        return;
+                                                    }
+                                                    if (!dates[1].isAfter(dates[0], 'day')) {
+                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                        return;
+                                                    }
+                                                    setCartDateRange([dates[0], dates[1]]);
+                                                } else {
+                                                    setCartDateRange(null);
                                     {/* Booking Filter Sidebar Component */}
                                     <BookingFilterSidebar
                                         dateRange={cartDateRange}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Space, Switch, Select, Row, Col, Image, Popconfirm, Button, Tag, Spin, Checkbox } from "antd";
+import { Modal, Form, Input, Upload, Space, Switch, Select, Row, Col, Image, Popconfirm, Button, Tag, Spin, Checkbox, InputNumber } from "antd";
 import { PictureOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import type { RoomType, RoomTypeImage } from "../../../types/roomtype/roomtype";
@@ -41,6 +41,9 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         name: roomType.name,
         description: roomType.description,
         property_id: roomType.property_id,
+        base_price: roomType.base_price,
+        max_adults: roomType.max_adults,
+        max_children: roomType.max_children,
       });
       setStatus(roomType.status);
     }
@@ -212,6 +215,43 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         >
           <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết..." />
         </Form.Item>
+
+        {/* Giá & sức chứa chung cho loại phòng */}
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="base_price"
+              label="Giá / đêm (VNĐ)"
+              rules={[{ required: true, message: "Vui lòng nhập giá / đêm!" }]}
+            >
+              <InputNumber
+                min={0}
+                style={{ width: "100%" }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+                parser={(value) => value!.replace(/(,*)/g, "")}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="max_adults"
+              label="Số người lớn tối đa"
+              rules={[{ required: true, message: "Vui lòng nhập số người lớn!" }]}
+            >
+              <InputNumber min={1} max={20} style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="max_children"
+              label="Số trẻ em tối đa"
+            >
+              <InputNumber min={0} max={20} style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+        </Row>
 
         {/* --- Property --- */}
         <Form.Item

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Space, Button, Select, message } from "antd";
+import { Modal, Form, Input, Upload, Select, Row, Col, InputNumber, message, Button } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { getProperties } from "../../../service/propertyService";
+import serviceService from "../../../service/serviceService";
+import type { Service } from "../../../types/service/service";
 
 interface Property {
     id: number;
@@ -20,6 +22,8 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [loadingProperties, setLoadingProperties] = useState(false);
+    const [services, setServices] = useState<Service[]>([]);
+    const [loadingServices, setLoadingServices] = useState(false);
 
     // Load danh sách properties
     useEffect(() => {
@@ -30,9 +34,11 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
                 if (propertiesList) {
                     setProperties(propertiesList);
 
-                    // Nếu chỉ có 1 property, tự động chọn
+                    // Nếu chỉ có 1 property, tự động chọn và load dịch vụ của property đó
                     if (propertiesList.length === 1) {
-                        form.setFieldValue('property_id', propertiesList[0].id);
+                        const defaultId = propertiesList[0].id;
+                        form.setFieldValue('property_id', defaultId);
+                        await handlePropertyChange(defaultId);
                     }
                 }
             } catch (error: any) {
@@ -48,6 +54,22 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
         }
     }, [visible, form]);
 
+    // Khi chọn property, load danh sách dịch vụ của property đó
+    const handlePropertyChange = async (propertyId: number) => {
+        form.setFieldValue('property_id', propertyId);
+        setLoadingServices(true);
+        try {
+            const serviceList = await serviceService.getAll({ property_id: propertyId });
+            setServices(serviceList);
+        } catch (error: any) {
+            console.error('Error loading services:', error);
+            message.error('Không thể tải danh sách dịch vụ của cơ sở lưu trú');
+            setServices([]);
+        } finally {
+            setLoadingServices(false);
+        }
+    };
+
     const handleOk = () => {
         form.validateFields().then((values) => {
             onAdd(values, fileList, []);
@@ -56,24 +78,21 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
         });
     };
 
-    useEffect(() => {
-        if (!visible) {
-            form.resetFields();
-            setFileList([]);
-        }
-    }, [visible, form]);
+    const handleCancel = () => {
+        form.resetFields();
+        setFileList([]);
+        onCancel();
+    };
 
     return (
         <Modal
             title="Thêm loại phòng mới"
             open={visible}
             onOk={handleOk}
-            onCancel={() => {
-                onCancel();
-                form.resetFields();
-            }}
+            onCancel={handleCancel}
             okText="Thêm mới"
             width={700}
+            destroyOnClose
         >
             <Form form={form} layout="vertical">
                 <Form.Item
@@ -99,6 +118,44 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
                     <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết..." />
                 </Form.Item>
 
+                {/* Giá & sức chứa chung cho loại phòng */}
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <Form.Item
+                            name="base_price"
+                            label="Giá / đêm (VNĐ)"
+                            rules={[{ required: true, message: "Vui lòng nhập giá / đêm!" }]}
+                        >
+                            <InputNumber
+                                min={0}
+                                style={{ width: "100%" }}
+                                formatter={(value) =>
+                                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                                }
+                                parser={(value) => value!.replace(/(,*)/g, "")}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item
+                            name="max_adults"
+                            label="Số người lớn tối đa"
+                            rules={[{ required: true, message: "Vui lòng nhập số người lớn!" }]}
+                        >
+                            <InputNumber min={1} max={20} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item
+                            name="max_children"
+                            label="Số trẻ em tối đa"
+                            initialValue={0}
+                        >
+                            <InputNumber min={0} max={20} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+
                 <Form.Item
                     name="property_id"
                     label="Cơ sở lưu trú"
@@ -108,10 +165,32 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
                         placeholder="Chọn cơ sở lưu trú"
                         loading={loadingProperties}
                         disabled={loadingProperties || properties.length === 0}
+                        onChange={handlePropertyChange}
                     >
                         {properties.map((property) => (
                             <Select.Option key={property.id} value={property.id}>
                                 {property.name}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                </Form.Item>
+
+                {/* Dịch vụ áp dụng cho loại phòng này */}
+                <Form.Item
+                    name="service_ids"
+                    label="Dịch vụ áp dụng cho loại phòng"
+                    extra="Chỉ hiển thị dịch vụ thuộc cùng cơ sở lưu trú (sau khi chọn property)."
+                >
+                    <Select
+                        mode="multiple"
+                        placeholder="Chọn các dịch vụ có thể sử dụng cho loại phòng này"
+                        loading={loadingServices}
+                        optionFilterProp="children"
+                        allowClear
+                    >
+                        {services.map((service) => (
+                            <Select.Option key={service.id} value={service.id}>
+                                {service.name} - {service.price.toLocaleString("vi-VN")}₫ / {service.unit}
                             </Select.Option>
                         ))}
                     </Select>
@@ -133,6 +212,134 @@ const AddCategory: React.FC<AddCategoryProps> = ({ visible, onCancel, onAdd }) =
                         )}
                     </Upload>
                 </Form.Item>
+
+                {/* Tạo phòng nhanh cho loại phòng này */}
+                <Form.List name="quick_rooms">
+                    {(fields, { add, remove }) => (
+                        <>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                <span style={{ fontWeight: 500 }}>Tạo phòng nhanh (tuỳ chọn)</span>
+                                <Button type="dashed" size="small" onClick={() => add()}>
+                                    Thêm dòng phòng
+                                </Button>
+                            </div>
+                            {fields.map((field) => {
+                                const { key, ...restField } = field;
+                                return (
+                                <div
+                                    key={key}
+                                    style={{
+                                        border: "1px solid #f0f0f0",
+                                        borderRadius: 8,
+                                        padding: 8,
+                                        marginBottom: 8,
+                                        background: "#fafafa",
+                                    }}
+                                >
+                                    <Row gutter={8}>
+                                        <Col span={10}>
+                                            <Form.Item
+                                                {...restField}
+                                                name={[restField.name, "name"]}
+                                                fieldKey={[restField.fieldKey, "name"]}
+                                                label="Tên phòng"
+                                                rules={[{ required: true, message: "Nhập tên phòng" }]}
+                                            >
+                                                <Input placeholder="Tên phòng (VD: Phòng 101)" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={14}>
+                                            <Form.Item
+                                                {...restField}
+                                                name={[restField.name, "description"]}
+                                                fieldKey={[restField.fieldKey, "description"]}
+                                                label="Mô tả (tuỳ chọn)"
+                                            >
+                                                <Input placeholder="Mô tả ngắn cho phòng này..." />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    {/* Vật tư nhanh cho từng phòng */}
+                                    <Form.List name={[restField.name, "supplies"]}>
+                                        {(supplyFields, { add: addSupply, remove: removeSupply }) => (
+                                            <>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "4px 0 8px" }}>
+                                                    <span style={{ fontSize: 12 }}>Vật tư nhanh cho phòng này (tuỳ chọn)</span>
+                                                    <Button type="link" size="small" onClick={() => addSupply()}>
+                                                        + Thêm vật tư
+                                                    </Button>
+                                                </div>
+                                                {supplyFields.map((sf) => {
+                                                    const { key: sKey, ...restSupplyField } = sf;
+                                                    return (
+                                                    <Row key={sKey} gutter={8} align="middle" style={{ marginBottom: 4 }}>
+                                                        <Col span={8}>
+                                                            <Form.Item
+                                                                {...restSupplyField}
+                                                                name={[restSupplyField.name, "name"]}
+                                                                fieldKey={[restSupplyField.fieldKey, "name"]}
+                                                                rules={[{ required: true, message: "Tên vật tư" }]}
+                                                            >
+                                                                <Input placeholder="Tên vật tư" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={4}>
+                                                            <Form.Item
+                                                                {...restSupplyField}
+                                                                name={[restSupplyField.name, "unit"]}
+                                                                fieldKey={[restSupplyField.fieldKey, "unit"]}
+                                                                initialValue="cái"
+                                                            >
+                                                                <Input placeholder="Đơn vị" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={4}>
+                                                            <Form.Item
+                                                                {...restSupplyField}
+                                                                name={[restSupplyField.name, "quantity"]}
+                                                                fieldKey={[restSupplyField.fieldKey, "quantity"]}
+                                                                initialValue={0}
+                                                            >
+                                                                <InputNumber min={0} style={{ width: "100%" }} placeholder="SL" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={6}>
+                                                            <Form.Item
+                                                                {...restSupplyField}
+                                                                name={[restSupplyField.name, "unit_price"]}
+                                                                fieldKey={[restSupplyField.fieldKey, "unit_price"]}
+                                                                initialValue={0}
+                                                            >
+                                                                <InputNumber min={0} style={{ width: "100%" }} placeholder="Giá (₫)" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={2}>
+                                                            <Button
+                                                                danger
+                                                                type="link"
+                                                                size="small"
+                                                                    onClick={() => removeSupply(restSupplyField.name)}
+                                                            >
+                                                                Xoá
+                                                            </Button>
+                                                        </Col>
+                                                    </Row>
+                                                )})}
+                                            </>
+                                        )}
+                                    </Form.List>
+
+                                    <div style={{ textAlign: "right" }}>
+                                        <Button danger type="link" size="small" onClick={() => remove(field.name)}>
+                                            Xoá phòng
+                                        </Button>
+                                    </div>
+                                </div>
+                            )})}
+                        </>
+                    )}
+                </Form.List>
             </Form>
         </Modal>
     );

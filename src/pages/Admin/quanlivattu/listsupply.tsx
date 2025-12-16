@@ -17,6 +17,7 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import { toast } from "react-toastify";
+import { useLocation } from "react-router-dom";
 
 import type { Supply, SupplyStatusBackend } from "../../../types/supply/supplies";
 import { statusMapToFrontend } from "../../../types/supply/supplies";
@@ -39,11 +40,22 @@ const ListSupplies: React.FC = () => {
   // ✅ Modal context (bắt buộc với AntD v5)
   const [modal, contextHolder] = Modal.useModal();
 
+  // Lấy room_id từ query (nếu đang xem vật tư theo từng phòng)
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const roomIdParam = searchParams.get("room_id");
+
   /** 🔹 Gọi API lấy danh sách vật tư */
   const fetchSupplies = async () => {
     setLoading(true);
     try {
-      const data = await supplyService.getAll();
+      let data: Supply[];
+      if (roomIdParam) {
+        // Nếu có room_id trên URL, chỉ lấy vật tư thuộc phòng đó
+        data = await supplyService.getByRoom(roomIdParam);
+      } else {
+        data = await supplyService.getAll();
+      }
       setData(Array.isArray(data) ? data : []);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Không thể tải danh sách vật tư!");
@@ -58,12 +70,14 @@ const ListSupplies: React.FC = () => {
   }, []);
 
   /** 🔹 Lọc theo tìm kiếm */
-  const filteredData = data.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.description?.toLowerCase().includes(search.toLowerCase()) ||
-      item.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = data.filter((item) => {
+    const keyword = search.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(keyword) ||
+      item.description?.toLowerCase().includes(keyword) ||
+      item.category?.toLowerCase().includes(keyword)
+    );
+  });
 
   /** 🔹 Xóa vật tư */
   const handleDelete = (id: number | string) => {
@@ -159,12 +173,14 @@ const ListSupplies: React.FC = () => {
     <div style={{ padding: 24 }}>
       {contextHolder} {/* ✅ Quan trọng: phải có dòng này */}
       <Space style={{ marginBottom: 16 }}>
-        <Search
-          placeholder="Tìm vật tư..."
-          allowClear
-          onSearch={setSearch}
-          style={{ width: 300 }}
-        />
+        {!roomIdParam && (
+          <Search
+            placeholder="Tìm vật tư..."
+            allowClear
+            onSearch={setSearch}
+            style={{ width: 300 }}
+          />
+        )}
 
         <Button
           type="primary"
@@ -194,6 +210,8 @@ const ListSupplies: React.FC = () => {
       <AddSupply
         visible={addModal}
         onCancel={() => setAddModal(false)}
+        // Nếu đang ở context phòng, gán vật tư vào phòng đó
+        roomId={roomIdParam ? Number(roomIdParam) : undefined}
         onAdd={(newSupply: Supply) => {
           fetchSupplies();
           // Tự động mở modal xem chi tiết sau khi thêm thành công
