@@ -27,6 +27,7 @@ import ResetPasswordPage from "../pages/Clients/Auth/ResetPasswordPage";
 import ForgotPasswordPage from "../pages/Clients/Auth/ForgotPasswordPage";
 import EmailVerifiedPage from "../pages/Clients/Auth/EmailVerifiedPage";
 import GoogleCallback from "../pages/Auth/GoogleCallback";
+import HomestayPolicyPage from "../pages/Clients/Policy";
 
 const { Content } = Layout;
 
@@ -162,6 +163,10 @@ export const clientRoutes: RouteObject[] = [
   {
     path: "/contact",
     element: <ClientLayout><Contact /></ClientLayout>,
+  },
+  {
+    path: "/policy",
+    element: <ClientLayout><HomestayPolicyPage /></ClientLayout>,
   },
   {
     path: "/reset-password/:token",
