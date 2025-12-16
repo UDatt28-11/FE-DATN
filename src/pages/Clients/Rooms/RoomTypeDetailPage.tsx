@@ -738,75 +738,68 @@ const RoomTypeDetailPage: React.FC = () => {
                                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                                     <div>
                                         <Text strong style={{ fontSize: 24, color: '#cb8670' }}>
-                                            {roomType.price_per_night ? formatVNDWithUnit(roomType.price_per_night, '/đêm') : 'N/A'}
+                                            {roomType.price_per_night
+                                                ? formatVNDWithUnit(roomType.price_per_night, '/đêm')
+                                                : 'N/A'}
                                         </Text>
                                     </div>
 
                                     <Divider />
 
-                                    {/* Date Picker */}
+                                    {/* Date Picker / Booking Filter */}
                                     <div>
                                         <Text strong style={{ display: 'block', marginBottom: 8 }}>
                                             <CalendarOutlined /> Chọn ngày
                                         </Text>
-                                        <RangePicker
-                                            style={{ width: '100%' }}
-                                            value={cartDateRange}
-                                            onChange={(dates) => {
+
+                                        <BookingFilterSidebar
+                                            dateRange={cartDateRange}
+                                            onDateChange={(dates) => {
                                                 // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
                                                 if (dates && dates[0] && dates[1]) {
                                                     if (dates[0].isSame(dates[1], 'day')) {
-                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                        message.warning(
+                                                            'Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!',
+                                                        );
                                                         return;
                                                     }
-                                                    if (!dates[1].isAfter(dates[0], 'day')) {
-                                                        message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    if (dates[1].isSameOrBefore(dates[0], 'day')) {
+                                                        message.warning(
+                                                            'Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!',
+                                                        );
                                                         return;
                                                     }
                                                     setCartDateRange([dates[0], dates[1]]);
                                                 } else {
                                                     setCartDateRange(null);
-                                    {/* Booking Filter Sidebar Component */}
-                                    <BookingFilterSidebar
-                                        dateRange={cartDateRange}
-                                        onDateChange={(dates) => {
-                                            // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
-                                            if (dates && dates[0] && dates[1]) {
-                                                if (dates[0].isSame(dates[1], 'day')) {
-                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
-                                                    return;
                                                 }
-                                                if (dates[1].isSameOrBefore(dates[0], 'day')) {
-                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
-                                                    return;
-                                                }
-                                                setCartDateRange([dates[0], dates[1]]);
-                                            } else {
-                                                setCartDateRange(null);
-                                            }
-                                        }}
-                                        disabledDate={(current) => {
-                                            if (!current) return false;
-                                            const today = dayjs().startOf('day');
-                                            const currentDate = current.startOf('day');
+                                            }}
+                                            disabledDate={(current) => {
+                                                if (!current) return false;
+                                                const today = dayjs().startOf('day');
+                                                const currentDate = current.startOf('day');
 
-                                            // Không cho chọn ngày quá khứ
-                                            if (currentDate.isBefore(today)) {
-                                                return true;
-                                            }
-
-                                            // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
-                                            if (cartDateRange && cartDateRange[0]) {
-                                                const checkInDate = cartDateRange[0].startOf('day');
-                                                if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
+                                                // Không cho chọn ngày quá khứ
+                                                if (currentDate.isBefore(today)) {
                                                     return true;
                                                 }
-                                            }
 
-                                            return false;
-                                        }}
-                                        showButton={false}
-                                    />
+                                                // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
+                                                if (cartDateRange && cartDateRange[0]) {
+                                                    const checkInDate = cartDateRange[0].startOf('day');
+                                                    if (
+                                                        currentDate.isSame(checkInDate, 'day') ||
+                                                        currentDate.isBefore(checkInDate)
+                                                    ) {
+                                                        return true;
+                                                    }
+                                                }
+
+                                                return false;
+                                            }}
+                                            showButton={false}
+                                        />
+                                    </div>
 
                                     {numNights > 0 && (
                                         <div>
