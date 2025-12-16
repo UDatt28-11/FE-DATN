@@ -300,7 +300,7 @@ const RoomDetailPage: React.FC = () => {
         return currentRoom.price_per_night * nights;
     }, [effectiveDateRange, currentRoom]);
 
-    // Disable dates: không cho chọn ngày quá khứ và ngày trả phòng phải sau ngày nhận
+    // Disable dates: chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
     const disabledDate: RangePickerProps['disabledDate'] = (current) => {
         if (!current) return false;
 
@@ -308,21 +308,8 @@ const RoomDetailPage: React.FC = () => {
         const today = dayjs().startOf('day');
         const currentDate = current.startOf('day');
 
-        // Không cho chọn ngày quá khứ (trước hôm nay)
-        if (currentDate.isBefore(today)) {
-            return true;
-        }
-
-        // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
-        if (effectiveDateRange && effectiveDateRange[0]) {
-            const checkInDate = effectiveDateRange[0].startOf('day');
-            // Ngày trả phòng phải sau ngày nhận ít nhất 1 ngày
-            if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
-                return true;
-            }
-        }
-
-        return false;
+        // Chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
+        return currentDate.isBefore(today);
     };
 
     const handleDateChange: RangePickerProps['onChange'] = (dates) => {
