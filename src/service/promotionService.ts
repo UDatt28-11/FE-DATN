@@ -22,8 +22,11 @@ const promotionService = {
    */
   async getActivePromotions(): Promise<Promotion[]> {
     const res = await api.get("/promotions/active");
-    const data = res.data.data || res.data;
-    return Array.isArray(data) ? data : [];
+    // API trả về paginated response: { success, data: { data: [...], current_page, ... } }
+    const responseData = res.data.data;
+    // Nếu là paginated response thì lấy data.data, nếu không thì lấy data trực tiếp
+    const promotions = responseData?.data || responseData || [];
+    return Array.isArray(promotions) ? promotions : [];
   },
 
   /**

@@ -35,9 +35,10 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { RangePickerProps } from "antd/es/date-picker";
 import type { Dayjs } from "dayjs";
-import dayjs from "dayjs";
+import dayjs from "../../../utils/dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
+import BookingFilterSidebar from "../../../components/Booking/BookingFilterSidebar";
 import { getRoomTypeByIdWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";
 import { formatVND, formatVNDWithUnit } from "../../../utils/currency";
 import "./RoomDetail.css";
@@ -330,36 +331,89 @@ const RoomTypeDetailPage: React.FC = () => {
                 <meta property="og:image" content={pageImage} />
             </Helmet>
 
-            {/* Breadcrumb */}
-            <div className="breadcrumb-wrapper" style={{ padding: '20px 0', background: '#f5f5f5' }}>
-                <div className="container">
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 350,
+                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(26,26,26,0.75) 100%), url('${galleryImages[0]}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                    maxWidth: 900,
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 20px',
+                        borderRadius: 2,
+                    }} />
+                    <Title 
+                        level={1} 
+                        style={{ 
+                            color: '#fff', 
+                            fontSize: 42, 
+                            fontWeight: 400,
+                            marginBottom: 15,
+                            fontFamily: '"Playfair Display", Georgia, serif',
+                        }}
+                    >
+                        {roomType.name}
+                    </Title>
+                    <Space size="large" style={{ marginBottom: 20 }}>
+                        {averageRating > 0 && (
+                            <Space>
+                                <Rate disabled value={averageRating} allowHalf style={{ fontSize: 18 }} />
+                                <Text strong style={{ color: '#fff', fontSize: 16 }}>{averageRating.toFixed(1)}</Text>
+                            </Space>
+                        )}
+                        {roomType.property && (
+                            <Space style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16 }}>
+                                <EnvironmentOutlined />
+                                <Text style={{ color: 'rgba(255,255,255,0.9)' }}>{roomType.property.name}</Text>
+                            </Space>
+                        )}
+                    </Space>
                     <Breadcrumb
+                        style={{ justifyContent: 'center', display: 'flex' }}
                         items={[
                             {
                                 title: (
-                                    <Link to="/">
+                                    <Link to="/" style={{ color: '#cb8670', fontSize: 14 }}>
                                         <HomeOutlined /> Trang chủ
                                     </Link>
                                 ),
                             },
                             {
-                                title: <Link to="/rooms">Phòng</Link>,
+                                title: <Link to="/rooms" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>Phòng</Link>,
                             },
                             {
-                                title: roomType.name,
+                                title: <span style={{ color: '#fff', fontSize: 14 }}>{roomType.name}</span>,
                             },
                         ]}
                     />
                 </div>
-            </div>
+            </section>
 
-            <Content style={{ padding: '40px 0', minHeight: '80vh' }}>
+            <Content style={{ padding: '40px 0', minHeight: '80vh', background: '#fff' }}>
                 <div className="container">
                     {/* Nút Trở về */}
                     <Button
                         icon={<ArrowLeftOutlined />}
                         onClick={() => navigate(-1)}
-                        style={{ marginBottom: 24 }}
+                        style={{ 
+                            marginBottom: 24,
+                            borderColor: '#cb8670',
+                            color: '#cb8670',
+                        }}
                         size="large"
                     >
                         Trở về
@@ -370,29 +424,62 @@ const RoomTypeDetailPage: React.FC = () => {
                         <Col xs={24} lg={16}>
                             {/* Gallery Images */}
                             <Image.PreviewGroup>
-                                <Row gutter={[8, 8]} style={{ marginBottom: 32 }}>
+                                <Row gutter={[12, 12]} style={{ marginBottom: 32 }}>
                                     {galleryImages.slice(0, 4).map((img, idx) => (
                                         <Col span={idx === 0 ? 24 : 8} key={idx}>
-                                            <Image
-                                                src={img}
-                                                alt={`${roomType.name} ${idx + 1}`}
-                                                style={{
-                                                    width: '100%',
-                                                    height: idx === 0 ? 400 : 200,
-                                                    objectFit: 'cover',
-                                                    borderRadius: 8
-                                                }}
-                                            />
+                                            <div style={{
+                                                overflow: 'hidden',
+                                                borderRadius: 12,
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                transition: 'all 0.3s ease',
+                                                cursor: 'pointer',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                                e.currentTarget.style.boxShadow = '0 8px 24px rgba(203, 134, 112, 0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                                            }}>
+                                                <Image
+                                                    src={img}
+                                                    alt={`${roomType.name} ${idx + 1}`}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: idx === 0 ? 420 : 200,
+                                                        objectFit: 'cover',
+                                                    }}
+                                                />
+                                            </div>
                                         </Col>
                                     ))}
                                 </Row>
                             </Image.PreviewGroup>
 
                             {/* Room Info */}
-                            <Card style={{ marginBottom: 32 }}>
-                                <Title level={2} style={{ marginBottom: 16 }}>
-                                    {roomType.name}
-                                </Title>
+                            <Card 
+                                style={{ 
+                                    marginBottom: 32,
+                                    borderRadius: 16,
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                    border: '1px solid rgba(203, 134, 112, 0.15)',
+                                }}
+                            >
+                                <div style={{
+                                    borderLeft: '4px solid',
+                                    borderImage: 'linear-gradient(to bottom, #cb8670, #e0a090) 1',
+                                    paddingLeft: 16,
+                                    marginBottom: 20,
+                                }}>
+                                    <Title level={3} style={{ 
+                                        marginBottom: 0,
+                                        fontFamily: '"Playfair Display", Georgia, serif',
+                                        color: '#1a1a1a',
+                                    }}>
+                                        {roomType.name}
+                                    </Title>
+                                </div>
 
                                 {roomType.property && (
                                     <Space style={{ marginBottom: 16 }}>
@@ -472,8 +559,111 @@ const RoomTypeDetailPage: React.FC = () => {
                                 )}
                             </Card>
 
-                            {/* Phần tiện ích chi tiết theo loại phòng đã được ẩn. 
-                                Tiện ích/dịch vụ hiện sẽ là thông tin chung cấp homestay. */}
+
+                            {/* Phân loại Amenities */}
+                            {roomType.amenities && roomType.amenities.length > 0 && (() => {
+                                const categorized = categorizeAmenities(roomType.amenities);
+                                return (
+                                    <>
+                                        {/* Tiện nghi đặc biệt */}
+                                        {categorized.keyAmenities.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện nghi đặc biệt</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+
+                                        {/* Hướng nhìn */}
+                                        {categorized.views.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Hướng nhìn</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+
+                                        {/* Vị trí tầng */}
+                                        {categorized.floors.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Vị trí tầng</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+
+                                        {/* Tiện ích khác */}
+                                        {categorized.others.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện ích khác</Text>}
+                                                style={{ 
+                                                    marginBottom: 32,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+                                    </>
+                                );
+                            })()}
+
 
                             {/* Reviews */}
                             <Card title={`Đánh giá từ khách hàng (${reviewsTotal})`}>
@@ -576,30 +766,47 @@ const RoomTypeDetailPage: React.FC = () => {
                                                     setCartDateRange([dates[0], dates[1]]);
                                                 } else {
                                                     setCartDateRange(null);
+                                    {/* Booking Filter Sidebar Component */}
+                                    <BookingFilterSidebar
+                                        dateRange={cartDateRange}
+                                        onDateChange={(dates) => {
+                                            // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+                                            if (dates && dates[0] && dates[1]) {
+                                                if (dates[0].isSame(dates[1], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
                                                 }
-                                            }}
-                                            disabledDate={(current) => {
-                                                if (!current) return false;
-                                                const today = dayjs().startOf('day');
-                                                const currentDate = current.startOf('day');
+                                                if (dates[1].isSameOrBefore(dates[0], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
+                                                }
+                                                setCartDateRange([dates[0], dates[1]]);
+                                            } else {
+                                                setCartDateRange(null);
+                                            }
+                                        }}
+                                        disabledDate={(current) => {
+                                            if (!current) return false;
+                                            const today = dayjs().startOf('day');
+                                            const currentDate = current.startOf('day');
 
-                                                // Không cho chọn ngày quá khứ
-                                                if (currentDate.isBefore(today)) {
+                                            // Không cho chọn ngày quá khứ
+                                            if (currentDate.isBefore(today)) {
+                                                return true;
+                                            }
+
+                                            // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
+                                            if (cartDateRange && cartDateRange[0]) {
+                                                const checkInDate = cartDateRange[0].startOf('day');
+                                                if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
                                                     return true;
                                                 }
+                                            }
 
-                                                // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
-                                                if (cartDateRange && cartDateRange[0]) {
-                                                    const checkInDate = cartDateRange[0].startOf('day');
-                                                    if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
-                                                        return true;
-                                                    }
-                                                }
-
-                                                return false;
-                                            }}
-                                        />
-                                    </div>
+                                            return false;
+                                        }}
+                                        showButton={false}
+                                    />
 
                                     {numNights > 0 && (
                                         <div>

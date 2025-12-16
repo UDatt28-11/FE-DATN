@@ -381,7 +381,7 @@ const HomestayListPage: React.FC = () => {
                                                 overflow: 'hidden',
                                                 height: '100%',
                                             }}
-                                            bodyStyle={{ padding: 16 }}
+                                            styles={{ body: { padding: 16 } }}
                                             cover={
                                                 <div style={{ position: 'relative' }}>
                                                     <img

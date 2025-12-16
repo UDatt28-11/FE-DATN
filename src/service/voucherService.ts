@@ -93,6 +93,32 @@ export async function getAvailableVouchers(params?: {
 }
 
 /**
+ * Lấy danh sách voucher public (trang Khuyến mãi)
+ * Dùng API /vouchers (không yêu cầu auth)
+ */
+export async function getPublicVouchers(params?: {
+  per_page?: number;
+  page?: number;
+  is_active?: boolean;
+}) {
+  try {
+    const { data } = await api.get("/vouchers", { params });
+
+    // Backend trả về dạng paginator { data: [...], meta: { pagination: ... } }
+    const raw = data?.data ?? data;
+    const vouchers = Array.isArray(raw) ? (raw as Voucher[]) : ((raw?.data as Voucher[]) ?? []);
+
+    return {
+      vouchers,
+      pagination: (data.meta?.pagination || data.meta) as PaginationMeta | undefined,
+    };
+  } catch (error: any) {
+    console.error("Error fetching public vouchers:", error);
+    throw error;
+  }
+}
+
+/**
  * Lấy số lượng voucher theo trạng thái
  */
 export async function getVoucherCounts() {

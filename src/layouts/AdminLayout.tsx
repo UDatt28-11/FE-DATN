@@ -18,7 +18,6 @@ import {
   HomeOutlined,
   RestOutlined,
   CalendarOutlined,
-  BarChartOutlined,
   MessageOutlined,
   SettingOutlined,
   BellOutlined,
@@ -112,12 +111,7 @@ const AdminLayout: React.FC = () => {
       label: "Quản lý bình luận",
       path: "/admin/message",
     },
-    {
-      key: "analytics",
-      icon: <BarChartOutlined />,
-      label: "Thống kê",
-      path: "/admin/analytics",
-    },
+
     {
       key: "messages",
       icon: <MessageOutlined />,
@@ -136,10 +130,7 @@ const AdminLayout: React.FC = () => {
     key: item.key,
     icon: item.icon,
     label: (
-      <NavLink
-        to={item.path}
-        style={{ textDecoration: "none" }}
-      >
+      <NavLink to={item.path} style={{ textDecoration: "none" }}>
         {item.label}
       </NavLink>
     ),
@@ -255,7 +246,6 @@ const AdminLayout: React.FC = () => {
             theme="dark"
           />
         </div>
-
       </Sider>
 
       {/* Main Layout */}

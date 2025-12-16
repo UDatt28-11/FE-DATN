@@ -29,6 +29,7 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId 
         current_stock: values.current_stock ?? 0,
         min_stock_level: values.min_stock_level ?? 0,
         max_stock_level: values.max_stock_level ?? values.current_stock ?? 0,
+
         status: values.status ?? "active", // mặc định active
       };
 
@@ -94,6 +95,15 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId 
 
         <Form.Item label="Đơn vị" name="unit" rules={[{ required: true }]}>
           <Input />
+        </Form.Item>
+
+        <Form.Item
+          label="Số lượng"
+          name="current_stock"
+          rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
+          initialValue={0}
+        >
+          <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item

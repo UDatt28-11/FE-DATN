@@ -156,13 +156,6 @@ const AdminLayout: React.FC = () => {
       label: "Quản lý bình luận",
       path: "/admin/message",
     },
-
-    {
-      key: "analytics",
-      icon: <BarChartOutlined />,
-      label: "Thống kê",
-      path: "/admin/analytics",
-    },
     {
       key: "messages",
       icon: <MessageOutlined />,
@@ -396,7 +389,11 @@ const AdminLayout: React.FC = () => {
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {user?.role === "admin" ? "Quản trị viên" : user?.role === "staff" ? "Nhân viên" : "Người dùng"}
+                    {user?.role === "admin"
+                      ? "Quản trị viên"
+                      : user?.role === "staff"
+                      ? "Nhân viên"
+                      : "Người dùng"}
                   </Text>
                 </div>
               </Space>
@@ -427,7 +424,7 @@ const AdminLayout: React.FC = () => {
             fontSize: 13,
           }}
         >
-          © 2024 HomestayHub. Made with ❤️ in Vietnam
+          © 2025 HomestayHub. Made with ❤️ in Vietnam
         </div>
       </Layout>
     </Layout>

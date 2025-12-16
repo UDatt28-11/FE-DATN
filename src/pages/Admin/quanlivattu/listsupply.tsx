@@ -106,6 +106,12 @@ const ListSupplies: React.FC = () => {
     { title: "Loại", dataIndex: "category" },
     { title: "Đơn vị", dataIndex: "unit", width: 100 },
     {
+      title: "Số lượng",
+      dataIndex: "current_stock",
+      width: 100,
+      sorter: (a: Supply, b: Supply) => a.current_stock - b.current_stock,
+    },
+    {
       title: "Đơn giá (₫)",
       dataIndex: "unit_price",
       render: (v: number) => v?.toLocaleString(),

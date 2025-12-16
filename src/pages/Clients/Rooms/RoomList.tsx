@@ -47,7 +47,7 @@ import {
 } from "@ant-design/icons";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { Dayjs } from "dayjs";
-import dayjs from "dayjs";
+import dayjs from "../../../utils/dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
 // import { getRooms, getRoomById } from "../../../service/room"; // Không dùng nữa, đã chuyển sang RoomType
 import { getRoomTypesWithDetails, getRoomTypeReviews, type RoomTypeWithDetails } from "../../../service/roomType";
@@ -954,25 +954,72 @@ const RoomList: React.FC = () => {
 
     return (
         <div className="room-list-page">
-            {/* Breadcrumb */}
-            <div className="breadcrumb-wrapper" style={{ padding: '20px 0', background: '#f5f5f5' }}>
-                <div className="container">
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 450,
+                backgroundImage: "url('/img/bg-img/bg-6.jpg')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    top: 0,
+                    left: 0,
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)',
+                    zIndex: 1,
+                }} />
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 25px',
+                        borderRadius: 2,
+                    }} />
+                    <Title 
+                        level={1} 
+                        style={{ 
+                            color: '#fff', 
+                            fontSize: 52, 
+                            fontWeight: 400,
+                            marginBottom: 20,
+                            fontFamily: '"Playfair Display", Georgia, serif',
+                            fontStyle: 'italic',
+                        }}
+                    >
+                        Phòng Nghỉ Của Chúng Tôi
+                    </Title>
+                    <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 25 }}>
+                        Khám phá không gian nghỉ dưỡng sang trọng và tiện nghi
+                    </Paragraph>
                     <Breadcrumb
+                        style={{ justifyContent: 'center', display: 'flex' }}
                         items={[
                             {
                                 title: (
-                                    <Link to="/">
+                                    <Link to="/" style={{ color: '#cb8670', fontSize: 15 }}>
                                         <HomeOutlined /> Trang chủ
                                     </Link>
                                 ),
                             },
                             {
-                                title: <Link to="/rooms">Phòng</Link>,
+                                title: <span style={{ color: '#fff', fontSize: 15 }}>Phòng</span>,
                             },
                         ]}
                     />
                 </div>
-            </div>
+            </section>
 
             <Content style={{ padding: '40px 0', minHeight: '80vh', background: '#fff' }}>
                 <div className="container">
@@ -1135,7 +1182,7 @@ const RoomList: React.FC = () => {
                                                     <Card
                                                         hoverable
                                                         className="room-card"
-                                                        bodyStyle={{ padding: 0 }}
+                                                        styles={{ body: { padding: 0 } }}
                                                         style={{
                                                             borderRadius: 12,
                                                             overflow: 'hidden',

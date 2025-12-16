@@ -307,6 +307,9 @@ const Header: React.FC = () => {
                       <li className={isActive('/promotions')}>
                         <Link to="/promotions" onClick={closeMenu}>Khuyến mãi</Link>
                       </li>
+                      <li className={isActive('/policy')}>
+                        <Link to="/policy" onClick={closeMenu}>Chính sách</Link>
+                      </li>
                       <li className={isActive('/contact')}>
                         <Link to="/contact" onClick={closeMenu}>Liên hệ</Link>
                       </li>

@@ -23,7 +23,7 @@ import {
     PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
 import { useAuth } from '../../../context/AuthContext';
 import { useBookingCart } from '../../../context/BookingCartContext';
 import { createUserBooking } from '../../../service/bookingService';
@@ -43,6 +43,11 @@ interface BookingRoomItem {
     nights?: number;
     totalPrice?: number;
 }
+
+type GroupedRoomItem = BookingRoomItem & {
+    count: number;
+    groupTotal: number;
+};
 
 interface BookingData {
     // Hỗ trợ cả format cũ (1 phòng) và format mới (nhiều phòng)
@@ -155,6 +160,36 @@ const BookingInfoPage: React.FC = () => {
 
     const bookingData = normalizeBookingData();
     const rooms = bookingData.rooms || [];
+
+    // Gom nhóm các phòng theo tên để hiển thị gọn hơn ở phần tóm tắt
+    const groupedRooms = React.useMemo<GroupedRoomItem[]>(() => {
+        const map = new Map<string, GroupedRoomItem>();
+
+        rooms.forEach((room) => {
+            const name = room.roomName || 'Phòng';
+            const key = name;
+            const roomTotal = room.totalPrice || room.price * (room.nights || 1);
+
+            if (!map.has(key)) {
+                map.set(key, {
+                    ...room,
+                    roomName: name,
+                    count: 1,
+                    groupTotal: roomTotal,
+                });
+            } else {
+                const existing = map.get(key)!;
+                map.set(key, {
+                    ...existing,
+                    count: existing.count + 1,
+                    // Cộng dồn tổng tiền cho nhóm này
+                    groupTotal: existing.groupTotal + roomTotal,
+                });
+            }
+        });
+
+        return Array.from(map.values());
+    }, [rooms]);
 
     // Điền thông tin từ user đã đăng nhập vào form
     useEffect(() => {
@@ -478,20 +513,30 @@ const BookingInfoPage: React.FC = () => {
                                 style={{ position: 'sticky', top: 20 }}
                             >
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                                    {/* Danh sách phòng */}
-                                    {rooms.map((room, index) => (
+                                    {/* Danh sách phòng (gộp theo tên phòng) */}
+                                    {groupedRooms.map((room, index) => (
                                         <div key={index} style={{
                                             padding: 12,
                                             background: '#fafafa',
                                             borderRadius: 8,
                                             border: '1px solid #e8e8e8'
                                         }}>
-                                            <Row justify="space-between" align="top" style={{ marginBottom: 8 }}>
+                                            <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
                                                 <Col flex="auto">
                                                     <Text strong style={{ fontSize: 14 }}>
                                                         {room.roomName}
                                                     </Text>
                                                 </Col>
+                                                {room.count && room.count > 1 && (
+                                                    <Col>
+                                                        <Text
+                                                            type="secondary"
+                                                            style={{ color: '#B57660', fontWeight:"bold", fontSize: 20, whiteSpace: 'nowrap' }}
+                                                        >
+                                                            x{room.count} 
+                                                        </Text>
+                                                    </Col>
+                                                )}
                                             </Row>
                                             {room.checkIn && room.checkOut && (
                                                 <div style={{ marginTop: 4 }}>
@@ -513,8 +558,14 @@ const BookingInfoPage: React.FC = () => {
                                                 </div>
                                             )}
                                             <div style={{ marginTop: 8 }}>
-                                                <Text strong style={{ color: '#cb8670', fontSize: 14 }}>
-                                                    {(room.totalPrice || room.price * (room.nights || 1)).toLocaleString('vi-VN')} VNĐ
+                                                <Text
+                                                    strong
+                                                    style={{
+                                                        color: '#cb8670',
+                                                        fontSize: 15,
+                                                    }}
+                                                >
+                                                    {room.groupTotal.toLocaleString('vi-VN')} VNĐ
                                                 </Text>
                                             </div>
                                         </div>

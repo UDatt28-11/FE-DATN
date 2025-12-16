@@ -234,7 +234,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
             onCancel={onCancel}
             footer={null}
             width={800}
-            destroyOnClose
+            destroyOnHidden
         >
             <Spin spinning={loading}>
                 <div style={{ marginBottom: 24 }}>

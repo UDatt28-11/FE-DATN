@@ -12,10 +12,10 @@ export type ReviewStatus = "pending" | "approved" | "rejected";
 
 export interface Review {
     id: string;
-    bookingDetailsId?: string | null; // booking_details_id
-    userId: string; // user_id
-    propertyId: string; // property_id
-    roomId?: string | null; // room_id
+    bookingDetailsId?: string | null; // booking_details_id (mapped từ backend)
+    userId: string; // tên / mã người dùng hiển thị trên UI
+    propertyId: string; // tên / mã cơ sở lưu trú hiển thị trên UI
+    roomId?: string | null; // tên / mã phòng (nếu cần)
 
     rating: number; // rating (1-5)
     title?: string | null; // title

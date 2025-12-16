@@ -16,6 +16,12 @@ import invoiceService from "../../service/invoiceService";
 import supplyService from "../../service/supplyService";
 import reviewService from "../../service/reviewService";
 import promotionService from "../../service/promotionService";
+import userService from "../../service/userService";
+import {
+  getBookingStatistics,
+  type BookingStatistics,
+} from "../../service/bookingService";
+import type { Supply } from "../../types/supply/supplies";
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -25,26 +31,49 @@ const Dashboard: React.FC = () => {
   const [promotionStats, setPromotionStats] = useState<any>(null);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<any[]>([]);
+  const [bookingStats, setBookingStats] = useState<BookingStatistics | null>(
+    null
+  );
+  const [userStats, setUserStats] = useState<{
+    total_users: number;
+    active_users: number;
+    locked_users: number;
+    new_users_this_month: number;
+  } | null>(null);
 
   // Fetch all statistics
   const fetchAllStatistics = async () => {
     setLoading(true);
     try {
-      const [invoiceData, supplyData, reviewData, promotionData, invoicesResponse, lowStockResponse] =
-        await Promise.all([
-          invoiceService.getStatistics().catch(() => null),
-          supplyService.getStatistics().catch(() => null),
-          reviewService.getStatistics().catch(() => null),
-          promotionService.getStatistics().catch(() => null),
-          invoiceService.getAll({ limit: 5 }).catch(() => []),
-          supplyService.getLowStock().catch(() => []),
-        ]);
+      const [
+        invoiceData,
+        supplyData,
+        reviewData,
+        promotionData,
+        invoicesResponse,
+        lowStockResponse,
+        bookingStatistics,
+        userStatistics,
+      ] = await Promise.all([
+        invoiceService.getStatistics().catch(() => null),
+        supplyService.getStatistics().catch(() => null),
+        reviewService.getStatistics().catch(() => null),
+        promotionService.getStatistics().catch(() => null),
+        invoiceService.getAll({ limit: 5 }).catch(() => []),
+        supplyService.getLowStock().catch(() => []),
+        getBookingStatistics().catch(() => null),
+        userService.getStatistics().catch(() => null),
+      ]);
 
-      setInvoiceStats(invoiceData);
-      setSupplyStats(supplyData);
+      setInvoiceStats(invoiceData?.data || invoiceData);
+      setSupplyStats(supplyData?.data || supplyData);
       setReviewStats(reviewData);
       setPromotionStats(promotionData);
-      
+      setBookingStats(bookingStatistics);
+      if (userStatistics?.success && userStatistics.data) {
+        setUserStats(userStatistics.data);
+      }
+
       // Handle invoices response
       let invoices: any[] = [];
       const invRes: any = invoicesResponse;
@@ -54,15 +83,32 @@ const Dashboard: React.FC = () => {
         invoices = invRes.data;
       }
       setRecentInvoices(invoices.slice(0, 5));
-      
+
       // Handle lowStock response
-      let lowStock: any[] = [];
+      let lowStock: Supply[] = [];
       const stockRes: any = lowStockResponse;
       if (Array.isArray(stockRes)) {
         lowStock = stockRes;
       } else if (stockRes?.data && Array.isArray(stockRes.data)) {
         lowStock = stockRes.data;
       }
+
+      // Nếu chưa có vật tư "sắp hết" nhưng vẫn có vật tư trong kho,
+      // lấy TOP 5 vật tư có tồn kho thấp nhất để hiển thị trên Dashboard
+      if (
+        lowStock.length === 0 &&
+        (supplyData?.data?.total_supplies || supplyData?.total_supplies) > 0
+      ) {
+        try {
+          const allSupplies = await supplyService.getAll();
+          lowStock = [...allSupplies]
+            .sort((a, b) => a.current_stock - b.current_stock)
+            .slice(0, 5);
+        } catch (e) {
+          console.error("Error loading fallback supplies for dashboard:", e);
+        }
+      }
+
       setLowStockSupplies(lowStock);
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -163,7 +209,8 @@ const Dashboard: React.FC = () => {
                 prefix={<DollarOutlined />}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-                <ArrowUpOutlined style={{ color: "#3f8600" }} /> +12.5% so với tháng trước
+                <ArrowUpOutlined style={{ color: "#3f8600" }} /> +12.5% so với
+                tháng trước
               </div>
             </Card>
           </Col>
@@ -186,12 +233,13 @@ const Dashboard: React.FC = () => {
             <Card>
               <Statistic
                 title="Đơn đặt phòng"
-                value={245}
+                value={bookingStats?.total || 0}
                 valueStyle={{ color: "#722ed1" }}
                 prefix={<ShoppingOutlined />}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-                <ArrowUpOutlined style={{ color: "#3f8600" }} /> +8.3% so với tuần trước
+                Hủy: {bookingStats?.by_status.cancelled ?? 0} (
+                {bookingStats ? `${bookingStats.cancellation_rate}%` : "0%"})
               </div>
             </Card>
           </Col>
@@ -200,12 +248,14 @@ const Dashboard: React.FC = () => {
             <Card>
               <Statistic
                 title="Khách hàng"
-                value={1523}
+                value={userStats?.total_users ?? 0}
                 valueStyle={{ color: "#eb2f96" }}
                 prefix={<UserOutlined />}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-                42 khách hàng mới tuần này
+                {userStats
+                  ? `${userStats.new_users_this_month} khách hàng mới tháng này`
+                  : "Khách hàng đang hoạt động trong hệ thống"}
               </div>
             </Card>
           </Col>
@@ -239,7 +289,9 @@ const Dashboard: React.FC = () => {
             <Card>
               <Statistic
                 title="Vật tư sắp hết"
-                value={lowStockSupplies.length}
+                value={
+                  supplyStats?.low_stock_count ?? lowStockSupplies.length
+                }
                 valueStyle={{ color: "#ff4d4f" }}
                 prefix={<WarningOutlined />}
               />
@@ -253,6 +305,11 @@ const Dashboard: React.FC = () => {
                 value={supplyStats?.total_supplies || 0}
                 valueStyle={{ color: "#13c2c2" }}
               />
+              {supplyStats && (
+                <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+                  Hết hàng: {supplyStats.out_of_stock_count || 0}
+                </div>
+              )}
             </Card>
           </Col>
         </Row>
@@ -262,7 +319,7 @@ const Dashboard: React.FC = () => {
           <Col xs={24} lg={12}>
             <Card
               title="Hóa đơn gần đây"
-              extra={<a href="/admin/invoice">Xem tất cả</a>}
+              extra={<a href="/admin/invoice">Xem chi tiết</a>}
             >
               <Table
                 columns={invoiceColumns}
@@ -277,7 +334,7 @@ const Dashboard: React.FC = () => {
           <Col xs={24} lg={12}>
             <Card
               title="Vật tư sắp hết"
-              extra={<a href="/admin/supply">Xem tất cả</a>}
+              extra={<a href="/admin/supplies">Xem chi tiết</a>}
             >
               <Table
                 columns={supplyColumns}
@@ -297,8 +354,12 @@ const Dashboard: React.FC = () => {
               <Row gutter={16}>
                 <Col span={8}>
                   <div style={{ textAlign: "center", padding: "16px 0" }}>
-                    <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
-                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                    <CheckCircleOutlined
+                      style={{ fontSize: 32, color: "#52c41a" }}
+                    />
+                    <div
+                      style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}
+                    >
                       {invoiceStats?.paid_invoices || 0}
                     </div>
                     <div style={{ color: "#888" }}>Đã thanh toán</div>
@@ -306,8 +367,12 @@ const Dashboard: React.FC = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ textAlign: "center", padding: "16px 0" }}>
-                    <ClockCircleOutlined style={{ fontSize: 32, color: "#faad14" }} />
-                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                    <ClockCircleOutlined
+                      style={{ fontSize: 32, color: "#faad14" }}
+                    />
+                    <div
+                      style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}
+                    >
                       {invoiceStats?.pending_invoices || 0}
                     </div>
                     <div style={{ color: "#888" }}>Chờ thanh toán</div>
@@ -315,8 +380,12 @@ const Dashboard: React.FC = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ textAlign: "center", padding: "16px 0" }}>
-                    <WarningOutlined style={{ fontSize: 32, color: "#ff4d4f" }} />
-                    <div style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}>
+                    <WarningOutlined
+                      style={{ fontSize: 32, color: "#ff4d4f" }}
+                    />
+                    <div
+                      style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}
+                    >
                       {invoiceStats?.overdue_invoices || 0}
                     </div>
                     <div style={{ color: "#888" }}>Quá hạn</div>
@@ -329,19 +398,39 @@ const Dashboard: React.FC = () => {
           <Col xs={24} lg={12}>
             <Card title="Hoạt động hệ thống">
               <div style={{ padding: "8px 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
                   <span>Hóa đơn được tạo hôm nay</span>
                   <span style={{ fontWeight: 600 }}>12</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
                   <span>Đặt phòng mới</span>
                   <span style={{ fontWeight: 600 }}>8</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
                   <span>Đánh giá mới</span>
                   <span style={{ fontWeight: 600 }}>15</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <span>Khách hàng đăng ký mới</span>
                   <span style={{ fontWeight: 600 }}>5</span>
                 </div>
@@ -355,4 +444,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-

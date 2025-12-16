@@ -176,7 +176,7 @@ const RequestAmenityModal: React.FC<RequestAmenityModalProps> = ({
             }}
             footer={null}
             width={600}
-            destroyOnClose
+            destroyOnHidden
         >
             {loadingAmenities ? (
                 <div style={{ textAlign: 'center', padding: 40 }}>

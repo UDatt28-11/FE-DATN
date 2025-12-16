@@ -88,8 +88,8 @@
   padding-bottom: 100px;
 }
 
-/* Breadcrumb Area */
-.breadcumb-area {
+/* Breadcrumb Area - DISABLED, using inline styles now */
+/* .breadcumb-area {
   position: relative;
   z-index: 10;
   width: 100%;
@@ -108,14 +108,14 @@
   border: 2px solid #cb8670;
   background-color: rgba(0, 0, 0, 0.63);
   display: inline-block;
-}
+} */
 
-/* Book Now Area */
-.book-now-area {
+/* Book Now Area - DISABLED, using inline styles now */
+/* .book-now-area {
   position: relative;
   z-index: 100;
   margin-bottom: 15px;
-}
+} */
 
 .book-now-form {
   position: relative;
@@ -190,8 +190,8 @@
   background-color: #363636;
 }
 
-/* Section Heading */
-.section-heading {
+/* Section Heading - DISABLED, using inline styles now */
+/* .section-heading {
   position: relative;
   z-index: 1;
   margin-bottom: 60px;
@@ -221,13 +221,13 @@
   color: #7d7d7d;
   font-size: 14px;
   line-height: 2.1;
-}
+} */
 
-/* Rooms Area */
-.rooms-area {
+/* Rooms Area - DISABLED, using inline styles now */
+/* .rooms-area {
   position: relative;
   z-index: 1;
-}
+} */
 
 .single-rooms-area {
   position: relative;
