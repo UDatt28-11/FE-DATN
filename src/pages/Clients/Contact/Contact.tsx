@@ -221,7 +221,7 @@ const Contact: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* ##### Hero Section ##### */}
       <section style={styles.heroSection}>
         <div style={styles.heroOverlay} />
@@ -234,8 +234,6 @@ const Contact: React.FC = () => {
               fontSize: 52, 
               fontWeight: 400,
               marginBottom: 20,
-              fontFamily: '"Playfair Display", Georgia, serif',
-              fontStyle: 'italic',
             }}
           >
             Liên Hệ Với Chúng Tôi
