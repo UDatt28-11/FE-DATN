@@ -297,7 +297,7 @@ const Promotions: React.FC = () => {
     };
 
     return (
-        <div className="promotions-page">
+        <div className="promotions-page" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
             {/* Hero Section */}
             <section style={{
                 position: 'relative',
@@ -337,8 +337,6 @@ const Promotions: React.FC = () => {
                         fontSize: 52, 
                         fontWeight: 400,
                         marginBottom: 20,
-                        fontFamily: '"Playfair Display", Georgia, serif',
-                        fontStyle: 'italic',
                     }}>
                         Mã Giảm Giá
                     </h1>
