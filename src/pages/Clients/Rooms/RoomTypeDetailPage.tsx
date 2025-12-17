@@ -16,6 +16,8 @@ import {
     message,
     Spin,
     Empty,
+    InputNumber,
+
     Tag,
     Progress,
 } from "antd";
@@ -122,6 +124,7 @@ const RoomTypeDetailPage: React.FC = () => {
         setDateRange: setCartDateRange,
         addRoomTypeToCart,
         isRoomTypeInCart,
+        selectedRoomTypes,
     } = useBookingCart();
 
     // State cho dữ liệu
@@ -132,6 +135,7 @@ const RoomTypeDetailPage: React.FC = () => {
     const [averageRating, setAverageRating] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
     const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
+    const [quantity, setQuantity] = useState<number>(1);
 
     const [activeTab, setActiveTab] = useState<string>('overview');
     const [isScrolled, setIsScrolled] = useState<boolean>(false);
@@ -227,6 +231,17 @@ const RoomTypeDetailPage: React.FC = () => {
         }
     }, [cartDateRange?.[0]?.valueOf(), cartDateRange?.[1]?.valueOf()]);
 
+    // Reset quantity khi roomType thay đổi hoặc cập nhật từ cart
+    useEffect(() => {
+        if (roomType) {
+            const existingItem = selectedRoomTypes.find(item => item.roomType.id === roomType.id);
+            if (existingItem) {
+                setQuantity(existingItem.quantity || 1);
+            } else {
+                setQuantity(1);
+            }
+        }
+    }, [roomType?.id, selectedRoomTypes]);
     // Handle scroll to update active tab and scrolled state
     useEffect(() => {
         const handleScroll = () => {
@@ -290,7 +305,7 @@ const RoomTypeDetailPage: React.FC = () => {
 
     // Tính tổng tiền
     const totalPrice = roomType?.price_per_night && numNights > 0
-        ? roomType.price_per_night * numNights
+        ? roomType.price_per_night * numNights * quantity
         : 0;
 
     // Xử lý thêm vào cart
@@ -313,12 +328,23 @@ const RoomTypeDetailPage: React.FC = () => {
             return;
         }
 
-        const checkIn = cartDateRange[0].format('DD/MM/YYYY');
-        const checkOut = cartDateRange[1].format('DD/MM/YYYY');
+        // Kiểm tra số lượng phòng không vượt quá số phòng còn trống
+        if (quantity > (roomType.available_count || 0)) {
+            message.error(`Chỉ còn ${roomType.available_count} phòng trống. Vui lòng chọn số lượng phù hợp!`);
+            return;
+        }
+
+        if (quantity < 1) {
+            message.warning('Số lượng phòng phải lớn hơn 0!');
+            return;
+        }
+
+        const checkIn = cartDateRange[0].format('YYYY-MM-DD');
+        const checkOut = cartDateRange[1].format('YYYY-MM-DD');
 
         addRoomTypeToCart(
             roomType,
-            1,
+            quantity,
             checkIn,
             checkOut,
             numNights,
@@ -327,7 +353,7 @@ const RoomTypeDetailPage: React.FC = () => {
             roomType.max_children || 0
         );
 
-        message.success('Đã thêm vào booking cart!');
+        message.success(`Đã thêm ${quantity} phòng vào booking cart!`);
     };
 
     if (loading) {
@@ -1154,6 +1180,40 @@ const RoomTypeDetailPage: React.FC = () => {
 
                                         <Divider style={{ margin: 0 }} />
 
+                                    {/* Date Picker */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            <CalendarOutlined /> Chọn ngày
+                                        </Text>
+                                        <BookingFilterSidebar
+                                        dateRange={cartDateRange}
+                                        onDateChange={(dates) => {
+                                            // Kiểm tra nếu ngày nhận phòng và trả phòng trùng nhau
+                                            if (dates && dates[0] && dates[1]) {
+                                                if (dates[0].isSame(dates[1], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
+                                                }
+                                                if (!dates[1].isAfter(dates[0], 'day')) {
+                                                    message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                    return;
+                                                }
+                                                setCartDateRange([dates[0], dates[1]]);
+                                            } else {
+                                                setCartDateRange(null);
+                                            }
+                                        }}
+                                        disabledDate={(current) => {
+                                            if (!current) return false;
+                                            const today = dayjs().startOf('day');
+                                            const currentDate = current.startOf('day');
+
+                                            // Chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
+                                            return currentDate.isBefore(today);
+                                        }}
+                                        showButton={false}
+                                    />
+                                    </div>
                                         {/* Date Picker */}
                                         <div>
                                             <Text strong style={{ display: 'block', marginBottom: 12, fontSize: 16 }}>
@@ -1207,6 +1267,63 @@ const RoomTypeDetailPage: React.FC = () => {
                                             />
                                         </div>
 
+                                    {/* Chọn số lượng phòng */}
+                                    <div style={{ marginBottom: 16 }}>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            Số lượng phòng
+                                        </Text>
+                                        <InputNumber
+                                            min={1}
+                                            max={roomType?.available_count || 1}
+                                            value={quantity}
+                                            onChange={(value) => setQuantity(value || 1)}
+                                            style={{ width: '100%' }}
+                                            addonAfter="phòng"
+                                            disabled={
+                                                !cartDateRange || 
+                                                !cartDateRange[0] || 
+                                                !cartDateRange[1] || 
+                                                (roomType?.available_count || 0) === 0 ||
+                                                isRoomTypeInCart(roomType?.id || 0)
+                                            }
+                                        />
+                                        {roomType && roomType.available_count > 0 && (
+                                            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                                                Còn {roomType.available_count} phòng trống
+                                            </Text>
+                                        )}
+                                    </div>
+
+                                    <Button
+                                        type="primary"
+                                        block
+                                        size="large"
+                                        icon={<ShoppingCartOutlined />}
+                                        onClick={handleAddToCart}
+                                        disabled={
+                                            !cartDateRange ||
+                                            !cartDateRange[0] ||
+                                            !cartDateRange[1] ||
+                                            isRoomTypeInCart(roomType.id) ||
+                                            (roomType.available_count || 0) === 0
+                                        }
+                                        style={{
+                                            backgroundColor: '#52c41a',
+                                            borderColor: '#52c41a',
+                                        }}
+                                    >
+                                        {isRoomTypeInCart(roomType.id)
+                                            ? 'Đã thêm vào booking'
+                                            : 'Thêm vào booking'}
+                                    </Button>
+
+                                    {roomType.available_count === 0 && (
+                                        <Text type="danger" style={{ textAlign: 'center', display: 'block' }}>
+                                            Loại phòng này hiện đã hết phòng
+                                        </Text>
+                                    )}
+                                </Space>
+                            </Card>
                                         {/* Total Price */}
                                         {numNights > 0 && (
                                             <div style={{

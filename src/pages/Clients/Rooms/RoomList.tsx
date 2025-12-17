@@ -243,7 +243,7 @@ const RoomList: React.FC = () => {
         setUrlParamsInitialized(true);
     }, [searchParams, setDateRange]);
 
-    // Popup "Tìm phòng thông minh" chỉ hiển thị khi người dùng bấm nút, không tự động mở
+    // Popup "Tìm nhanh" chỉ hiển thị khi người dùng bấm nút, không tự động mở
 
     // Định nghĩa interface cho gợi ý chia phòng
     interface RoomAllocationSuggestion {
@@ -725,27 +725,14 @@ const RoomList: React.FC = () => {
         }
     };
 
-    // Disable dates: không cho chọn ngày quá khứ
+    // Disable dates: chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
     const disabledDate: RangePickerProps['disabledDate'] = (current) => {
         if (!current) return false;
         const today = dayjs().startOf('day');
         const currentDate = current.startOf('day');
 
-        // Không cho chọn ngày quá khứ
-        if (currentDate.isBefore(today)) {
-            return true;
-        }
-
-        // Nếu đã chọn ngày nhận phòng, không cho chọn ngày trả phòng trùng hoặc trước ngày nhận
-        if (dateRange && dateRange[0]) {
-            const checkInDate = dateRange[0].startOf('day');
-            // Ngày trả phòng phải sau ngày nhận ít nhất 1 ngày
-            if (currentDate.isSame(checkInDate, 'day') || currentDate.isBefore(checkInDate)) {
-                return true;
-            }
-        }
-
-        return false;
+        // Chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
+        return currentDate.isBefore(today);
     };
 
     // Xử lý chọn ngày
@@ -1106,7 +1093,7 @@ const RoomList: React.FC = () => {
                                             setShowRoomSuggestions(true);
                                         }}
                                     >
-                                        Tìm phòng thông minh
+                                        Tìm nhanh
                                     </Button>
                                     {/* Booking Cart Button */}
                                     <Badge count={selectedRoomTypes?.length || 0} showZero={false} className="booking-cart-badge">
