@@ -67,7 +67,7 @@ const Settings: React.FC = () => {
                     {/* Notifications Settings */}
                     <Card title={
                         <span>
-                            <BellOutlined style={{ marginRight: 8 }} />
+                            <span className="card-icon"><BellOutlined /></span>
                             Thông báo
                         </span>
                     } className="settings-card">
@@ -131,7 +131,7 @@ const Settings: React.FC = () => {
                     {/* Privacy Settings */}
                     <Card title={
                         <span>
-                            <LockOutlined style={{ marginRight: 8 }} />
+                            <span className="card-icon"><LockOutlined /></span>
                             Quyền riêng tư & Bảo mật
                         </span>
                     } className="settings-card">
@@ -186,7 +186,7 @@ const Settings: React.FC = () => {
                     {/* Preferences */}
                     <Card title={
                         <span>
-                            <GlobalOutlined style={{ marginRight: 8 }} />
+                            <span className="card-icon"><GlobalOutlined /></span>
                             Tùy chọn
                         </span>
                     } className="settings-card">

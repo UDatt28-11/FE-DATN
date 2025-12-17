@@ -515,7 +515,6 @@ const RoomDetailPage: React.FC = () => {
                             fontSize: 42, 
                             fontWeight: 400,
                             marginBottom: 15,
-                            fontFamily: '"Playfair Display", Georgia, serif',
                         }}
                     >
                         {currentRoom.name}
@@ -645,7 +644,7 @@ const RoomDetailPage: React.FC = () => {
 
                                 {/* Thông tin phòng */}
                                 <Card 
-                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Thông tin phòng</Text>} 
+                                    title={<Text style={{ fontSize: 20, fontWeight: 600 }}>Thông tin phòng</Text>} 
                                     variant="borderless"
                                     style={{
                                         borderRadius: 12,
@@ -678,7 +677,7 @@ const RoomDetailPage: React.FC = () => {
 
                                 {/* Tiện nghi */}
                                 <Card 
-                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Tiện nghi phòng</Text>}
+                                    title={<Text style={{ fontSize: 20,}}>Tiện nghi phòng</Text>}
                                     variant="borderless"
                                     style={{
                                         borderRadius: 12,
@@ -704,7 +703,7 @@ const RoomDetailPage: React.FC = () => {
 
                                 {/* Đánh giá */}
                                 <Card
-                                    title={<Text style={{ fontSize: 20, fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 600 }}>Đánh giá ({totalReviews})</Text>}
+                                    title={<Text style={{ fontSize: 20,  }}>Đánh giá ({totalReviews})</Text>}
                                     variant="borderless"
                                     style={{
                                         borderRadius: 12,
@@ -829,7 +828,6 @@ const RoomDetailPage: React.FC = () => {
                                 title={
                                     <Text style={{ 
                                         fontSize: 22, 
-                                        fontFamily: '"Playfair Display", Georgia, serif', 
                                         fontWeight: 600,
                                         background: 'linear-gradient(135deg, #cb8670 0%, #b87560 100%)',
                                         WebkitBackgroundClip: 'text',
@@ -850,7 +848,7 @@ const RoomDetailPage: React.FC = () => {
                                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                                     {/* Giá */}
                                     <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                                        <Text style={{ fontSize: 32, color: '#cb8670', fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                                        <Text style={{ fontSize: 32, color: '#cb8670', fontWeight: 700, }}>
                                             {formatVNDWithUnit(currentRoom.price_per_night, '/đêm')}
                                         </Text>
                                     </div>
@@ -994,7 +992,6 @@ const RoomDetailPage: React.FC = () => {
                             }} />
                             <Title level={2} style={{ 
                                 marginBottom: 10,
-                                fontFamily: '"Playfair Display", Georgia, serif',
                                 fontWeight: 400,
                                 color: '#1a1a1a',
                             }}>

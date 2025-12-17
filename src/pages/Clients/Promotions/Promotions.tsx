@@ -297,7 +297,7 @@ const Promotions: React.FC = () => {
     };
 
     return (
-        <div className="promotions-page">
+        <div className="promotions-page" style={{ }}>
             {/* Hero Section */}
             <section style={{
                 position: 'relative',
@@ -337,8 +337,6 @@ const Promotions: React.FC = () => {
                         fontSize: 52, 
                         fontWeight: 400,
                         marginBottom: 20,
-                        fontFamily: '"Playfair Display", Georgia, serif',
-                        fontStyle: 'italic',
                     }}>
                         Mã Giảm Giá
                     </h1>
@@ -396,13 +394,14 @@ const Promotions: React.FC = () => {
                                     Khám phá các chương trình khuyến mãi hấp dẫn và tiết kiệm chi phí khi đặt phòng tại khách sạn của chúng tôi
                                 </p>
                                 <Search
+                                    className="promotions-search"
                                     placeholder="Tìm kiếm mã giảm giá..."
                                     allowClear
                                     enterButton="Tìm kiếm"
                                     size="large"
                                     onSearch={handleSearch}
                                     onChange={(e) => handleSearch(e.target.value)}
-                                    style={{ maxWidth: '500px' }}
+                                    style={{ maxWidth: '700px', width: '100%' }}
                                 />
                             </div>
                         </Col>

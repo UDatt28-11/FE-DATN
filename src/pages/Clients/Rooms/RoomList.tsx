@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     Layout,
     Row,
@@ -58,6 +58,7 @@ import type { Amenity } from "../../../types/amenity/amenity";
 import { formatVND, formatVNDWithUnit } from "../../../utils/currency";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
+import ImageWithFallback from "../../../components/ImageWithFallback";
 import "./RoomList.css";
 
 const { Content } = Layout;
@@ -475,14 +476,27 @@ const RoomList: React.FC = () => {
         fetchFilterOptions();
     }, []);
 
-    // Fetch RoomTypes với filtering (mô hình mới)
+    // AbortController ref để cancel requests
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Fetch RoomTypes với filtering (mô hình mới) - với AbortController
     const fetchRoomTypes = useCallback(async () => {
+        // Cancel previous request nếu có
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        // Tạo AbortController mới
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
         setLoading(true);
         try {
             // Lấy check-in/check-out dates nếu có
             // Chỉ gửi check_in/check_out nếu cả hai đều có giá trị hợp lệ và không phải ngày quá khứ
             const params: any = {
-                per_page: 100, // Lấy tất cả để filter ở frontend
+                per_page: pageSize, // Pagination ở backend
+                page: currentPage,
             };
 
             if (dateRange && dateRange[0] && dateRange[1]) {
@@ -499,11 +513,16 @@ const RoomList: React.FC = () => {
 
             const response = await getRoomTypesWithDetails(params);
 
+            // Kiểm tra nếu request bị cancel thì không update state
+            if (abortController.signal.aborted) {
+                return;
+            }
+
             if (response.success && response.data) {
+                // Backend đã xử lý pagination, chỉ cần filter client-side cho các filter phức tạp
                 let filteredRoomTypes = [...response.data];
 
-                // Filter ở frontend
-                // Search
+                // Search filter (client-side vì cần search nhiều field)
                 if (debouncedSearchQuery) {
                     const query = debouncedSearchQuery.toLowerCase();
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
@@ -513,9 +532,7 @@ const RoomList: React.FC = () => {
                     );
                 }
 
-                // Room type filter đã bỏ (không cần filter theo loại phòng nữa)
-
-                // Price range
+                // Price range filter (client-side)
                 if (priceRange[0] > 0 || priceRange[1] < 5000000) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const price = rt.price_per_night || 0;
@@ -523,14 +540,14 @@ const RoomList: React.FC = () => {
                     });
                 }
 
-                // Rating filter
+                // Rating filter (client-side)
                 if (minRating > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.rating || 0) >= minRating
                     );
                 }
 
-                // Guests filter
+                // Guests filter (client-side)
                 if (maxAdults > 1) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt =>
                         (rt.max_adults || 0) >= maxAdults
@@ -542,7 +559,7 @@ const RoomList: React.FC = () => {
                     );
                 }
 
-                // Amenities filter (general amenities)
+                // Amenities filters (client-side - complex logic)
                 if (selectedAmenityIds.length > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const roomAmenities = rt.amenities || [];
@@ -552,7 +569,6 @@ const RoomList: React.FC = () => {
                     });
                 }
 
-                // Key Amenities filter (dùng .some() - OR logic: chỉ cần có MỘT trong các amenities được chọn)
                 if (selectedKeyAmenityIds.length > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const roomAmenities = rt.amenities || [];
@@ -562,7 +578,6 @@ const RoomList: React.FC = () => {
                     });
                 }
 
-                // View filter (dùng .some() - OR logic: chỉ cần có MỘT trong các views được chọn)
                 if (selectedViewIds.length > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const roomAmenities = rt.amenities || [];
@@ -572,7 +587,6 @@ const RoomList: React.FC = () => {
                     });
                 }
 
-                // Floor filter (dùng .some() - OR logic: chỉ cần có MỘT trong các floors được chọn)
                 if (selectedFloorIds.length > 0) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const roomAmenities = rt.amenities || [];
@@ -582,17 +596,16 @@ const RoomList: React.FC = () => {
                     });
                 }
 
-                // Sort
+                // Client-side sorting
                 if (sortBy !== "default") {
                     filteredRoomTypes.sort((a, b) => {
                         let aValue: any = 0;
                         let bValue: any = 0;
 
-                        // Best seller: Ưu tiên rating cao + reviews nhiều + available nhiều
                         if (sortBy === "best-seller") {
                             const aScore = ((a.rating || 0) * 10) + (a.reviews_count || 0) + ((a.available_count || 0) * 2);
                             const bScore = ((b.rating || 0) * 10) + (b.reviews_count || 0) + ((b.available_count || 0) * 2);
-                            return bScore - aScore; // Descending
+                            return bScore - aScore;
                         }
 
                         switch (sortBy) {
@@ -613,43 +626,38 @@ const RoomList: React.FC = () => {
                                 bValue = b.created_at || '';
                         }
 
-                        if (sortOrder === "asc") {
-                            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-                        } else {
-                            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-                        }
+                        return sortOrder === "asc"
+                            ? (aValue > bValue ? 1 : aValue < bValue ? -1 : 0)
+                            : (aValue < bValue ? 1 : aValue > bValue ? -1 : 0);
                     });
                 }
 
-                // Pagination ở frontend
-                const startIndex = (currentPage - 1) * pageSize;
-                const endIndex = startIndex + pageSize;
-                const paginatedRoomTypes = filteredRoomTypes.slice(startIndex, endIndex);
-
-                setRoomTypes(paginatedRoomTypes);
-                setTotalRoomTypes(filteredRoomTypes.length);
-
-                // Cập nhật price range max nếu cần
-                if (response.data.length > 0) {
-                    const maxPrice = Math.max(...response.data.map(rt => rt.price_per_night || 0));
-                    if (maxPrice > priceRange[1]) {
-                        setPriceRange([0, Math.ceil(maxPrice / 100000) * 100000]);
-                    }
-                }
+                // Set data from backend pagination
+                setRoomTypes(filteredRoomTypes);
+                setTotalRoomTypes(response.meta?.total || filteredRoomTypes.length);
             }
         } catch (error: any) {
-            if (import.meta.env.DEV) {
-                console.error("Error fetching room types:", error);
+            // Ignore abort errors
+            if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+                console.log('[RoomList] Request was cancelled');
+                return;
             }
-            message.error("Không thể tải danh sách loại phòng. Vui lòng thử lại sau.");
+
+            if (!abortController.signal.aborted) {
+                if (import.meta.env.DEV) {
+                    console.error("Error fetching room types:", error);
+                }
+                message.error("Không thể tải danh sách loại phòng. Vui lòng thử lại sau.");
+            }
         } finally {
-            setLoading(false);
+            if (!abortController.signal.aborted) {
+                setLoading(false);
+            }
         }
     }, [
         currentPage,
         pageSize,
         debouncedSearchQuery,
-        // selectedRoomTypeIds, // Đã bỏ filter theo loại phòng
         selectedAmenityIds,
         selectedKeyAmenityIds,
         selectedViewIds,
@@ -661,12 +669,19 @@ const RoomList: React.FC = () => {
         roomCapacityPreset,
         sortBy,
         sortOrder,
-        dateRange, // Thêm dateRange vào dependencies
+        dateRange,
     ]);
 
     // Fetch RoomTypes khi filters thay đổi
     useEffect(() => {
         fetchRoomTypes();
+
+        // Cleanup function để cancel request khi component unmount hoặc dependencies thay đổi
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
     }, [fetchRoomTypes]);
 
     // Reset về page 1 khi filter thay đổi
@@ -981,8 +996,6 @@ const RoomList: React.FC = () => {
                             fontSize: 52, 
                             fontWeight: 400,
                             marginBottom: 20,
-                            fontFamily: '"Playfair Display", Georgia, serif',
-                            fontStyle: 'italic',
                         }}
                     >
                         Phòng Nghỉ Của Chúng Tôi
@@ -1060,8 +1073,8 @@ const RoomList: React.FC = () => {
                                                 setTotalGuests(guests);
                                                 setDesiredGuests(guests);
                                             }}
-                                            addonAfter="người"
                                         />
+                                        <Button type="default" disabled style={{ pointerEvents: 'none' }}>người</Button>
                                     </Space.Compact>
                                     {/* Nút tìm / chia phòng thông minh */}
                                     <Button
@@ -1190,10 +1203,10 @@ const RoomList: React.FC = () => {
                                                                     }}
                                                                     onClick={() => handleViewDetail(roomType.id)}
                                                                 >
-                                                                    <Image
-                                                                        alt={roomType.name}
+                                                                    <ImageWithFallback
                                                                         src={roomTypeImage}
-                                                                        preview={false}
+                                                                        alt={roomType.name}
+                                                                        fallbackSrc="/img/bg-img/placeholder.jpg"
                                                                         style={{
                                                                             width: '100%',
                                                                             height: '100%',

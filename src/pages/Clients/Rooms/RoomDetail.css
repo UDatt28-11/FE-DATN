@@ -1,5 +1,10 @@
 .room-detail-page {
-    background: #fff;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.room-detail-page.traveloka-style {
+    background: #f5f5f5;
 }
 
 .room-detail-page .breadcrumb-wrapper {
@@ -15,7 +20,7 @@
 
 /* Gallery Images */
 .room-detail-page .ant-image {
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -24,29 +29,40 @@
 }
 
 .room-detail-page .ant-image:hover img {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
 /* Card Styling */
 .room-detail-page .ant-card {
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+    border: 1px solid #e8e8e8;
 }
 
 .room-detail-page .ant-card-head {
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .room-detail-page .ant-card-head-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: #1a1a1a;
 }
 
 /* Rating Stars */
 .room-detail-page .ant-rate {
     color: #cb8670;
+}
+
+/* Sticky Navigation */
+.room-detail-page.traveloka-style .ant-btn-text:hover {
+    background: rgba(203, 134, 112, 0.05) !important;
+}
+
+/* Scroll smooth */
+html {
+    scroll-behavior: smooth;
 }
 
 /* Amenities Section */
@@ -113,12 +129,44 @@
     border-left: 4px solid #cb8670;
 }
 
+/* Button Primary Override */
+.room-detail-page .ant-btn-primary:not(:disabled):hover {
+    background-color: #b57660 !important;
+    border-color: #b57660 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(203, 134, 112, 0.3) !important;
+}
+
+/* Progress Bar */
+.room-detail-page .ant-progress-bg {
+    background: #cb8670 !important;
+}
+
+/* Empty State */
+.room-detail-page .ant-empty {
+    padding: 40px 0;
+}
+
+/* List Items */
+.room-detail-page .ant-list-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 20px 0;
+}
+
+.room-detail-page .ant-list-item:last-child {
+    border-bottom: none;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
     .room-detail-page .ant-card[style*="position: sticky"] {
         position: relative !important;
         top: 0 !important;
-        margin-top: 24px;
+    }
+    
+    .room-detail-page.traveloka-style .ant-tabs-tab {
+        padding: 12px 16px;
+        font-size: 14px;
     }
 }
 
@@ -171,31 +219,44 @@
     }
 }
 
-.room-detail-page .ant-card {
-    animation: fadeInUp 0.5s ease;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    
+    to {
+        opacity: 1;
+    }
 }
 
-.room-detail-page .ant-card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.room-detail-page .ant-card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.room-detail-page .ant-card:nth-child(3) {
-    animation-delay: 0.3s;
+.room-detail-page.traveloka-style > * {
+    animation: fadeIn 0.4s ease;
 }
 
 /* Description Text */
 .room-detail-page .ant-typography {
-    color: #666;
+    color: #555;
     line-height: 1.8;
+}
+
+.room-detail-page .ant-typography p {
+    margin-bottom: 12px;
 }
 
 /* Divider */
 .room-detail-page .ant-divider {
-    border-color: #f0f0f0;
+    border-color: #e8e8e8;
+}
+
+/* Tag styling */
+.room-detail-page .ant-tag {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* Space adjustments */
+.room-detail-page .ant-space-item {
+    line-height: 1.6;
 }
 
 /* Similar Rooms Section */

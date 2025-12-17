@@ -47,7 +47,7 @@ const Rooms: React.FC = () => {
   };
 
   return (
-    <div className="rooms-page">
+    <div className="rooms-page" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* Hero Section */}
       <section style={{
         position: 'relative',
@@ -89,8 +89,6 @@ const Rooms: React.FC = () => {
               fontSize: 52, 
               fontWeight: 400,
               marginBottom: 20,
-              fontFamily: '"Playfair Display", Georgia, serif',
-              fontStyle: 'italic',
             }}
           >
             Phòng Nghỉ Của Chúng Tôi
@@ -147,7 +145,6 @@ const Rooms: React.FC = () => {
                   fontSize: 42, 
                   fontWeight: 600, 
                   marginBottom: 18,
-                  fontFamily: '"Playfair Display", Georgia, serif',
                   color: '#1a1a1a',
                   letterSpacing: '-0.5px',
                 }}>
