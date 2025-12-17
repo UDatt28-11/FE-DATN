@@ -394,6 +394,51 @@ const RoomTypeDetailPage: React.FC = () => {
                 <meta property="og:image" content={pageImage} />
             </Helmet>
 
+
+            {/* Hero Section */}
+            <section style={{
+                position: 'relative',
+                height: 350,
+                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(26,26,26,0.75) 100%), url('${galleryImages[0]}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    textAlign: 'center',
+                    padding: '0 20px',
+                    maxWidth: 900,
+                }}>
+                    <div style={{
+                        width: 60,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #cb8670, #e0a090)',
+                        margin: '0 auto 20px',
+                        borderRadius: 2,
+                    }} />
+                    <Title 
+                        level={1} 
+                        style={{ 
+                            color: '#fff', 
+                            fontSize: 42, 
+                            fontWeight: 400,
+                            marginBottom: 15,
+                        }}
+                    >
+                        {roomType.name}
+                    </Title>
+                    <Space size="large" style={{ marginBottom: 20 }}>
+                        {averageRating > 0 && (
+                            <Space>
+                                <Rate disabled value={averageRating} allowHalf style={{ fontSize: 18 }} />
+                                <Text strong style={{ color: '#fff', fontSize: 16 }}>{averageRating.toFixed(1)}</Text>
+                            </Space>
+                        )}
+
             <Content style={{ background: '#f5f5f5', minHeight: '80vh' }}>
                 <div className="container" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 15px' }}>
                     {/* Header Section */}
@@ -444,7 +489,6 @@ const RoomTypeDetailPage: React.FC = () => {
                             )}
                             <Text type="secondary">{reviewsTotal} đánh giá</Text>
                         </Space>
-
                         {roomType.property && (
                             <Space style={{ color: '#666', marginBottom: 16 }}>
                                 <EnvironmentOutlined />
@@ -515,6 +559,19 @@ const RoomTypeDetailPage: React.FC = () => {
                                     color: activeTab === 'overview' ? '#cb8670' : '#666'
                                 }}
                             >
+                                <div style={{
+                                    borderLeft: '4px solid',
+                                    borderImage: 'linear-gradient(to bottom, #cb8670, #e0a090) 1',
+                                    paddingLeft: 16,
+                                    marginBottom: 20,
+                                }}>
+                                    <Title level={3} style={{ 
+                                        marginBottom: 0,
+                                        color: '#1a1a1a',
+                                    }}>
+                                        {roomType.name}
+                                    </Title>
+
                                 Tổng quan
                             </Button>
                             <Button 
@@ -798,6 +855,63 @@ const RoomTypeDetailPage: React.FC = () => {
                                                         <Text type="secondary">757 m</Text>
                                                     </div>
                                                 </Space>
+                                            </Col>
+                                        </Row>
+                                    </>
+                                )}
+                            </Card>
+
+
+                            {/* Phân loại Amenities */}
+                            {roomType.amenities && roomType.amenities.length > 0 && (() => {
+                                const categorized = categorizeAmenities(roomType.amenities);
+                                return (
+                                    <>
+                                        {/* Tiện nghi đặc biệt */}
+                                        {categorized.keyAmenities.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18,  }}>Tiện nghi đặc biệt</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+
+                                        {/* Hướng nhìn */}
+                                        {categorized.views.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18,  }}>Hướng nhìn</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
                                             </Card>
                                         </Col>
                                         <Col xs={24} sm={12}>
@@ -821,6 +935,23 @@ const RoomTypeDetailPage: React.FC = () => {
                                     </Row>
                                 </div>
 
+                                        {/* Vị trí tầng */}
+                                        {categorized.floors.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, }}>Vị trí tầng</Text>}
+                                                style={{ 
+                                                    marginBottom: 24,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
                                 {/* Tiện ích */}
                                 <div id="amenities" style={{ marginBottom: 32, scrollMarginTop: '80px' }}>
                                     <Title level={4} style={{ marginBottom: 16 }}>Tiện ích</Title>
@@ -910,6 +1041,32 @@ const RoomTypeDetailPage: React.FC = () => {
                                                     )}
                                 </div>
 
+                                        {/* Tiện ích khác */}
+                                        {categorized.others.length > 0 && (
+                                            <Card 
+                                                title={<Text style={{ fontSize: 18, }}>Tiện ích khác</Text>}
+                                                style={{ 
+                                                    marginBottom: 32,
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                                    border: '1px solid #f0f0f0',
+                                                }}
+                                            >
+                                                <Row gutter={[16, 16]}>
+                                                    {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
+                                                        <Col xs={12} sm={8} key={index}>
+                                                            <Space>
+                                                                {amenity.icon}
+                                                                <Text>{amenity.text}</Text>
+                                                            </Space>
+                                                        </Col>
+                                                    ))}
+                                                </Row>
+                                            </Card>
+                                        )}
+                                    </>
+                                );
+                            })()}
                                 {/* Chính sách */}
                                 <div id="policy" style={{ marginBottom: 32, scrollMarginTop: '80px' }}>
                                     <Title level={4} style={{ marginBottom: 16 }}>

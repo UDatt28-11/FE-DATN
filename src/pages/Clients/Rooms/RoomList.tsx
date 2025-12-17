@@ -1009,8 +1009,6 @@ const RoomList: React.FC = () => {
                             fontSize: 52, 
                             fontWeight: 400,
                             marginBottom: 20,
-                            fontFamily: '"Playfair Display", Georgia, serif',
-                            fontStyle: 'italic',
                         }}
                     >
                         Phòng Nghỉ Của Chúng Tôi

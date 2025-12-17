@@ -160,7 +160,7 @@ const HomestayPolicyPage: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* Hero Section */}
       <section style={{
         position: 'relative',
@@ -202,8 +202,6 @@ const HomestayPolicyPage: React.FC = () => {
               fontSize: 52, 
               fontWeight: 400,
               marginBottom: 20,
-              fontFamily: '"Playfair Display", Georgia, serif',
-              fontStyle: 'italic',
             }}
           >
             Chính Sách & Nội Quy
@@ -260,7 +258,6 @@ const HomestayPolicyPage: React.FC = () => {
               fontSize: 42, 
               fontWeight: 600, 
               marginBottom: 18,
-              fontFamily: '"Playfair Display", Georgia, serif',
               color: '#1a1a1a',
               letterSpacing: '-0.5px',
             }}>
@@ -328,7 +325,6 @@ const HomestayPolicyPage: React.FC = () => {
                       fontSize: 20,
                       fontWeight: 600,
                       color: '#1a1a1a',
-                      fontFamily: '"Playfair Display", Georgia, serif',
                     }}>
                       {policy.id}. {policy.title}
                     </Title>
@@ -397,7 +393,6 @@ const HomestayPolicyPage: React.FC = () => {
               <Title level={3} style={{ 
                 color: 'white', 
                 marginBottom: 16,
-                fontFamily: '"Playfair Display", Georgia, serif',
               }}>
                 Cần Hỗ Trợ Thêm?
               </Title>

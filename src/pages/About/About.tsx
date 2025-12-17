@@ -273,7 +273,7 @@ const About: React.FC = () => {
   }, [isVisible]);
 
   return (
-    <div>
+    <div style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* Hero Section */}
       <section style={{
         position: 'relative',
@@ -315,8 +315,7 @@ const About: React.FC = () => {
               fontSize: 52, 
               fontWeight: 400,
               marginBottom: 20,
-              fontFamily: '"Playfair Display", Georgia, serif',
-              fontStyle: 'italic',
+
             }}
           >
             Về Chúng Tôi
@@ -376,7 +375,6 @@ const About: React.FC = () => {
                     fontWeight: 600, 
                     marginBottom: 0, 
                     color: '#1a1a1a',
-                    fontFamily: '"Playfair Display", Georgia, serif',
                     letterSpacing: '-0.5px',
                   }}>
                     Một Nơi Đáng Nhớ
@@ -438,8 +436,6 @@ const About: React.FC = () => {
                   fontSize: 42, 
                   fontWeight: 400, 
                   marginBottom: 20,
-                  fontFamily: '"Playfair Display", Georgia, serif',
-                  fontStyle: 'italic',
                 }}>
                   Thành Tựu Của Chúng Tôi
                 </Title>
@@ -481,7 +477,6 @@ const About: React.FC = () => {
                   margin: '0 0 8px 0', 
                   fontSize: 56, 
                   fontWeight: 300,
-                  fontFamily: '"Poppins", sans-serif',
                   lineHeight: 1,
                 }}>
                   {cocktailCount}
@@ -516,7 +511,6 @@ const About: React.FC = () => {
                   margin: '0 0 8px 0', 
                   fontSize: 56, 
                   fontWeight: 300,
-                  fontFamily: '"Poppins", sans-serif',
                   lineHeight: 1,
                 }}>
                   {poolCount}
@@ -559,7 +553,6 @@ const About: React.FC = () => {
                   margin: '0 0 8px 0', 
                   fontSize: 56, 
                   fontWeight: 300,
-                  fontFamily: '"Poppins", sans-serif',
                   lineHeight: 1,
                 }}>
                   {roomCount}
@@ -600,7 +593,6 @@ const About: React.FC = () => {
                   margin: '0 0 8px 0', 
                   fontSize: 56, 
                   fontWeight: 300,
-                  fontFamily: '"Poppins", sans-serif',
                   lineHeight: 1,
                 }}>
                   {apartmentCount}
@@ -743,7 +735,6 @@ const About: React.FC = () => {
                     fontSize: 18, 
                     color: '#7d7d7d', 
                     lineHeight: 2,
-                    fontStyle: 'italic',
                     marginBottom: 30,
                   }}>
                     "Homestay thật sự tuyệt vời! Không gian ấm cúng, sạch sẽ và đầy đủ tiện nghi. Chủ nhà

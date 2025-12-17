@@ -241,7 +241,7 @@ const MyVouchersPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ padding: '24px', paddingTop: '100px', maxWidth: 1000, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 8 }}>
           <GiftOutlined style={{ fontSize: 28, color: '#eb2f96' }} />
