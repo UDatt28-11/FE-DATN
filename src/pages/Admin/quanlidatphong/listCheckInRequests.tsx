@@ -15,9 +15,9 @@ import {
     Badge,
     Popconfirm,
     Input as AntdInput,
+    Tabs,
 } from 'antd';
 import {
-    EyeOutlined,
     CheckCircleOutlined,
     CloseCircleOutlined,
     ReloadOutlined,
@@ -53,6 +53,8 @@ const ListCheckInRequests: React.FC = () => {
     const [checkInModalVisible, setCheckInModalVisible] = useState(false);
     const [selectedBookingForCheckIn, setSelectedBookingForCheckIn] = useState<BookingOrder | null>(null);
     const [selectedBookingDetailId, setSelectedBookingDetailId] = useState<number | undefined>(undefined);
+    const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+    const [activeTab, setActiveTab] = useState<string>('today');
 
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
@@ -246,10 +248,6 @@ const ListCheckInRequests: React.FC = () => {
         }
     };
 
-    const handleViewDetail = (request: CheckInRequest) => {
-        setSelectedRequest(request);
-        setDetailModalVisible(true);
-    };
 
     const handleTableChange = (page: number) => {
         fetchData(page, statusFilter);
@@ -344,124 +342,70 @@ const ListCheckInRequests: React.FC = () => {
             key: 'created_at',
             render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
         },
-        {
-            title: 'Thao tác',
-            key: 'action',
-            width: 250,
-            render: (_: any, record: any) => {
-                // Nếu là booking sẵn sàng check-in
-                if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
-                    return (
-                        <Space>
-                            <Button
-                                type="link"
-                                icon={<EyeOutlined />}
-                                onClick={() => {
-                                    // Chuyển đổi record thành format CheckInRequest để xem chi tiết
-                                    const fakeRequest = {
-                                        ...record,
-                                        booking_order: record.booking_order || record.bookingOrder,
-                                        booking_detail: record.booking_detail || record.bookingDetail,
-                                    };
-                                    handleViewDetail(fakeRequest);
-                                }}
-                            >
-                                Xem
-                            </Button>
-                        </Space>
-                    );
-                }
-                // CheckInRequest thông thường
-                return (
-                    <Space>
-                        <Button
-                            type="link"
-                            icon={<EyeOutlined />}
-                            onClick={() => handleViewDetail(record)}
-                        >
-                            Xem
-                        </Button>
-                        {record.status === 'pending' && (
-                            <>
-                                <Popconfirm
-                                    title="Xác nhận duyệt"
-                                    description="Bạn có chắc chắn muốn duyệt yêu cầu check-in này?"
-                                    onConfirm={() => handleApprove(record.id)}
-                                    okText="Duyệt"
-                                    cancelText="Hủy"
-                                >
-                                    <Button
-                                        type="link"
-                                        danger={false}
-                                        icon={<CheckCircleOutlined />}
-                                        style={{ color: '#52c41a' }}
-                                    >
-                                        Duyệt
-                                    </Button>
-                                </Popconfirm>
-                                <Button
-                                    type="link"
-                                    danger
-                                    icon={<CloseCircleOutlined />}
-                                    onClick={() => {
-                                        setSelectedRequest(record);
-                                        setRejectModalVisible(true);
-                                    }}
-                                >
-                                    Từ chối
-                                </Button>
-                            </>
-                        )}
-                    </Space>
-                );
-            },
-        },
     ];
 
-    return (
-        <div style={{ padding: '24px' }}>
-            <Card>
-                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                    <Col>
-                        <h2 style={{ margin: 0 }}>
-                            <IdcardOutlined /> Quản lý yêu cầu check-in
-                        </h2>
-                    </Col>
-                    <Col>
-                        <Space>
-                            <Select
-                                value={statusFilter}
-                                onChange={(value) => setStatusFilter(value)}
-                                style={{ width: 150 }}
-                            >
-                                <Option value="all">Tất cả</Option>
-                                <Option value="pending">Chờ xử lý</Option>
-                                <Option value="approved">Đã duyệt</Option>
-                                <Option value="rejected">Đã từ chối</Option>
-                            </Select>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={() => fetchData(pagination?.page || 1, statusFilter)}
-                            >
-                                Làm mới
-                            </Button>
-                        </Space>
-                    </Col>
-                </Row>
+    // Phân loại requests thành 2 nhóm: Check-in hôm nay và Chưa thể check-in
+    const today = dayjs().startOf('day');
+    const todayRequests = requests.filter((record: any) => {
+        if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
+            const booking = record.booking_order || record.bookingOrder;
+            const details = booking?.details || [];
+            // Kiểm tra xem có ít nhất 1 phòng có check_in_date là hôm nay
+            return details.some((detail: any) => {
+                if (detail.check_in_date) {
+                    const checkInDate = dayjs(detail.check_in_date).startOf('day');
+                    return checkInDate.isSame(today, 'day');
+                }
+                return false;
+            });
+        }
+        // CheckInRequest thông thường
+        if (record.booking_detail?.check_in_date) {
+            const checkInDate = dayjs(record.booking_detail.check_in_date).startOf('day');
+            return checkInDate.isSame(today, 'day');
+        }
+        return false;
+    });
 
-                <Table
-                    columns={columns}
-                    dataSource={requests}
-                    rowKey={(record: any) => {
-                        // Nếu là ready_booking, dùng booking_order_id làm key
-                        if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
-                            return `ready_${record.booking_order?.id || record.booking_order_id}`;
-                        }
-                        return record.id;
-                    }}
-                    loading={loading}
-                    expandable={{
-                        expandedRowRender: (record: any) => {
+    const notTodayRequests = requests.filter((record: any) => {
+        if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
+            const booking = record.booking_order || record.bookingOrder;
+            const details = booking?.details || [];
+            // Kiểm tra xem tất cả phòng đều có check_in_date không phải hôm nay
+            return details.every((detail: any) => {
+                if (detail.check_in_date) {
+                    const checkInDate = dayjs(detail.check_in_date).startOf('day');
+                    return !checkInDate.isSame(today, 'day');
+                }
+                return true; // Nếu không có check_in_date, coi như chưa thể check-in
+            });
+        }
+        // CheckInRequest thông thường
+        if (record.booking_detail?.check_in_date) {
+            const checkInDate = dayjs(record.booking_detail.check_in_date).startOf('day');
+            return !checkInDate.isSame(today, 'day');
+        }
+        return true; // Nếu không có check_in_date, coi như chưa thể check-in
+    });
+
+    // Hàm render table
+    const renderTable = (dataSource: any[]) => (
+        <Table
+            columns={columns}
+            dataSource={dataSource}
+            rowKey={(record: any) => {
+                // Nếu là ready_booking, dùng booking_order_id làm key
+                if (record.type === 'ready_booking' || record.status === 'ready_for_checkin') {
+                    return `ready_${record.booking_order?.id || record.booking_order_id}`;
+                }
+                return record.id;
+            }}
+            loading={loading}
+            expandable={{
+                expandedRowKeys,
+                onExpandedRowsChange: (keys) => setExpandedRowKeys(keys as React.Key[]),
+                expandIcon: () => null, // Ẩn dấu +
+                expandedRowRender: (record: any) => {
                             // Chỉ expand cho ready_bookings
                             if (record.type !== 'ready_booking' && record.status !== 'ready_for_checkin') {
                                 return null;
@@ -597,17 +541,91 @@ const ListCheckInRequests: React.FC = () => {
                                 />
                             );
                         },
-                        rowExpandable: (record: any) => {
-                            // Chỉ expand cho ready_bookings
-                            return record.type === 'ready_booking' || record.status === 'ready_for_checkin';
+                rowExpandable: (record: any) => {
+                    // Chỉ expand cho ready_bookings
+                    return record.type === 'ready_booking' || record.status === 'ready_for_checkin';
+                },
+            }}
+            onRow={(record: any) => {
+                // Click vào row để expand/collapse
+                return {
+                    onClick: () => {
+                        const key = record.type === 'ready_booking' || record.status === 'ready_for_checkin'
+                            ? `ready_${record.booking_order?.id || record.booking_order_id}`
+                            : record.id;
+                        
+                        if (expandedRowKeys.includes(key)) {
+                            setExpandedRowKeys(expandedRowKeys.filter(k => k !== key));
+                        } else {
+                            setExpandedRowKeys([...expandedRowKeys, key]);
+                        }
+                    },
+                    style: { cursor: 'pointer' },
+                };
+            }}
+            pagination={{
+                current: pagination?.page || 1,
+                pageSize: pagination?.per_page || 15,
+                total: pagination?.total || 0,
+                onChange: handleTableChange,
+            }}
+        />
+    );
+
+    return (
+        <div style={{ padding: '24px' }}>
+            <Card>
+                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                    <Col>
+                        <h2 style={{ margin: 0 }}>
+                            <IdcardOutlined /> Quản lý yêu cầu check-in
+                        </h2>
+                    </Col>
+                    <Col>
+                        <Space>
+                            <Select
+                                value={statusFilter}
+                                onChange={(value) => setStatusFilter(value)}
+                                style={{ width: 150 }}
+                            >
+                                <Option value="all">Tất cả</Option>
+                                <Option value="pending">Chờ xử lý</Option>
+                                <Option value="approved">Đã duyệt</Option>
+                                <Option value="rejected">Đã từ chối</Option>
+                            </Select>
+                            <Button
+                                icon={<ReloadOutlined />}
+                                onClick={() => fetchData(pagination?.page || 1, statusFilter)}
+                            >
+                                Làm mới
+                            </Button>
+                        </Space>
+                    </Col>
+                </Row>
+
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={[
+                        {
+                            key: 'today',
+                            label: (
+                                <span>
+                                    <CalendarOutlined /> Check-in hôm nay ({todayRequests.length})
+                                </span>
+                            ),
+                            children: renderTable(todayRequests),
                         },
-                    }}
-                    pagination={{
-                        current: pagination?.page || 1,
-                        pageSize: pagination?.per_page || 15,
-                        total: pagination?.total || 0,
-                        onChange: handleTableChange,
-                    }}
+                        {
+                            key: 'not_today',
+                            label: (
+                                <span>
+                                    <CalendarOutlined /> Chưa thể check-in ({notTodayRequests.length})
+                                </span>
+                            ),
+                            children: renderTable(notTodayRequests),
+                        },
+                    ]}
                 />
             </Card>
 

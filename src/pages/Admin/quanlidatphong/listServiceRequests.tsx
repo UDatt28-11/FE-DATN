@@ -14,6 +14,8 @@ import {
     Badge,
     Popconfirm,
     Input as AntdInput,
+    InputNumber,
+    Form,
     Typography,
 } from 'antd';
 import {
@@ -31,6 +33,7 @@ import {
     getServiceRequests,
     approveServiceRequest,
     rejectServiceRequest,
+    completeServiceRequest,
 } from '../../../service/bookingService';
 import { formatVND } from '../../../utils/currency';
 
@@ -49,13 +52,17 @@ interface ServiceRequest {
         price: number;
         unit: string;
     };
-    quantity: number;
+    quantity?: number;
+    actual_quantity?: number;
     price_at_booking: number;
-    total_amount: number;
-    status: 'pending' | 'approved' | 'rejected';
+    actual_price?: number;
+    total_amount?: number;
+    status: 'pending' | 'approved' | 'rejected' | 'in_use' | 'completed';
     notes?: string;
     customer_name: string;
     created_at: string;
+    started_at?: string;
+    completed_at?: string;
 }
 
 interface Pagination {
@@ -69,13 +76,15 @@ const ListServiceRequests: React.FC = () => {
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState<Pagination | undefined>();
-    const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+    const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'in_use' | 'completed' | 'all'>('pending');
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [approveModalVisible, setApproveModalVisible] = useState(false);
-    const [approveNotes, setApproveNotes] = useState('');
+    const [approveForm] = Form.useForm();
+    const [completeModalVisible, setCompleteModalVisible] = useState(false);
+    const [completeForm] = Form.useForm();
 
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
@@ -104,15 +113,48 @@ const ListServiceRequests: React.FC = () => {
         if (!selectedRequest) return;
 
         try {
-            await approveServiceRequest(selectedRequest.id, approveNotes);
-            message.success('Đã duyệt yêu cầu dịch vụ và thêm vào hóa đơn');
+            const values = await approveForm.validateFields();
+            await approveServiceRequest(selectedRequest.id, {
+                admin_notes: values.admin_notes,
+                quantity: values.quantity,
+            });
+            message.success('Đã duyệt yêu cầu dịch vụ. Dịch vụ đã được đưa vào sử dụng.');
             setApproveModalVisible(false);
             setSelectedRequest(null);
-            setApproveNotes('');
+            approveForm.resetFields();
             fetchData(pagination?.page || 1, statusFilter);
         } catch (error: any) {
+            if (error.errorFields) {
+                // Form validation errors
+                return;
+            }
             console.error('Error approving request:', error);
             message.error(error.response?.data?.message || 'Không thể duyệt yêu cầu dịch vụ');
+        }
+    };
+
+    const handleComplete = async () => {
+        if (!selectedRequest) return;
+
+        try {
+            const values = await completeForm.validateFields();
+            await completeServiceRequest(selectedRequest.id, {
+                actual_quantity: values.actual_quantity,
+                actual_price: values.actual_price,
+                notes: values.notes,
+            });
+            message.success('Đã kết thúc dịch vụ và thêm vào hóa đơn');
+            setCompleteModalVisible(false);
+            completeForm.resetFields();
+            setSelectedRequest(null);
+            fetchData(pagination?.page || 1, statusFilter);
+        } catch (error: any) {
+            if (error.errorFields) {
+                // Form validation errors
+                return;
+            }
+            console.error('Error completing service:', error);
+            message.error(error.response?.data?.message || 'Không thể kết thúc dịch vụ');
         }
     };
 
@@ -181,20 +223,35 @@ const ListServiceRequests: React.FC = () => {
             render: (_: any, record: ServiceRequest) => (
                 <Space direction="vertical" size="small">
                     <Text strong>{record.service?.name || 'N/A'}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                        {record.quantity} {record.service?.unit || 'đơn vị'}
-                    </Text>
+                    {record.status === 'completed' && record.actual_quantity ? (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                            {record.actual_quantity} {record.service?.unit || 'đơn vị'} (đã xác nhận)
+                        </Text>
+                    ) : (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                            Mức giá: {formatVND(record.price_at_booking)}/{record.service?.unit || 'đơn vị'}
+                        </Text>
+                    )}
                 </Space>
             ),
         },
         {
             title: 'Tổng tiền',
             key: 'total',
-            render: (_: any, record: ServiceRequest) => (
-                <Text strong style={{ color: '#1890ff' }}>
-                    {formatVND(record.total_amount)}
-                </Text>
-            ),
+            render: (_: any, record: ServiceRequest) => {
+                if (record.status === 'completed' && record.actual_quantity && record.actual_price) {
+                    return (
+                        <Text strong style={{ color: '#52c41a' }}>
+                            {formatVND(record.actual_quantity * record.actual_price)}
+                        </Text>
+                    );
+                }
+                return (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                        Chưa xác định
+                    </Text>
+                );
+            },
         },
         {
             title: 'Trạng thái',
@@ -203,7 +260,9 @@ const ListServiceRequests: React.FC = () => {
             render: (status: string) => {
                 const config: Record<string, { color: string; text: string }> = {
                     pending: { color: 'orange', text: 'Chờ xử lý' },
-                    approved: { color: 'green', text: 'Đã duyệt' },
+                    approved: { color: 'blue', text: 'Đã duyệt' },
+                    in_use: { color: 'processing', text: 'Đang sử dụng' },
+                    completed: { color: 'success', text: 'Đã hoàn thành' },
                     rejected: { color: 'red', text: 'Đã từ chối' },
                 };
                 const cfg = config[status] || { color: 'default', text: status };
@@ -233,9 +292,13 @@ const ListServiceRequests: React.FC = () => {
                         <>
                             <Popconfirm
                                 title="Xác nhận duyệt"
-                                description="Dịch vụ sẽ được thêm vào hóa đơn. Bạn có chắc chắn?"
+                                description="Dịch vụ sẽ được đưa vào sử dụng. Bạn có chắc chắn?"
                                 onConfirm={() => {
                                     setSelectedRequest(record);
+                                    approveForm.setFieldsValue({
+                                        quantity: undefined,
+                                        admin_notes: '',
+                                    });
                                     setApproveModalVisible(true);
                                 }}
                                 okText="Duyệt"
@@ -263,6 +326,24 @@ const ListServiceRequests: React.FC = () => {
                             </Button>
                         </>
                     )}
+                    {record.status === 'in_use' && (
+                        <Button
+                            type="link"
+                            icon={<CheckCircleOutlined />}
+                            style={{ color: '#1890ff' }}
+                            onClick={() => {
+                                setSelectedRequest(record);
+                                completeForm.setFieldsValue({
+                                    actual_quantity: undefined,
+                                    actual_price: record.price_at_booking,
+                                    notes: '',
+                                });
+                                setCompleteModalVisible(true);
+                            }}
+                        >
+                            Kết thúc
+                        </Button>
+                    )}
                 </Space>
             ),
         },
@@ -286,7 +367,8 @@ const ListServiceRequests: React.FC = () => {
                             >
                                 <Option value="all">Tất cả</Option>
                                 <Option value="pending">Chờ xử lý</Option>
-                                <Option value="approved">Đã duyệt</Option>
+                                <Option value="in_use">Đang sử dụng</Option>
+                                <Option value="completed">Đã hoàn thành</Option>
                                 <Option value="rejected">Đã từ chối</Option>
                             </Select>
                             <Button
@@ -389,34 +471,135 @@ const ListServiceRequests: React.FC = () => {
                 onCancel={() => {
                     setApproveModalVisible(false);
                     setSelectedRequest(null);
-                    setApproveNotes('');
+                    approveForm.resetFields();
                 }}
                 okText="Duyệt"
                 cancelText="Hủy"
             >
-                <p>Dịch vụ sẽ được thêm vào hóa đơn của booking này.</p>
+                <p>Dịch vụ sẽ được đưa vào sử dụng. Giá trị cụ thể sẽ được xác nhận khi kết thúc dịch vụ.</p>
                 {selectedRequest && (
-                    <Descriptions bordered size="small" column={1}>
-                        <Descriptions.Item label="Dịch vụ">
-                            {selectedRequest.service?.name}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Số lượng">
-                            {selectedRequest.quantity} {selectedRequest.service?.unit}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Tổng tiền">
-                            <Text strong>{formatVND(selectedRequest.total_amount)}</Text>
-                        </Descriptions.Item>
-                    </Descriptions>
+                    <>
+                        <Descriptions bordered size="small" column={1} style={{ marginTop: 16 }}>
+                            <Descriptions.Item label="Dịch vụ">
+                                {selectedRequest.service?.name}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Mức giá">
+                                {formatVND(selectedRequest.price_at_booking)}/{selectedRequest.service?.unit}
+                            </Descriptions.Item>
+                        </Descriptions>
+                        <Form form={approveForm} layout="vertical" style={{ marginTop: 16 }}>
+                            <Form.Item
+                                name="quantity"
+                                label={`Số lượng (${selectedRequest.service?.unit || 'đơn vị'})`}
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập số lượng' },
+                                    { type: 'number', min: 1, message: 'Số lượng phải lớn hơn 0' },
+                                ]}
+                            >
+                                <InputNumber
+                                    style={{ width: '100%' }}
+                                    placeholder="Nhập số lượng"
+                                    min={1}
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                name="admin_notes"
+                                label="Ghi chú (tùy chọn)"
+                            >
+                                <TextArea
+                                    rows={3}
+                                    placeholder="Ghi chú (tùy chọn)"
+                                    maxLength={1000}
+                                />
+                            </Form.Item>
+                        </Form>
+                    </>
                 )}
-                <div style={{ marginTop: 16 }}>
-                    <TextArea
-                        rows={3}
-                        placeholder="Ghi chú (tùy chọn)"
-                        value={approveNotes}
-                        onChange={(e) => setApproveNotes(e.target.value)}
-                        maxLength={1000}
-                    />
-                </div>
+            </Modal>
+
+            {/* Modal kết thúc dịch vụ */}
+            <Modal
+                title="Kết thúc dịch vụ"
+                open={completeModalVisible}
+                onOk={handleComplete}
+                onCancel={() => {
+                    setCompleteModalVisible(false);
+                    completeForm.resetFields();
+                    setSelectedRequest(null);
+                }}
+                okText="Xác nhận kết thúc"
+                cancelText="Hủy"
+            >
+                <p>Nhập giá trị cụ thể của dịch vụ đã sử dụng. Dịch vụ sẽ được thêm vào hóa đơn.</p>
+                {selectedRequest && (
+                    <Form form={completeForm} layout="vertical">
+                        <Form.Item
+                            name="actual_quantity"
+                            label={`Số lượng (${selectedRequest.service?.unit || 'đơn vị'})`}
+                            rules={[
+                                { required: true, message: 'Vui lòng nhập số lượng' },
+                                { type: 'number', min: 0.01, message: 'Số lượng phải lớn hơn 0' },
+                            ]}
+                        >
+                            <InputNumber
+                                min={0.01}
+                                step={0.01}
+                                style={{ width: '100%' }}
+                                placeholder="Nhập số lượng đã sử dụng"
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            name="actual_price"
+                            label="Giá (VND)"
+                            rules={[
+                                { required: true, message: 'Vui lòng nhập giá' },
+                                { type: 'number', min: 0, message: 'Giá phải lớn hơn hoặc bằng 0' },
+                            ]}
+                        >
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                                placeholder="Nhập giá"
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            name="notes"
+                            label="Ghi chú (tùy chọn)"
+                        >
+                            <TextArea
+                                rows={3}
+                                placeholder="Nhập ghi chú nếu có"
+                                maxLength={1000}
+                            />
+                        </Form.Item>
+                        <Form.Item shouldUpdate={(prevValues, currentValues) => 
+                            prevValues.actual_quantity !== currentValues.actual_quantity ||
+                            prevValues.actual_price !== currentValues.actual_price
+                        }>
+                            {({ getFieldValue }) => {
+                                const quantity = getFieldValue('actual_quantity');
+                                const price = getFieldValue('actual_price');
+                                const total = quantity && price ? quantity * price : 0;
+                                return total > 0 ? (
+                                    <Card size="small" style={{ backgroundColor: '#e6f7ff', marginTop: 16 }}>
+                                        <Row justify="space-between">
+                                            <Col>
+                                                <Text type="secondary">Tổng tiền:</Text>
+                                            </Col>
+                                            <Col>
+                                                <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                                                    {formatVND(total)}
+                                                </Text>
+                                            </Col>
+                                        </Row>
+                                    </Card>
+                                ) : null;
+                            }}
+                        </Form.Item>
+                    </Form>
+                )}
             </Modal>
 
             {/* Modal từ chối */}

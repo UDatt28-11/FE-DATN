@@ -999,7 +999,6 @@ export async function requestService(
   serviceData: {
     booking_detail_id: number;
     service_id: number;
-    quantity: number;
     notes?: string;
   }
 ) {
@@ -1029,12 +1028,16 @@ export async function getServiceRequests(params?: {
 // Admin: Approve service request
 export async function approveServiceRequest(
   serviceRequestId: number,
-  adminNotes?: string
+  data: {
+    admin_notes?: string;
+    quantity?: number;
+  }
 ) {
-  const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/approve`, {
-    admin_notes: adminNotes,
+  const { data: responseData } = await api.post(`/admin/service-requests/${serviceRequestId}/approve`, {
+    admin_notes: data.admin_notes,
+    quantity: data.quantity,
   });
-  return data;
+  return responseData;
 }
 
 // Admin: Reject service request
@@ -1045,6 +1048,32 @@ export async function rejectServiceRequest(
   const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/reject`, {
     rejection_reason: rejectionReason,
   });
+  return data;
+}
+
+// Admin: Complete service request (kết thúc dịch vụ và xác nhận giá trị)
+export async function completeServiceRequest(
+  serviceRequestId: number,
+  completeData: {
+    actual_quantity: number;
+    actual_price: number;
+    notes?: string;
+  }
+) {
+  const { data } = await api.post(`/admin/service-requests/${serviceRequestId}/complete`, completeData);
+  return data;
+}
+
+// Admin/Staff: Request service for guest
+export async function requestServiceForGuest(
+  bookingId: number,
+  serviceData: {
+    booking_detail_id: number;
+    service_id: number;
+    notes?: string;
+  }
+) {
+  const { data } = await api.post(`/admin/bookings/${bookingId}/request-service-for-guest`, serviceData);
   return data;
 }
 

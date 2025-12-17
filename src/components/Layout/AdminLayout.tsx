@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
   Menu,
@@ -51,6 +51,7 @@ interface MenuItem {
 const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
 
   const menuItems: MenuItem[] = [
@@ -176,6 +177,27 @@ const AdminLayout: React.FC = () => {
     label: <NavLink to={item.path}>{item.label}</NavLink>,
   }));
 
+  // Xác định selected key dựa trên pathname hiện tại
+  const selectedKeys = useMemo(() => {
+    const currentPath = location.pathname;
+    
+    // Tìm menu item có path khớp với pathname hiện tại
+    const matchedItem = menuItems.find((item) => {
+      // Kiểm tra exact match
+      if (currentPath === item.path) {
+        return true;
+      }
+      // Kiểm tra nếu pathname bắt đầu bằng item.path (cho các sub-routes)
+      // Ví dụ: /admin/category/123 sẽ match với /admin/category
+      if (currentPath.startsWith(item.path + '/') || currentPath.startsWith(item.path + '?')) {
+        return true;
+      }
+      return false;
+    });
+    
+    return matchedItem ? [matchedItem.key] : [];
+  }, [location.pathname]);
+
   const userMenuItems: MenuProps["items"] = [
     {
       key: "logout",
@@ -271,7 +293,7 @@ const AdminLayout: React.FC = () => {
         <div style={{ padding: "16px 12px" }}>
           <Menu
             mode="inline"
-            defaultSelectedKeys={["dashboard"]}
+            selectedKeys={selectedKeys}
             items={antdMenuItems}
             style={{
               background: "transparent",

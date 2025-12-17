@@ -13,6 +13,7 @@ import {
     Row,
     Col,
     Card,
+    Alert,
 } from 'antd';
 import {
     UserOutlined,
@@ -39,12 +40,43 @@ const validateFullName = (_: any, value: string) => {
     return Promise.resolve();
 };
 
-const validateDateOfBirth = (_: any, value: any) => {
-    if (!value) return Promise.resolve(); // Optional field
-    const age = dayjs().diff(dayjs(value), 'year');
-    if (age < 16) {
-        return Promise.reject('Thông tin không hợp lệ');
+// Validate ngày sinh dựa trên loại giấy tờ
+// CCCD và hộ chiếu đều yêu cầu tuổi >= 14 (theo quy định Việt Nam)
+const validateDateOfBirth = (identityType: string) => (_: any, value: any) => {
+    if (!value) {
+        // Nếu chưa chọn loại giấy tờ, không validate
+        if (!identityType) return Promise.resolve();
+        // Nếu đã chọn loại giấy tờ nhưng chưa nhập ngày sinh, yêu cầu nhập
+        return Promise.reject('Vui lòng nhập ngày sinh');
     }
+    
+    // Kiểm tra ngày sinh có hợp lệ không
+    const birthDate = dayjs(value);
+    if (!birthDate.isValid()) {
+        return Promise.reject('Ngày sinh không hợp lệ');
+    }
+    
+    // Kiểm tra ngày sinh không được trong tương lai
+    if (birthDate.isAfter(dayjs())) {
+        return Promise.reject('Ngày sinh không được trong tương lai');
+    }
+    
+    // Tính tuổi
+    const age = dayjs().diff(birthDate, 'year', true); // true để lấy số thập phân chính xác
+    
+    // Theo quy định Việt Nam: CCCD và hộ chiếu đều yêu cầu tuổi >= 14
+    const minAge = 14;
+    
+    if (age < minAge) {
+        const identityTypeName = identityType === 'cccd' ? 'CCCD' : 'hộ chiếu';
+        return Promise.reject(`Độ tuổi không đủ để có ${identityTypeName}. Yêu cầu tối thiểu ${minAge} tuổi.`);
+    }
+    
+    // Kiểm tra tuổi hợp lý (không quá 150 tuổi)
+    if (age > 150) {
+        return Promise.reject('Ngày sinh không hợp lệ');
+    }
+    
     return Promise.resolve();
 };
 
@@ -201,6 +233,18 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 return;
             }
 
+            // Validate: Chỉ cho phép check-in vào đúng ngày check-in của booking
+            if (bookingDetail.check_in_date) {
+                const checkInDate = dayjs(bookingDetail.check_in_date).startOf('day');
+                const today = dayjs().startOf('day');
+                
+                if (!today.isSame(checkInDate, 'day')) {
+                    message.error(`Không thể check-in. Phòng này chỉ có thể check-in vào ngày ${checkInDate.format('DD/MM/YYYY')}. Ngày hiện tại: ${today.format('DD/MM/YYYY')}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // Validate số lượng khách không vượt quá capacity
             const maxGuests = (bookingDetail.num_adults || 0) + (bookingDetail.num_children || 0);
             if (guestForms.length > maxGuests) {
@@ -222,6 +266,25 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                     const day = String(guestData.birth_day).padStart(2, '0');
                     const month = String(guestData.birth_month).padStart(2, '0');
                     dateOfBirth = `${guestData.birth_year}-${month}-${day}`;
+                }
+
+                // Validate tuổi dựa trên loại giấy tờ
+                if (dateOfBirth && guestData.identity_type) {
+                    const birthDate = dayjs(dateOfBirth);
+                    if (birthDate.isValid()) {
+                        const age = dayjs().diff(birthDate, 'year', true);
+                        const minAge = 14; // CCCD và hộ chiếu đều yêu cầu tuổi >= 14
+                        
+                        if (age < minAge) {
+                            const identityTypeName = guestData.identity_type === 'cccd' ? 'CCCD' : 'hộ chiếu';
+                            throw new Error(`Khách ${index + 1}: Độ tuổi không đủ để có ${identityTypeName}. Yêu cầu tối thiểu ${minAge} tuổi.`);
+                        }
+                        
+                        // Kiểm tra ngày sinh không được trong tương lai
+                        if (birthDate.isAfter(dayjs())) {
+                            throw new Error(`Khách ${index + 1}: Ngày sinh không được trong tương lai.`);
+                        }
+                    }
                 }
 
                 return {
@@ -281,6 +344,11 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
     const checkInDate = bookingDetail?.check_in_date
         ? dayjs(bookingDetail.check_in_date).format('DD/MM/YYYY')
         : 'N/A';
+    
+    // Kiểm tra xem ngày hiện tại có phải là ngày check-in không
+    const canCheckIn = bookingDetail?.check_in_date 
+        ? dayjs().startOf('day').isSame(dayjs(bookingDetail.check_in_date).startOf('day'), 'day')
+        : true; // Nếu không có check_in_date thì cho phép (fallback)
 
     return (
         <Modal
@@ -302,6 +370,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                     type="primary"
                     loading={loading}
                     onClick={handleSubmit}
+                    disabled={!canCheckIn}
                     style={{
                         backgroundColor: '#52c41a',
                         borderColor: '#52c41a',
@@ -336,6 +405,25 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         </Col>
                     </Row>
                 </Card>
+
+                {/* Cảnh báo về ngày check-in */}
+                {bookingDetail?.check_in_date && (() => {
+                    const checkInDate = dayjs(bookingDetail.check_in_date).startOf('day');
+                    const today = dayjs().startOf('day');
+                    const isToday = today.isSame(checkInDate, 'day');
+                    
+                    return (
+                        <Alert
+                            message={isToday 
+                                ? `Có thể check-in hôm nay (${checkInDate.format('DD/MM/YYYY')})`
+                                : `Chỉ có thể check-in vào ngày ${checkInDate.format('DD/MM/YYYY')}. Ngày hiện tại: ${today.format('DD/MM/YYYY')}`
+                            }
+                            type={isToday ? 'success' : 'warning'}
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+                    );
+                })()}
 
                 <Divider>Thông tin khách check-in</Divider>
 
@@ -426,7 +514,28 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                                     <Form.Item
                                                         name={[`guests_${index}`, 'birth_year']}
                                                         noStyle
-                                                        rules={[{ required: true, message: 'Chọn năm' }]}
+                                                        dependencies={[[`guests_${index}`, 'identity_type'], [`guests_${index}`, 'birth_day'], [`guests_${index}`, 'birth_month']]}
+                                                        rules={[
+                                                            { required: true, message: 'Chọn năm' },
+                                                            ({ getFieldValue }) => ({
+                                                                validator: () => {
+                                                                    const identityType = getFieldValue([`guests_${index}`, 'identity_type']);
+                                                                    const birthDay = getFieldValue([`guests_${index}`, 'birth_day']);
+                                                                    const birthMonth = getFieldValue([`guests_${index}`, 'birth_month']);
+                                                                    const birthYear = getFieldValue([`guests_${index}`, 'birth_year']);
+                                                                    
+                                                                    // Chỉ validate nếu đã có đủ thông tin và đã chọn loại giấy tờ
+                                                                    if (identityType && birthDay && birthMonth && birthYear) {
+                                                                        const day = String(birthDay).padStart(2, '0');
+                                                                        const month = String(birthMonth).padStart(2, '0');
+                                                                        const dateOfBirth = `${birthYear}-${month}-${day}`;
+                                                                        
+                                                                        return validateDateOfBirth(identityType)({}, dateOfBirth);
+                                                                    }
+                                                                    return Promise.resolve();
+                                                                },
+                                                            }),
+                                                        ]}
                                                     >
                                                         <Select
                                                             placeholder="Năm"
@@ -462,6 +571,8 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                         onChange={() => {
                                             // Clear and revalidate identity_number when type changes
                                             form.validateFields([[`guests_${index}`, 'identity_number']]);
+                                            // Validate ngày sinh khi thay đổi loại giấy tờ
+                                            form.validateFields([[`guests_${index}`, 'birth_year']]);
                                         }}
                                     >
                                         <Select.Option value="cccd">CCCD/CMND</Select.Option>

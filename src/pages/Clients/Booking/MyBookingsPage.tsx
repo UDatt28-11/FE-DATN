@@ -38,7 +38,6 @@ import {
     RedoOutlined,
     ShoppingOutlined,
     StarOutlined,
-    AppstoreOutlined,
 } from '@ant-design/icons';
 import { getUserBookings, getUserBooking, getUserInvoices, cancelUserBooking, getUserBookingCounts } from '../../../service/bookingService';
 import type { BookingOrder, BookingDetail } from '../../../types/booking/booking';
@@ -47,7 +46,6 @@ import { useAuth } from '../../../context/AuthContext';
 import PaymentModal from '../../../components/Booking/PaymentModal';
 import ViewInvoiceModal from '../../../components/Booking/ViewInvoiceModal';
 import RequestServiceModal from '../../../components/Booking/RequestServiceModal';
-import RequestAmenityModal from '../../../components/Booking/RequestAmenityModal';
 import ReviewModal from '../../../components/Booking/ReviewModal';
 import CancelBookingModal from '../../../components/Booking/CancelBookingModal';
 import ChangeDateModal from '../../../components/Booking/ChangeDateModal';
@@ -216,9 +214,6 @@ const MyBookingsPage: React.FC = () => {
     const [requestServiceModalVisible, setRequestServiceModalVisible] = useState(false);
     const [requestServiceBooking, setRequestServiceBooking] = useState<BookingOrder | null>(null);
     const [requestServiceDetail, setRequestServiceDetail] = useState<BookingDetail | null>(null);
-    const [requestAmenityModalVisible, setRequestAmenityModalVisible] = useState(false);
-    const [requestAmenityBooking, setRequestAmenityBooking] = useState<BookingOrder | null>(null);
-    const [requestAmenityDetail, setRequestAmenityDetail] = useState<BookingDetail | null>(null);
     const [viewInvoiceId, setViewInvoiceId] = useState<number | null>(null);
     const [reviewModalVisible, setReviewModalVisible] = useState(false);
     const [reviewBookingDetail, setReviewBookingDetail] = useState<BookingDetail | null>(null);
@@ -289,7 +284,7 @@ const MyBookingsPage: React.FC = () => {
                 per_page: 20, // Giảm từ 50 xuống 20 để tăng tốc độ
                 status: statusFilter,
                 sort: '-created_at',
-                include: 'details,details.room,details.room.roomType,details.room.roomType.images,details.review,invoices,invoices.payments,invoices.invoiceItems,checkoutRequests', // Thêm checkoutRequests và reviews để kiểm tra trạng thái
+                include: 'details,details.room,details.room.roomType,details.room.roomType.images,details.review,details.bookingServices,details.bookingServices.service,invoices,invoices.payments,invoices.invoiceItems,checkoutRequests', // Thêm bookingServices để hiển thị dịch vụ đang sử dụng
             });
 
             setBookings(response.data || []);
@@ -393,7 +388,7 @@ const MyBookingsPage: React.FC = () => {
         setDetailLoading(true);
         try {
             // Fetch full booking details
-            const fullBooking = await getUserBooking(booking.id, 'details,details.room,details.room.property,details.room.roomType,details.room.roomType.images,details.guests');
+            const fullBooking = await getUserBooking(booking.id, 'details,details.room,details.room.property,details.room.roomType,details.room.roomType.images,details.guests,details.bookingServices,details.bookingServices.service');
             setSelectedBooking(fullBooking);
         } catch (error: any) {
             console.error("Error fetching booking detail:", error);
@@ -555,6 +550,39 @@ const MyBookingsPage: React.FC = () => {
                                     </Tag>
                                 </Space>
                             </Col>
+                            <Col style={{ flexShrink: 0 }}>
+                                {/* Nút Xem hóa đơn - hiển thị cho tất cả booking (sẽ kiểm tra invoice khi click) */}
+                                <Button
+                                    icon={<FileTextOutlined />}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                    onClick={async () => {
+                                        try {
+                                            // Ưu tiên sử dụng invoice từ booking (đã được eager load)
+                                            let bookingInvoice = booking.invoices && booking.invoices.length > 0 
+                                                ? booking.invoices[0] 
+                                                : null;
+                                            
+                                            // Nếu không có trong booking, fetch từ API
+                                            if (!bookingInvoice) {
+                                                const invoices = await getUserInvoices();
+                                                bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === booking.id);
+                                            }
+                                            
+                                            if (bookingInvoice) {
+                                                setViewInvoiceId(bookingInvoice.id);
+                                                setInvoiceModalVisible(true);
+                                            } else {
+                                                message.info('Chưa có hóa đơn cho đơn đặt phòng này.');
+                                            }
+                                        } catch (error: any) {
+                                            console.error('Error fetching invoice:', error);
+                                            message.error('Không thể tải thông tin hóa đơn.');
+                                        }
+                                    }}
+                                >
+                                    Xem hóa đơn
+                                </Button>
+                            </Col>
                         </Row>
 
                         <Divider style={{ margin: '16px 0' }} />
@@ -635,55 +663,10 @@ const MyBookingsPage: React.FC = () => {
                                             >
                                                 Yêu cầu dịch vụ
                                             </Button>
-                                            <Button
-                                                type="default"
-                                                icon={<AppstoreOutlined />}
-                                                onClick={() => {
-                                                    const firstDetail = booking.details?.[0];
-                                                    if (firstDetail) {
-                                                        setRequestAmenityBooking(booking);
-                                                        setRequestAmenityDetail(firstDetail);
-                                                        setRequestAmenityModalVisible(true);
-                                                    } else {
-                                                        message.warning('Không tìm thấy thông tin phòng');
-                                                    }
-                                                }}
-                                            >
-                                                Yêu cầu tiện ích
-                                            </Button>
                                         </>
                                     )}
                                     {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') && (
                                         <>
-                                            <Button
-                                                icon={<FileTextOutlined />}
-                                                onClick={async () => {
-                                                    try {
-                                                        // Ưu tiên sử dụng invoice từ booking (đã được eager load)
-                                                        let bookingInvoice = booking.invoices && booking.invoices.length > 0 
-                                                            ? booking.invoices[0] 
-                                                            : null;
-                                                        
-                                                        // Nếu không có trong booking, fetch từ API
-                                                        if (!bookingInvoice) {
-                                                            const invoices = await getUserInvoices();
-                                                            bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === booking.id);
-                                                        }
-                                                        
-                                                        if (bookingInvoice) {
-                                                            setViewInvoiceId(bookingInvoice.id);
-                                                            setInvoiceModalVisible(true);
-                                                        } else {
-                                                            message.info('Chưa có hóa đơn cho đơn đặt phòng này.');
-                                                        }
-                                                    } catch (error: any) {
-                                                        console.error('Error fetching invoice:', error);
-                                                        message.error('Không thể tải thông tin hóa đơn.');
-                                                    }
-                                                }}
-                                            >
-                                                Xem hóa đơn
-                                            </Button>
                                             {/* Chỉ hiển thị nút "Thanh toán" nếu chưa thanh toán đầy đủ và chưa completed */}
                                             {booking.payment_status !== 'paid' && booking.status !== 'completed' && (
                                                 <Button
@@ -755,8 +738,8 @@ const MyBookingsPage: React.FC = () => {
                                             )}
                                         </>
                                     )}
-                                    {/* Nút đánh giá/xem đánh giá cho các booking đã thanh toán - hiển thị ở mọi status */}
-                                    {booking.payment_status === 'paid' && booking.details && booking.details.length > 0 && (
+                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị ở tab "Đã thanh toán" */}
+                                    {activeTab === 'paid' && booking.payment_status === 'paid' && booking.details && booking.details.length > 0 && (
                                         <>
                                             {booking.details.map((detail: BookingDetail) => {
                                                 const hasReview = detail.review && detail.review.id;
@@ -1008,31 +991,6 @@ const MyBookingsPage: React.FC = () => {
                             Đặt lại
                         </Button>
                     ),
-                    selectedBooking && (
-                        <Button
-                            key="view-invoice"
-                            icon={<FileTextOutlined />}
-                            onClick={async () => {
-                                try {
-                                    // Lấy invoice của booking hiện tại
-                                    const invoices = await getUserInvoices();
-                                    const bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === selectedBooking.id);
-
-                                    if (bookingInvoice) {
-                                        setViewInvoiceId(bookingInvoice.id);
-                                        setInvoiceModalVisible(true);
-                                    } else {
-                                        message.info('Chưa có hóa đơn cho đơn đặt phòng này.');
-                                    }
-                                } catch (error: any) {
-                                    console.error('Error fetching invoice:', error);
-                                    message.error('Không thể tải thông tin hóa đơn.');
-                                }
-                            }}
-                        >
-                            Xem hóa đơn
-                        </Button>
-                    ),
                 ]}
                 width={700}
             >
@@ -1097,6 +1055,42 @@ const MyBookingsPage: React.FC = () => {
                                         <Descriptions.Item label="Giá phòng">
                                             {formatVND(detail.sub_total)}
                                         </Descriptions.Item>
+                                        {/* Dịch vụ đang sử dụng */}
+                                        {detail.booking_services && detail.booking_services.length > 0 && (
+                                            <Descriptions.Item label="Dịch vụ đang sử dụng" span={2}>
+                                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                    {detail.booking_services
+                                                        .filter((bs: any) => bs.status === 'in_use')
+                                                        .map((bs: any) => (
+                                                            <Card key={bs.id} size="small" style={{ backgroundColor: '#e6f7ff', borderColor: '#1890ff' }}>
+                                                                <Row justify="space-between" align="middle">
+                                                                    <Col>
+                                                                        <Space>
+                                                                            <ShoppingOutlined style={{ color: '#1890ff' }} />
+                                                                            <Text strong>{bs.service?.name || 'N/A'}</Text>
+                                                                        </Space>
+                                                                        {bs.notes && (
+                                                                            <div style={{ marginTop: 4 }}>
+                                                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                                    {bs.notes}
+                                                                                </Text>
+                                                                            </div>
+                                                                        )}
+                                                                    </Col>
+                                                                    <Col>
+                                                                        <Tag color="processing">Đang sử dụng</Tag>
+                                                                    </Col>
+                                                                </Row>
+                                                            </Card>
+                                                        ))}
+                                                    {detail.booking_services.filter((bs: any) => bs.status === 'in_use').length === 0 && (
+                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                            Chưa có dịch vụ nào đang sử dụng
+                                                        </Text>
+                                                    )}
+                                                </Space>
+                                            </Descriptions.Item>
+                                        )}
                                     </React.Fragment>
                                 ))
                             ) : (
@@ -1120,6 +1114,52 @@ const MyBookingsPage: React.FC = () => {
                                 </>
                             )}
                         </Descriptions>
+
+                        {/* Dịch vụ đang sử dụng (tổng hợp từ tất cả details) */}
+                        {selectedBooking.details && selectedBooking.details.some((detail: any) => 
+                            detail.booking_services && detail.booking_services.some((bs: any) => bs.status === 'in_use')
+                        ) && (
+                            <Descriptions title="Dịch vụ đang sử dụng" bordered column={1}>
+                                {selectedBooking.details.map((detail: any) => {
+                                    const inUseServices = detail.booking_services?.filter((bs: any) => bs.status === 'in_use') || [];
+                                    if (inUseServices.length === 0) return null;
+                                    
+                                    return (
+                                        <Descriptions.Item key={detail.id} label={`Phòng: ${detail.room?.name || 'N/A'}`} span={2}>
+                                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                {inUseServices.map((bs: any) => (
+                                                    <Card key={bs.id} size="small" style={{ backgroundColor: '#e6f7ff', borderColor: '#1890ff' }}>
+                                                        <Row justify="space-between" align="middle">
+                                                            <Col>
+                                                                <Space>
+                                                                    <ShoppingOutlined style={{ color: '#1890ff' }} />
+                                                                    <Text strong>{bs.service?.name || 'N/A'}</Text>
+                                                                    {bs.service && (
+                                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                            ({formatVND(bs.service.price)}/{bs.service.unit})
+                                                                        </Text>
+                                                                    )}
+                                                                </Space>
+                                                                {bs.notes && (
+                                                                    <div style={{ marginTop: 4 }}>
+                                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                            {bs.notes}
+                                                                        </Text>
+                                                                    </div>
+                                                                )}
+                                                            </Col>
+                                                            <Col>
+                                                                <Tag color="processing">Đang sử dụng</Tag>
+                                                            </Col>
+                                                        </Row>
+                                                    </Card>
+                                                ))}
+                                            </Space>
+                                        </Descriptions.Item>
+                                    );
+                                })}
+                            </Descriptions>
+                        )}
 
                         {/* Thông tin người đặt */}
                         <Descriptions title="Thông tin người đặt" bordered column={1}>
@@ -1189,21 +1229,6 @@ const MyBookingsPage: React.FC = () => {
                 }}
                 onSuccess={() => {
                     // Refresh bookings sau khi yêu cầu dịch vụ thành công
-                    fetchBookings();
-                }}
-            />
-
-            <RequestAmenityModal
-                open={requestAmenityModalVisible}
-                booking={requestAmenityBooking}
-                bookingDetail={requestAmenityDetail}
-                onCancel={() => {
-                    setRequestAmenityModalVisible(false);
-                    setRequestAmenityBooking(null);
-                    setRequestAmenityDetail(null);
-                }}
-                onSuccess={() => {
-                    // Refresh bookings sau khi yêu cầu tiện ích thành công
                     fetchBookings();
                 }}
             />

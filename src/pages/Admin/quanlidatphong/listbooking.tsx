@@ -14,10 +14,10 @@ import {
   Modal,
   Tag,
   Tooltip,
+  Tabs,
 } from "antd";
 import { toast } from "react-toastify";
 import {
-  EyeOutlined,
   EditOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
@@ -53,7 +53,7 @@ const ListBooking: React.FC = () => {
   const [rows, setRows] = useState<BookingOrder[]>([]);
   const [filteredRows, setFilteredRows] = useState<BookingOrder[]>([]);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("not_checked_in"); // Tab mặc định: Đơn chưa check-in
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -75,7 +75,7 @@ const ListBooking: React.FC = () => {
         include: 'invoices' 
       } as any);
       setRows(data);
-      applyFilters(searchText, statusFilter, dateRange, data);
+      applyFilters(searchText, activeTab, dateRange, data);
     } catch (e) {
       toast.error('Không thể tải dữ liệu');
     } finally {
@@ -105,7 +105,7 @@ const ListBooking: React.FC = () => {
 
   const applyFilters = (
     search: string,
-    status: string,
+    tab: string,
     dates: [Dayjs, Dayjs] | null,
     dataSource?: BookingOrder[]
   ) => {
@@ -124,9 +124,27 @@ const ListBooking: React.FC = () => {
       );
     }
     
-    // Filter by status
-    if (status !== "all") {
-      filtered = filtered.filter((b) => b.status === status);
+    // Filter by tab
+    if (tab === "not_checked_in") {
+      // Đơn phòng đã đặt chưa check-in: pending, confirmed
+      filtered = filtered.filter((b) => 
+        b.status === 'pending' || b.status === 'confirmed'
+      );
+    } else if (tab === "in_use") {
+      // Đơn đang trong sử dụng: checked_in, partially_checked_in
+      filtered = filtered.filter((b) => 
+        b.status === 'checked_in' || b.status === 'partially_checked_in'
+      );
+    } else if (tab === "checked_out") {
+      // Đơn đã checkout: checked_out, partially_checked_out, completed
+      filtered = filtered.filter((b) => 
+        b.status === 'checked_out' || 
+        b.status === 'partially_checked_out' || 
+        b.status === 'completed'
+      );
+    } else if (tab === "all") {
+      // Tất cả - không filter theo status
+      // Nhưng vẫn có thể filter theo search và date
     }
     
     // Filter by date range
@@ -142,17 +160,17 @@ const ListBooking: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchText(value);
-    applyFilters(value, statusFilter, dateRange);
+    applyFilters(value, activeTab, dateRange);
   };
   
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
-    applyFilters(searchText, value, dateRange);
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    applyFilters(searchText, key, dateRange);
   };
   
   const handleDateRangeChange = (dates: any) => {
     setDateRange(dates);
-    applyFilters(searchText, statusFilter, dates);
+    applyFilters(searchText, activeTab, dates);
   };
   // ============================================
   // HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI BOOKING
@@ -330,37 +348,6 @@ const ListBooking: React.FC = () => {
     );
   };
 
-  /**
-   * Trả về cấu hình màu sắc và label cho trạng thái thanh toán
-   * @param paymentStatus - Trạng thái thanh toán (unpaid, partial, paid)
-   * @returns Object chứa color, label
-   */
-  const getPaymentStatusConfig = (paymentStatus?: string | null) => {
-    const statusMap: Record<
-      string,
-      { color: string; label: string }
-    > = {
-      unpaid: {
-        color: "error",
-        label: "Chưa thanh toán",
-      },
-      partial: {
-        color: "warning",
-        label: "Đã cọc",
-      },
-      paid: {
-        color: "success",
-        label: "Đã thanh toán",
-      },
-    };
-
-    return (
-      statusMap[paymentStatus || 'unpaid'] ?? {
-        color: "default",
-        label: paymentStatus || "N/A",
-      }
-    );
-  };
 
   // ============================================
   // CẤU HÌNH CÁC CỘT CHO BẢNG DANH SÁCH BOOKING
@@ -427,22 +414,7 @@ const ListBooking: React.FC = () => {
       },
     },
     
-    // Cột 6: Trạng thái thanh toán
-    {
-      title: "Thanh toán",
-      dataIndex: "payment_status",
-      key: "payment_status",
-      render: (paymentStatus?: string | null, record?: BookingOrder) => {
-        const cfg = getPaymentStatusConfig(paymentStatus);
-        return (
-          <Tag color={cfg.color}>
-            {cfg.label}
-          </Tag>
-        );
-      },
-    },
-    
-    // Cột 7: Tổng tiền (căn phải, format VNĐ)
+    // Cột 6: Tổng tiền (căn phải, format VNĐ)
     {
       title: "Tổng tiền",
       dataIndex: "total_amount",
@@ -451,27 +423,22 @@ const ListBooking: React.FC = () => {
       render: (v: number) => `${(v || 0).toLocaleString("vi-VN")} đ`,
     },
     
-    // Cột 8: Các nút hành động
+    // Cột 7: Các nút hành động
     {
       title: "Hành động",
       key: "action",
-      width: 200,
+      width: 150,
       render: (_: any, record: BookingOrder) => (
         <Space>
-          {/* Nút xem chi tiết booking */}
-          <Tooltip title="Xem chi tiết đặt phòng">
-            <Button
-              icon={<EyeOutlined />}
-              onClick={() => navigate(`/admin/booking/view/${record.id}`)}
-            />
-          </Tooltip>
-
           {/* Nút sửa thông tin booking */}
           <Tooltip title="Sửa thông tin đặt phòng">
             <Button
               type="default"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/admin/booking/edit/${record.id}`)}
+              onClick={(e) => {
+                e.stopPropagation(); // Ngăn chặn event bubble lên row
+                navigate(`/admin/booking/edit/${record.id}`);
+              }}
             />
           </Tooltip>
           
@@ -481,7 +448,8 @@ const ListBooking: React.FC = () => {
               <Button
                 type="default"
                 icon={<FileTextOutlined />}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation(); // Ngăn chặn event bubble lên row
                   setSelectedInvoiceId(record.invoices![0].id);
                   setInvoiceModalVisible(true);
                 }}
@@ -501,7 +469,10 @@ const ListBooking: React.FC = () => {
               <Button
                 type="default"
                 icon={<SyncOutlined />}
-                onClick={() => handleChangeStatus(record)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Ngăn chặn event bubble lên row
+                  handleChangeStatus(record);
+                }}
               />
             </Tooltip>
           )}
@@ -516,6 +487,47 @@ const ListBooking: React.FC = () => {
   
   return (
     <div style={{ padding: 24 }}>
+      {/* PHẦN TABS - Chia theo trạng thái đơn đặt phòng */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={handleTabChange}
+        style={{ marginBottom: 24 }}
+        items={[
+          {
+            key: 'not_checked_in',
+            label: (
+              <span>
+                <ClockCircleOutlined /> Đơn chưa check-in
+              </span>
+            ),
+          },
+          {
+            key: 'in_use',
+            label: (
+              <span>
+                <CheckCircleOutlined /> Đang sử dụng
+              </span>
+            ),
+          },
+          {
+            key: 'checked_out',
+            label: (
+              <span>
+                <CheckCircleOutlined /> Đã checkout
+              </span>
+            ),
+          },
+          {
+            key: 'all',
+            label: (
+              <span>
+                <FileTextOutlined /> Tất cả
+              </span>
+            ),
+          },
+        ]}
+      />
+
       {/* PHẦN FILTERS - Thanh công cụ lọc và tìm kiếm */}
       <Space style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
         <Space>
@@ -527,29 +539,6 @@ const ListBooking: React.FC = () => {
             onChange={(e) => handleSearch(e.target.value)}
             style={{ width: 300 }}
           />
-          
-          {/* Dropdown lọc theo trạng thái */}
-          <Select
-            value={statusFilter}
-            style={{ width: 180 }}
-            onChange={handleStatusFilterChange}
-          >
-            <Option value="all">
-              <Badge status="default" text="Tất cả trạng thái" />
-            </Option>
-            <Option value="pending">
-              <Badge status="warning" text="Đang chờ" />
-            </Option>
-            <Option value="confirmed">
-              <Badge status="processing" text="Đã xác nhận" />
-            </Option>
-          <Option value="completed">
-            <Badge status="success" text="Hoàn thành" />
-          </Option>
-          <Option value="cancelled">
-            <Badge status="error" text="Đã hủy" />
-          </Option>
-        </Select>
         
         {/* Chọn khoảng thời gian check-in */}
         <RangePicker 
@@ -608,6 +597,13 @@ const ListBooking: React.FC = () => {
         columns={columns as any} 
         dataSource={filteredRows} 
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => {
+            // Khi click vào row, navigate đến trang chi tiết
+            navigate(`/admin/booking/view/${record.id}`);
+          },
+          style: { cursor: 'pointer' }, // Thêm cursor pointer để người dùng biết có thể click
+        })}
         pagination={{
           pageSize: 10,
           showTotal: (total) => `Tổng cộng ${total} đặt phòng`,
