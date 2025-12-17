@@ -188,8 +188,11 @@ const RoomList: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
 
-    // State cho tính năng chia phòng thông minh (Smart Room Allocation)
-    const [totalGuests, setTotalGuests] = useState<number>(0);
+    // State cho tính năng chia phòng nhanh (Smart Room Allocation)
+    // Nếu chưa có số khách (desiredGuests <= 0) thì để null để input hiển thị trống
+    const [totalGuests, setTotalGuests] = useState<number | null>(
+        desiredGuests && desiredGuests > 0 ? desiredGuests : null
+    );
     const [showRoomSuggestions, setShowRoomSuggestions] = useState<boolean>(false);
     const [urlParamsInitialized, setUrlParamsInitialized] = useState<boolean>(false);
 
@@ -1069,7 +1072,15 @@ const RoomList: React.FC = () => {
                                             style={{ width: 140 }}
                                             placeholder="Số khách"
                                             onChange={(value) => {
-                                                const guests = value || 0;
+                                                // Cho phép để trống: khi user xóa hết -> value === null
+                                                if (value === null || value === undefined) {
+                                                    setTotalGuests(null);
+                                                    // Khi không nhập gì, không dùng desiredGuests để kiểm tra sức chứa
+                                                    setDesiredGuests(0);
+                                                    return;
+                                                }
+
+                                                const guests = Number(value) || 0;
                                                 setTotalGuests(guests);
                                                 setDesiredGuests(guests);
                                             }}

@@ -1192,11 +1192,15 @@ const RoomTypeDetailPage: React.FC = () => {
                                                 onDateChange={(dates) => {
                                                     if (dates && dates[0] && dates[1]) {
                                                         if (dates[0].isSame(dates[1], 'day')) {
-                                                            message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                            message.warning(
+                                                                'Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!',
+                                                            );
                                                             return;
                                                         }
                                                         if (!dates[1].isAfter(dates[0], 'day')) {
-                                                            message.warning('Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!');
+                                                            message.warning(
+                                                                'Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày!',
+                                                            );
                                                             return;
                                                         }
                                                         setCartDateRange([dates[0], dates[1]]);
@@ -1208,6 +1212,8 @@ const RoomTypeDetailPage: React.FC = () => {
                                                     if (!current) return false;
                                                     const today = dayjs().startOf('day');
                                                     const currentDate = current.startOf('day');
+
+                                                    // Chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
                                                     return currentDate.isBefore(today);
                                                 }}
                                                 showButton={false}
@@ -1215,8 +1221,8 @@ const RoomTypeDetailPage: React.FC = () => {
                                         </div>
 
                                         {/* Chọn số lượng phòng */}
-                                        <div>
-                                            <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 16 }}>
+                                        <div style={{ marginBottom: 16 }}>
+                                            <Text strong style={{ display: 'block', marginBottom: 8 }}>
                                                 Số lượng phòng
                                             </Text>
                                             <InputNumber
@@ -1249,7 +1255,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                                 borderRadius: '8px'
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                    <Text>{quantity} phòng × {numNights} đêm</Text>
+                                                    <Text>{numNights} đêm</Text>
                                                     <Text strong style={{ fontSize: 16 }}>{formatVND(totalPrice)}</Text>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1286,7 +1292,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         >
                                             {isRoomTypeInCart(roomType.id)
                                                 ? 'Đã thêm vào booking'
-                                                : `Thêm ${quantity} phòng vào booking`}
+                                                : 'Chọn phòng'}
                                         </Button>
 
                                         {roomType.available_count === 0 && (
