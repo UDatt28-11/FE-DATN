@@ -7,18 +7,15 @@ import {
     Typography,
     Card,
     Rate,
-    Breadcrumb,
     Button,
     Divider,
     Space,
     Image,
-    DatePicker,
     Avatar,
     List,
     message,
     Spin,
     Empty,
-    Tabs,
     Tag,
     Progress,
 } from "antd";
@@ -38,13 +35,10 @@ import {
     ClockCircleOutlined,
     TeamOutlined,
     BankOutlined,
-    CarOutlined,
     ShopOutlined,
     CompassOutlined,
 } from "@ant-design/icons";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import type { RangePickerProps } from "antd/es/date-picker";
-import type { Dayjs } from "dayjs";
+import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "../../../utils/dayjs";
 import { useAuth } from "../../../context/AuthContext";
 import { useBookingCart } from "../../../context/BookingCartContext";
@@ -56,7 +50,6 @@ import "./RoomDetail.css";
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
-const { RangePicker } = DatePicker;
 
 // Helper function để map amenities thành format UI
 const mapAmenitiesToUI = (amenities?: { id: number; name: string }[]) => {
@@ -143,16 +136,18 @@ const RoomTypeDetailPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<string>('overview');
     const [isScrolled, setIsScrolled] = useState<boolean>(false);
 
+    // State cho Login/Register Modal
+    const [isLoginModalVisible, setIsLoginModalVisible] = useState<boolean>(false);
+    const [isRegisterModalVisible, setIsRegisterModalVisible] = useState<boolean>(false);
+
     // Fetch room type detail với date range
     const fetchRoomTypeWithDates = async (showLoading: boolean = true) => {
         if (!id) return;
 
         if (showLoading) setLoading(true);
         try {
-            // Tạo options với date range nếu có và hợp lệ (checkout > checkin)
             const options: { check_in?: string; check_out?: string } = {};
             if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
-                // Chỉ gửi dates nếu checkout sau checkin
                 if (cartDateRange[1].isAfter(cartDateRange[0], 'day')) {
                     options.check_in = cartDateRange[0].format('YYYY-MM-DD');
                     options.check_out = cartDateRange[1].format('YYYY-MM-DD');
@@ -178,24 +173,21 @@ const RoomTypeDetailPage: React.FC = () => {
         }
     };
 
-    // Fetch room type detail và reviews song song để tối ưu thời gian load
+    // Fetch room type detail và reviews song song
     useEffect(() => {
         const fetchRoomTypeDetail = async () => {
             if (!id) return;
 
             setLoading(true);
             try {
-                // Tạo options với date range nếu có và hợp lệ (checkout > checkin)
                 const options: { check_in?: string; check_out?: string } = {};
                 if (cartDateRange && cartDateRange[0] && cartDateRange[1]) {
-                    // Chỉ gửi dates nếu checkout sau checkin
                     if (cartDateRange[1].isAfter(cartDateRange[0], 'day')) {
                         options.check_in = cartDateRange[0].format('YYYY-MM-DD');
                         options.check_out = cartDateRange[1].format('YYYY-MM-DD');
                     }
                 }
 
-                // Load room type detail và reviews song song
                 const [roomTypeResponse, reviewsResponse] = await Promise.all([
                     getRoomTypeByIdWithDetails(id, options),
                     getRoomTypeReviews(Number(id), { page: 1, per_page: 10 })
@@ -209,7 +201,6 @@ const RoomTypeDetailPage: React.FC = () => {
                     return;
                 }
 
-                // Set reviews data
                 if (reviewsResponse.success && reviewsResponse.data) {
                     setReviews(reviewsResponse.data);
                     if (reviewsResponse.meta) {
@@ -229,7 +220,7 @@ const RoomTypeDetailPage: React.FC = () => {
         fetchRoomTypeDetail();
     }, [id, navigate]);
 
-    // Re-fetch room type khi date range thay đổi để cập nhật available_count
+    // Re-fetch room type khi date range thay đổi
     useEffect(() => {
         if (id && roomType && cartDateRange && cartDateRange[0] && cartDateRange[1]) {
             fetchRoomTypeWithDates(false);
@@ -240,15 +231,11 @@ const RoomTypeDetailPage: React.FC = () => {
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            
-            // Update scrolled state for navigation bar elevation - always show elevated when scrolled down
             setIsScrolled(currentScrollY > 50);
 
-            // Update active tab based on scroll position
             const sections = ['overview', 'rooms', 'location', 'amenities', 'policy', 'reviews'];
             const scrollPosition = currentScrollY + 150;
 
-            // Find the active section
             let foundSection = false;
             for (let i = sections.length - 1; i >= 0; i--) {
                 const section = sections[i];
@@ -263,15 +250,12 @@ const RoomTypeDetailPage: React.FC = () => {
                 }
             }
 
-            // If no section found, default to overview
             if (!foundSection) {
                 setActiveTab('overview');
             }
         };
 
-        // Initial check
         handleScroll();
-
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -313,6 +297,7 @@ const RoomTypeDetailPage: React.FC = () => {
     const handleAddToCart = () => {
         if (!isLoggedIn) {
             message.warning('Vui lòng đăng nhập để đặt phòng!');
+            setIsLoginModalVisible(true);
             return;
         }
 
@@ -323,7 +308,6 @@ const RoomTypeDetailPage: React.FC = () => {
 
         if (!roomType) return;
 
-        // Kiểm tra phòng còn trống không
         if ((roomType.available_count || 0) === 0) {
             message.error(`Loại phòng "${roomType.name}" đã hết phòng trong khoảng thời gian này. Vui lòng chọn ngày khác!`);
             return;
@@ -394,7 +378,6 @@ const RoomTypeDetailPage: React.FC = () => {
                 <meta property="og:image" content={pageImage} />
             </Helmet>
 
-
             {/* Hero Section */}
             <section style={{
                 position: 'relative',
@@ -438,6 +421,9 @@ const RoomTypeDetailPage: React.FC = () => {
                                 <Text strong style={{ color: '#fff', fontSize: 16 }}>{averageRating.toFixed(1)}</Text>
                             </Space>
                         )}
+                    </Space>
+                </div>
+            </section>
 
             <Content style={{ background: '#f5f5f5', minHeight: '80vh' }}>
                 <div className="container" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 15px' }}>
@@ -490,10 +476,12 @@ const RoomTypeDetailPage: React.FC = () => {
                             <Text type="secondary">{reviewsTotal} đánh giá</Text>
                         </Space>
                         {roomType.property && (
-                            <Space style={{ color: '#666', marginBottom: 16 }}>
-                                <EnvironmentOutlined />
-                                <Text>{roomType.property.name}</Text>
-                            </Space>
+                            <div>
+                                <Space style={{ color: '#666' }}>
+                                    <EnvironmentOutlined />
+                                    <Text>{roomType.property.name}</Text>
+                                </Space>
+                            </div>
                         )}
                     </div>
 
@@ -544,7 +532,6 @@ const RoomTypeDetailPage: React.FC = () => {
                         flexWrap: 'wrap',
                         gap: '16px',
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: isScrolled ? 'translateY(0)' : 'translateY(0)'
                     }}>
                         <Space size={0} style={{ flex: 1 }}>
                             <Button 
@@ -559,19 +546,6 @@ const RoomTypeDetailPage: React.FC = () => {
                                     color: activeTab === 'overview' ? '#cb8670' : '#666'
                                 }}
                             >
-                                <div style={{
-                                    borderLeft: '4px solid',
-                                    borderImage: 'linear-gradient(to bottom, #cb8670, #e0a090) 1',
-                                    paddingLeft: 16,
-                                    marginBottom: 20,
-                                }}>
-                                    <Title level={3} style={{ 
-                                        marginBottom: 0,
-                                        color: '#1a1a1a',
-                                    }}>
-                                        {roomType.name}
-                                    </Title>
-
                                 Tổng quan
                             </Button>
                             <Button 
@@ -650,7 +624,6 @@ const RoomTypeDetailPage: React.FC = () => {
                     <Row gutter={[16, 16]}>
                         {/* Left Column - All Content */}
                         <Col xs={24} lg={16}>
-                            {/* Single Content Section */}
                             <div style={{ 
                                 background: '#fff', 
                                 borderRadius: '8px',
@@ -660,62 +633,62 @@ const RoomTypeDetailPage: React.FC = () => {
                                 {/* Rating Overview */}
                                 <div id="overview"></div>
                                 {averageRating > 0 && (
-                                                        <div style={{ 
-                                                            marginBottom: 32,
-                                                            padding: 24,
-                                                            background: 'linear-gradient(135deg, #fff8f6 0%, #fff 100%)',
-                                                            borderRadius: 8,
-                                                            border: '1px solid rgba(203, 134, 112, 0.1)'
-                                                        }}>
-                                                            <Space size={24} align="start" style={{ width: '100%' }}>
-                                                                <div style={{ textAlign: 'center' }}>
-                                                                    <div style={{
-                                                                        fontSize: 48,
-                                                                        fontWeight: 700,
-                                                                        color: '#cb8670',
-                                                                        lineHeight: 1
-                                                                    }}>
-                                                                        {averageRating.toFixed(1)}
-                                                                    </div>
-                                                                    <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-                                                                        /10
-                                                                    </div>
-                                                                    <Rate disabled value={averageRating / 2} allowHalf style={{ fontSize: 16, marginTop: 8 }} />
-                                                                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-                                                                        {reviewsTotal} đánh giá
-                                                                    </div>
-                                                                </div>
-                                                                <Divider type="vertical" style={{ height: 'auto', margin: 0 }} />
-                                                                <div style={{ flex: 1 }}>
-                                                                    <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
-                                                                        Phân bố đánh giá
-                                                                    </Text>
-                                                                    {[5, 4, 3, 2, 1].map(star => (
-                                                                        <div key={star} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                                            <Text style={{ width: 60 }}>{star} sao</Text>
-                                                                            <Progress 
-                                                                                percent={reviewsTotal > 0 ? (reviewStats[star as keyof typeof reviewStats] / reviewsTotal) * 100 : 0} 
-                                                                                strokeColor="#cb8670"
-                                                                                showInfo={false}
-                                                                                style={{ flex: 1 }}
-                                                                            />
-                                                                            <Text type="secondary" style={{ width: 40, textAlign: 'right' }}>
-                                                                                {reviewStats[star as keyof typeof reviewStats]}
-                                                                            </Text>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </Space>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Room Description */}
-                                                    <div style={{ marginBottom: 24 }}>
-                                                        <Title level={4} style={{ marginBottom: 16 }}>Mô tả phòng</Title>
-                                                        <Paragraph style={{ fontSize: 15, lineHeight: 1.8, color: '#555' }}>
-                                                            {roomType.description || 'Phòng đẹp, tiện nghi đầy đủ, view đẹp'}
-                                                        </Paragraph>
+                                    <div style={{ 
+                                        marginBottom: 32,
+                                        padding: 24,
+                                        background: 'linear-gradient(135deg, #fff8f6 0%, #fff 100%)',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(203, 134, 112, 0.1)'
+                                    }}>
+                                        <Space size={24} align="start" style={{ width: '100%' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{
+                                                    fontSize: 48,
+                                                    fontWeight: 700,
+                                                    color: '#cb8670',
+                                                    lineHeight: 1
+                                                }}>
+                                                    {averageRating.toFixed(1)}
+                                                </div>
+                                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                                    /10
+                                                </div>
+                                                <Rate disabled value={averageRating / 2} allowHalf style={{ fontSize: 16, marginTop: 8 }} />
+                                                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                                                    {reviewsTotal} đánh giá
+                                                </div>
+                                            </div>
+                                            <Divider type="vertical" style={{ height: 'auto', margin: 0 }} />
+                                            <div style={{ flex: 1 }}>
+                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
+                                                    Phân bố đánh giá
+                                                </Text>
+                                                {[5, 4, 3, 2, 1].map(star => (
+                                                    <div key={star} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                        <Text style={{ width: 60 }}>{star} sao</Text>
+                                                        <Progress 
+                                                            percent={reviewsTotal > 0 ? (reviewStats[star as keyof typeof reviewStats] / reviewsTotal) * 100 : 0} 
+                                                            strokeColor="#cb8670"
+                                                            showInfo={false}
+                                                            style={{ flex: 1 }}
+                                                        />
+                                                        <Text type="secondary" style={{ width: 40, textAlign: 'right' }}>
+                                                            {reviewStats[star as keyof typeof reviewStats]}
+                                                        </Text>
                                                     </div>
+                                                ))}
+                                            </div>
+                                        </Space>
+                                    </div>
+                                )}
+
+                                {/* Room Description */}
+                                <div style={{ marginBottom: 24 }}>
+                                    <Title level={4} style={{ marginBottom: 16 }}>Mô tả phòng</Title>
+                                    <Paragraph style={{ fontSize: 15, lineHeight: 1.8, color: '#555' }}>
+                                        {roomType.description || 'Phòng đẹp, tiện nghi đầy đủ, view đẹp'}
+                                    </Paragraph>
+                                </div>
 
                                 {/* Room Details Grid */}
                                 <div style={{ marginBottom: 32 }}>
@@ -855,63 +828,6 @@ const RoomTypeDetailPage: React.FC = () => {
                                                         <Text type="secondary">757 m</Text>
                                                     </div>
                                                 </Space>
-                                            </Col>
-                                        </Row>
-                                    </>
-                                )}
-                            </Card>
-
-
-                            {/* Phân loại Amenities */}
-                            {roomType.amenities && roomType.amenities.length > 0 && (() => {
-                                const categorized = categorizeAmenities(roomType.amenities);
-                                return (
-                                    <>
-                                        {/* Tiện nghi đặc biệt */}
-                                        {categorized.keyAmenities.length > 0 && (
-                                            <Card 
-                                                title={<Text style={{ fontSize: 18,  }}>Tiện nghi đặc biệt</Text>}
-                                                style={{ 
-                                                    marginBottom: 24,
-                                                    borderRadius: 12,
-                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                                    border: '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-
-                                        {/* Hướng nhìn */}
-                                        {categorized.views.length > 0 && (
-                                            <Card 
-                                                title={<Text style={{ fontSize: 18,  }}>Hướng nhìn</Text>}
-                                                style={{ 
-                                                    marginBottom: 24,
-                                                    borderRadius: 12,
-                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                                    border: '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
                                             </Card>
                                         </Col>
                                         <Col xs={24} sm={12}>
@@ -935,220 +851,177 @@ const RoomTypeDetailPage: React.FC = () => {
                                     </Row>
                                 </div>
 
-                                        {/* Vị trí tầng */}
-                                        {categorized.floors.length > 0 && (
-                                            <Card 
-                                                title={<Text style={{ fontSize: 18, }}>Vị trí tầng</Text>}
-                                                style={{ 
-                                                    marginBottom: 24,
-                                                    borderRadius: 12,
-                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                                    border: '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
                                 {/* Tiện ích */}
                                 <div id="amenities" style={{ marginBottom: 32, scrollMarginTop: '80px' }}>
                                     <Title level={4} style={{ marginBottom: 16 }}>Tiện ích</Title>
-                                                    {roomType.amenities && roomType.amenities.length > 0 ? (() => {
-                                                        const categorized = categorizeAmenities(roomType.amenities);
-                                                        return (
-                                                            <Space direction="vertical" size={24} style={{ width: '100%' }}>
-                                                                {/* Các tiện ích lân cận */}
-                                                                {categorized.keyAmenities.length > 0 && (
-                                                                    <div>
-                                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                                                                            Các tiện ích lân cận
-                                                                        </Text>
-                                                                        <Row gutter={[12, 12]}>
-                                                                            {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
-                                                                                <Col xs={12} sm={8} key={index}>
-                                                                                    <Space>
-                                                                                        {amenity.icon}
-                                                                                        <Text>{amenity.text}</Text>
-                                                                                    </Space>
-                                                                                </Col>
-                                                                            ))}
-                                                                        </Row>
-                                                                    </div>
-                                                                )}
+                                    {roomType.amenities && roomType.amenities.length > 0 ? (() => {
+                                        const categorized = categorizeAmenities(roomType.amenities);
+                                        return (
+                                            <Space direction="vertical" size={24} style={{ width: '100%' }}>
+                                                {/* Các tiện ích lân cận */}
+                                                {categorized.keyAmenities.length > 0 && (
+                                                    <div>
+                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                                                            Các tiện ích lân cận
+                                                        </Text>
+                                                        <Row gutter={[12, 12]}>
+                                                            {mapAmenitiesToUI(categorized.keyAmenities).map((amenity, index) => (
+                                                                <Col xs={12} sm={8} key={index}>
+                                                                    <Space>
+                                                                        {amenity.icon}
+                                                                        <Text>{amenity.text}</Text>
+                                                                    </Space>
+                                                                </Col>
+                                                            ))}
+                                                        </Row>
+                                                    </div>
+                                                )}
 
-                                                                {/* Tiện nghị công cộng */}
-                                                                {categorized.views.length > 0 && (
-                                                                    <div>
-                                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                                                                            Tiện nghị công cộng
-                                                                        </Text>
-                                                                        <Row gutter={[12, 12]}>
-                                                                            {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
-                                                                                <Col xs={12} sm={8} key={index}>
-                                                                                    <Space>
-                                                                                        {amenity.icon}
-                                                                                        <Text>{amenity.text}</Text>
-                                                                                    </Space>
-                                                                                </Col>
-                                                                            ))}
-                                                                        </Row>
-                                                                    </div>
-                                                                )}
+                                                {/* Tiện nghị công cộng */}
+                                                {categorized.views.length > 0 && (
+                                                    <div>
+                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                                                            Tiện nghi công cộng
+                                                        </Text>
+                                                        <Row gutter={[12, 12]}>
+                                                            {mapAmenitiesToUI(categorized.views).map((amenity, index) => (
+                                                                <Col xs={12} sm={8} key={index}>
+                                                                    <Space>
+                                                                        {amenity.icon}
+                                                                        <Text>{amenity.text}</Text>
+                                                                    </Space>
+                                                                </Col>
+                                                            ))}
+                                                        </Row>
+                                                    </div>
+                                                )}
 
-                                                                {/* Tiện nghị phòng */}
-                                                                {categorized.floors.length > 0 && (
-                                                                    <div>
-                                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                                                                            Tiện nghị phòng
-                                                                        </Text>
-                                                                        <Row gutter={[12, 12]}>
-                                                                            {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
-                                                                                <Col xs={12} sm={8} key={index}>
-                                                                                    <Space>
-                                                                                        {amenity.icon}
-                                                                                        <Text>{amenity.text}</Text>
-                                                                                    </Space>
-                                                                                </Col>
-                                                                            ))}
-                                                                        </Row>
-                                                                    </div>
-                                                                )}
+                                                {/* Tiện nghi phòng */}
+                                                {categorized.floors.length > 0 && (
+                                                    <div>
+                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                                                            Tiện nghi phòng
+                                                        </Text>
+                                                        <Row gutter={[12, 12]}>
+                                                            {mapAmenitiesToUI(categorized.floors).map((amenity, index) => (
+                                                                <Col xs={12} sm={8} key={index}>
+                                                                    <Space>
+                                                                        {amenity.icon}
+                                                                        <Text>{amenity.text}</Text>
+                                                                    </Space>
+                                                                </Col>
+                                                            ))}
+                                                        </Row>
+                                                    </div>
+                                                )}
 
-                                                                {/* Dịch vụ khách sạn */}
-                                                                {categorized.others.length > 0 && (
-                                                                    <div>
-                                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                                                                            Dịch vụ khách sạn
-                                                                        </Text>
-                                                                        <Row gutter={[12, 12]}>
-                                                                            {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
-                                                                                <Col xs={12} sm={8} key={index}>
-                                                                                    <Space>
-                                                                                        {amenity.icon}
-                                                                                        <Text>{amenity.text}</Text>
-                                                                                    </Space>
-                                                                                </Col>
-                                                                            ))}
-                                                                        </Row>
-                                                                    </div>
-                                                                )}
-                                                            </Space>
-                                                        );
-                                                    })() : (
-                                                        <Empty description="Không có thông tin tiện ích" />
-                                                    )}
+                                                {/* Dịch vụ khách sạn */}
+                                                {categorized.others.length > 0 && (
+                                                    <div>
+                                                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                                                            Dịch vụ khách sạn
+                                                        </Text>
+                                                        <Row gutter={[12, 12]}>
+                                                            {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
+                                                                <Col xs={12} sm={8} key={index}>
+                                                                    <Space>
+                                                                        {amenity.icon}
+                                                                        <Text>{amenity.text}</Text>
+                                                                    </Space>
+                                                                </Col>
+                                                            ))}
+                                                        </Row>
+                                                    </div>
+                                                )}
+                                            </Space>
+                                        );
+                                    })() : (
+                                        <Empty description="Không có thông tin tiện ích" />
+                                    )}
                                 </div>
 
-                                        {/* Tiện ích khác */}
-                                        {categorized.others.length > 0 && (
-                                            <Card 
-                                                title={<Text style={{ fontSize: 18, }}>Tiện ích khác</Text>}
-                                                style={{ 
-                                                    marginBottom: 32,
-                                                    borderRadius: 12,
-                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                                                    border: '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                <Row gutter={[16, 16]}>
-                                                    {mapAmenitiesToUI(categorized.others).map((amenity, index) => (
-                                                        <Col xs={12} sm={8} key={index}>
-                                                            <Space>
-                                                                {amenity.icon}
-                                                                <Text>{amenity.text}</Text>
-                                                            </Space>
-                                                        </Col>
-                                                    ))}
-                                                </Row>
-                                            </Card>
-                                        )}
-                                    </>
-                                );
-                            })()}
                                 {/* Chính sách */}
                                 <div id="policy" style={{ marginBottom: 32, scrollMarginTop: '80px' }}>
                                     <Title level={4} style={{ marginBottom: 16 }}>
                                         Chính sách và những thông tin liên quan
                                     </Title>
 
-                                                    {/* Check-in/Check-out Time */}
-                                                    <Card size="small" style={{ marginBottom: 16 }}>
-                                                        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                                                            <div>
-                                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                                                    <ClockCircleOutlined style={{ marginRight: 8, color: '#cb8670' }} />
-                                                                    Thời gian nhận/trả phòng
-                                                                </Text>
-                                                                <div style={{ paddingLeft: 32 }}>
-                                                                    <div style={{ marginBottom: 8 }}>
-                                                                        <Text type="secondary">Giờ nhận phòng: </Text>
-                                                                        <Text strong>Từ 14:00</Text>
-                                                                    </div>
-                                                                    <div>
-                                                                        <Text type="secondary">Giờ trả phòng: </Text>
-                                                                        <Text strong>Trước 12:00</Text>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </Space>
-                                                    </Card>
+                                    {/* Check-in/Check-out Time */}
+                                    <Card size="small" style={{ marginBottom: 16 }}>
+                                        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                                            <div>
+                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                                    <ClockCircleOutlined style={{ marginRight: 8, color: '#cb8670' }} />
+                                                    Thời gian nhận/trả phòng
+                                                </Text>
+                                                <div style={{ paddingLeft: 32 }}>
+                                                    <div style={{ marginBottom: 8 }}>
+                                                        <Text type="secondary">Giờ nhận phòng: </Text>
+                                                        <Text strong>Từ 14:00</Text>
+                                                    </div>
+                                                    <div>
+                                                        <Text type="secondary">Giờ trả phòng: </Text>
+                                                        <Text strong>Trước 12:00</Text>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Space>
+                                    </Card>
 
-                                                    {/* Required Documents */}
-                                                    <Card size="small" style={{ marginBottom: 16 }}>
-                                                        <div>
-                                                            <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                                                <SafetyOutlined style={{ marginRight: 8, color: '#cb8670' }} />
-                                                                Giấy Tờ Bắt Buộc
-                                                            </Text>
-                                                            <Paragraph style={{ paddingLeft: 32, marginBottom: 0 }}>
-                                                                Khi nhận phòng, bạn cần cung cấp CMND/CCCD. Các giấy tờ cần thiết có thể ở dạng bản mềm.
-                                                            </Paragraph>
-                                                        </div>
-                                                    </Card>
+                                    {/* Required Documents */}
+                                    <Card size="small" style={{ marginBottom: 16 }}>
+                                        <div>
+                                            <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                                <SafetyOutlined style={{ marginRight: 8, color: '#cb8670' }} />
+                                                Giấy Tờ Bắt Buộc
+                                            </Text>
+                                            <Paragraph style={{ paddingLeft: 32, marginBottom: 0 }}>
+                                                Khi nhận phòng, bạn cần cung cấp CMND/CCCD. Các giấy tờ cần thiết có thể ở dạng bản mềm.
+                                            </Paragraph>
+                                        </div>
+                                    </Card>
 
-                                                    {/* Check-in Directions */}
-                                                    <Card size="small" style={{ marginBottom: 16 }}>
-                                                        <div>
-                                                            <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
-                                                                <HomeOutlined style={{ marginRight: 8, color: '#cb8670' }} />
-                                                                Hướng Dẫn Nhận Phòng Chung
-                                                            </Text>
-                                                            <Paragraph style={{ paddingLeft: 32, marginBottom: 0 }}>
-                                                                Khi làm thủ tục nhận phòng, quý khách cần xuất trình thẻ căn cước công dân hoặc giấy tờ tùy thân có gắn ảnh; và có thể xuất trình thẻ tín dụng hoặc đặt cọc tiền mặt để thanh toán chi phí phát sinh nếu có.
-                                                            </Paragraph>
-                                                        </div>
-                                                    </Card>
+                                    {/* Check-in Directions */}
+                                    <Card size="small" style={{ marginBottom: 16 }}>
+                                        <div>
+                                            <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                                                <HomeOutlined style={{ marginRight: 8, color: '#cb8670' }} />
+                                                Hướng Dẫn Nhận Phòng Chung
+                                            </Text>
+                                            <Paragraph style={{ paddingLeft: 32, marginBottom: 0 }}>
+                                                Khi làm thủ tục nhận phòng, quý khách cần xuất trình thẻ căn cước công dân hoặc giấy tờ tùy thân có gắn ảnh; và có thể xuất trình thẻ tín dụng hoặc đặt cọc tiền mặt để thanh toán chi phí phát sinh nếu có.
+                                            </Paragraph>
+                                        </div>
+                                    </Card>
 
-                                                    {/* General Info */}
-                                                    <Card size="small">
-                                                        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                                                            <div>
-                                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
-                                                                    Thông tin chung
-                                                                </Text>
-                                                                <Space direction="vertical" size={8} style={{ width: '100%', paddingLeft: 0 }}>
-                                                                    <Text>• Lễ tân 24h, Chỗ đậu xe, Thang máy, WiFi</Text>
-                                                                    <Text>• Thời gian nhận/trả phòng: Từ 14:00 - đến 12:00</Text>
-                                                                    <Text>• Khoảng cách đến trung tâm thành phố: 915 m</Text>
-                                                                </Space>
-                                                            </div>
+                                    {/* General Info */}
+                                    <Card size="small">
+                                        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                                            <div>
+                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
+                                                    Thông tin chung
+                                                </Text>
+                                                <Space direction="vertical" size={8} style={{ width: '100%', paddingLeft: 0 }}>
+                                                    <Text>• Lễ tân 24h, Chỗ đậu xe, Thang máy, WiFi</Text>
+                                                    <Text>• Thời gian nhận/trả phòng: Từ 14:00 - đến 12:00</Text>
+                                                    <Text>• Khoảng cách đến trung tâm thành phố: 915 m</Text>
+                                                </Space>
+                                            </div>
 
-                                                            <Divider style={{ margin: 0 }} />
+                                            <Divider style={{ margin: 0 }} />
 
-                                                            <div>
-                                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
-                                                                    Điểm đến phổ biến
-                                                                </Text>
-                                                                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                                                                    <Text>• Bệnh viện Da khoa: 915 m</Text>
-                                                                    <Text>• Trung tâm mua sắm: 2,02 km</Text>
-                                                                    <Text>• Sân bay quốc tế: 2,46 km</Text>
-                                                                </Space>
-                                                            </div>
-                                                        </Space>
-                                                    </Card>
+                                            <div>
+                                                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 12 }}>
+                                                    Điểm đến phổ biến
+                                                </Text>
+                                                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                                    <Text>• Bệnh viện Da khoa: 915 m</Text>
+                                                    <Text>• Trung tâm mua sắm: 2,02 km</Text>
+                                                    <Text>• Sân bay quốc tế: 2,46 km</Text>
+                                                </Space>
+                                            </div>
+                                        </Space>
+                                    </Card>
                                 </div>
 
                                 {/* Đánh giá */}
@@ -1166,78 +1039,78 @@ const RoomTypeDetailPage: React.FC = () => {
                                                 dataSource={reviews}
                                                 renderItem={(review: any) => (
                                                     <List.Item style={{ 
-                                                                        padding: '16px 0',
-                                                                        borderBottom: '1px solid #f0f0f0'
-                                                                    }}>
-                                                                        <List.Item.Meta
-                                                                            avatar={
-                                                                                <Avatar
-                                                                                    size={48}
-                                                                                    src={review.user?.avatar}
-                                                                                    icon={<UserOutlined />}
-                                                                                    style={{ background: '#cb8670' }}
-                                                                                />
-                                                                            }
-                                                                            title={
-                                                                                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                                        <Text strong style={{ fontSize: 16 }}>
-                                                                                            {review.user?.full_name || 'Khách hàng'}
-                                                                                        </Text>
-                                                                                        <div style={{
-                                                                                            background: '#cb8670',
-                                                                                            color: '#fff',
-                                                                                            padding: '2px 8px',
-                                                                                            borderRadius: '4px',
-                                                                                            fontSize: 14,
-                                                                                            fontWeight: 600
-                                                                                        }}>
-                                                                                            {(review.rating / 2).toFixed(1)}/5
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                                                                        Đánh giá cách đây 4 ngày
-                                                                                    </Text>
-                                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                                                                        Kỳ nghỉ tại chỗ
-                                                                                    </Text>
-                                                                                </Space>
-                                                                            }
-                                                                            description={
-                                                                                <div style={{ marginTop: 12 }}>
-                                                                                    {review.title && (
-                                                                                        <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 15 }}>
-                                                                                            {review.title}
-                                                                                        </Text>
-                                                                                    )}
-                                                                                    {review.comment && (
-                                                                                        <Paragraph style={{ marginBottom: 0, color: '#555', fontSize: 14, lineHeight: 1.6 }}>
-                                                                                            {review.comment}
-                                                                                        </Paragraph>
-                                                                                    )}
-                                                                                </div>
-                                                                            }
-                                                                        />
-                                                                    </List.Item>
-                                                                )}
-                                                            />
-                                                            {reviewsTotal > 10 && reviews.length < reviewsTotal && (
-                                                                <div style={{ textAlign: 'center', marginTop: 24 }}>
-                                                                    <Button
-                                                                        size="large"
-                                                                        onClick={() => fetchReviews(Number(id!), reviewsPage + 1)}
-                                                                        disabled={loadingReviews}
-                                                                        style={{ 
-                                                                            borderColor: '#cb8670',
-                                                                            color: '#cb8670'
-                                                                        }}
-                                                                    >
-                                                                        Xem thêm đánh giá
-                                                                    </Button>
+                                                        padding: '16px 0',
+                                                        borderBottom: '1px solid #f0f0f0'
+                                                    }}>
+                                                        <List.Item.Meta
+                                                            avatar={
+                                                                <Avatar
+                                                                    size={48}
+                                                                    src={review.user?.avatar}
+                                                                    icon={<UserOutlined />}
+                                                                    style={{ background: '#cb8670' }}
+                                                                />
+                                                            }
+                                                            title={
+                                                                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                        <Text strong style={{ fontSize: 16 }}>
+                                                                            {review.user?.full_name || 'Khách hàng'}
+                                                                        </Text>
+                                                                        <div style={{
+                                                                            background: '#cb8670',
+                                                                            color: '#fff',
+                                                                            padding: '2px 8px',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: 14,
+                                                                            fontWeight: 600
+                                                                        }}>
+                                                                            {(review.rating / 2).toFixed(1)}/5
+                                                                        </div>
+                                                                    </div>
+                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                        Đánh giá cách đây 4 ngày
+                                                                    </Text>
+                                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                        Kỳ nghỉ tại chỗ
+                                                                    </Text>
+                                                                </Space>
+                                                            }
+                                                            description={
+                                                                <div style={{ marginTop: 12 }}>
+                                                                    {review.title && (
+                                                                        <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 15 }}>
+                                                                            {review.title}
+                                                                        </Text>
+                                                                    )}
+                                                                    {review.comment && (
+                                                                        <Paragraph style={{ marginBottom: 0, color: '#555', fontSize: 14, lineHeight: 1.6 }}>
+                                                                            {review.comment}
+                                                                        </Paragraph>
+                                                                    )}
                                                                 </div>
-                                                            )}
-                                                        </>
-                                                    ) : (
+                                                            }
+                                                        />
+                                                    </List.Item>
+                                                )}
+                                            />
+                                            {reviewsTotal > 10 && reviews.length < reviewsTotal && (
+                                                <div style={{ textAlign: 'center', marginTop: 24 }}>
+                                                    <Button
+                                                        size="large"
+                                                        onClick={() => fetchReviews(Number(id!), reviewsPage + 1)}
+                                                        disabled={loadingReviews}
+                                                        style={{ 
+                                                            borderColor: '#cb8670',
+                                                            color: '#cb8670'
+                                                        }}
+                                                    >
+                                                        Xem thêm đánh giá
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
                                         <Empty description="Chưa có đánh giá nào" />
                                     )}
                                 </div>
@@ -1428,4 +1301,3 @@ const RoomTypeDetailPage: React.FC = () => {
 };
 
 export default RoomTypeDetailPage;
-
