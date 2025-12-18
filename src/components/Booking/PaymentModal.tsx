@@ -11,15 +11,19 @@ import {
     Tag,
     Row,
     Col,
+    Select,
+    Radio,
 } from 'antd';
 import {
     DollarOutlined,
     CheckCircleOutlined,
     ClockCircleOutlined,
     CloseCircleOutlined,
+    BankOutlined,
+    QrcodeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getUserInvoice, createPayOSInvoicePaymentLink } from '../../service/bookingService';
+import { getUserInvoice, createPayOSInvoicePaymentLink, createVNPayInvoicePaymentLink, getVNPayBanks } from '../../service/bookingService';
 import type { Invoice, InvoiceItem } from '../../types/invoice/invoice';
 import { formatVND } from '../../utils/currency';
 import { App } from 'antd';
@@ -48,16 +52,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(false);
     const [paying, setPaying] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'payos' | 'vnpay'>('payos');
+    const [vnpayBanks, setVnpayBanks] = useState<Record<string, string>>({});
+    const [selectedBank, setSelectedBank] = useState<string>('');
+    const [loadingBanks, setLoadingBanks] = useState(false);
 
     useEffect(() => {
         console.log('PaymentModal useEffect - isOpen:', isOpen, 'invoiceId:', invoiceId);
         if (isOpen && invoiceId) {
             console.log('Fetching invoice for ID:', invoiceId);
             fetchInvoice();
+            fetchVNPayBanks();
         } else {
             setInvoice(null);
         }
     }, [isOpen, invoiceId]);
+
+    const fetchVNPayBanks = async () => {
+        setLoadingBanks(true);
+        try {
+            const banks = await getVNPayBanks();
+            setVnpayBanks(banks);
+        } catch (error) {
+            console.error('Error fetching VNPay banks:', error);
+        } finally {
+            setLoadingBanks(false);
+        }
+    };
 
     const fetchInvoice = async () => {
         if (!invoiceId) {
@@ -126,6 +147,40 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             message.error(error.response?.data?.message || 'Không thể tạo link thanh toán');
         } finally {
             setPaying(false);
+        }
+    };
+
+    const handleVNPayPayment = async () => {
+        if (!invoiceId || !invoice) return;
+
+        try {
+            setPaying(true);
+            const response = await createVNPayInvoicePaymentLink(
+                invoiceId,
+                invoice.total_amount,
+                `Thanh toan hoa don #${invoice.invoice_number || invoiceId}`,
+                selectedBank || undefined
+            );
+
+            if (response.payment_url) {
+                // Redirect đến VNPAY checkout
+                window.location.href = response.payment_url;
+            } else {
+                message.error('Không thể tạo link thanh toán VNPAY');
+            }
+        } catch (error: any) {
+            console.error('Error creating VNPay payment link:', error);
+            message.error(error.response?.data?.message || 'Không thể tạo link thanh toán VNPAY');
+        } finally {
+            setPaying(false);
+        }
+    };
+
+    const handlePayment = () => {
+        if (paymentMethod === 'payos') {
+            handlePayOSPayment();
+        } else {
+            handleVNPayPayment();
         }
     };
 
@@ -256,18 +311,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     Hủy
                 </Button>,
                 <Button
-                    key="payos"
+                    key="pay"
                     type="primary"
                     loading={paying}
-                    onClick={handlePayOSPayment}
-                    icon={<DollarOutlined />}
+                    onClick={handlePayment}
+                    icon={paymentMethod === 'payos' ? <QrcodeOutlined /> : <BankOutlined />}
                     style={{
-                        backgroundColor: '#52c41a',
-                        borderColor: '#52c41a',
+                        backgroundColor: paymentMethod === 'payos' ? '#52c41a' : '#1890ff',
+                        borderColor: paymentMethod === 'payos' ? '#52c41a' : '#1890ff',
                     }}
-                    disabled={!invoice || loading}
+                    disabled={!invoice || loading || (paymentMethod === 'vnpay' && (invoice?.balance || 0) < 10000)}
                 >
-                    Thanh toán PayOS
+                    {paymentMethod === 'payos' ? 'Thanh toán PayOS' : 'Thanh toán VNPAY'}
                 </Button>,
             ]}
         >
@@ -288,6 +343,99 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     </Row>
 
                     <Divider />
+
+                    {/* Chọn phương thức thanh toán */}
+                    <div style={{ marginBottom: 24, padding: '16px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
+                        <Title level={5} style={{ marginBottom: 16 }}>
+                            <BankOutlined style={{ marginRight: 8 }} />
+                            Chọn phương thức thanh toán
+                        </Title>
+                        <Radio.Group 
+                            value={paymentMethod} 
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            style={{ width: '100%' }}
+                        >
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                <Radio value="payos" style={{ 
+                                    padding: '12px 16px', 
+                                    border: paymentMethod === 'payos' ? '2px solid #52c41a' : '1px solid #d9d9d9',
+                                    borderRadius: '8px',
+                                    width: '100%',
+                                    backgroundColor: paymentMethod === 'payos' ? '#f6ffed' : 'white'
+                                }}>
+                                    <Space>
+                                        <QrcodeOutlined style={{ fontSize: 20, color: '#52c41a' }} />
+                                        <div>
+                                            <Text strong>PayOS</Text>
+                                            <br />
+                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                Thanh toán qua QR Code, chuyển khoản nhanh
+                                            </Text>
+                                        </div>
+                                    </Space>
+                                </Radio>
+                                <Radio value="vnpay" style={{ 
+                                    padding: '12px 16px', 
+                                    border: paymentMethod === 'vnpay' ? '2px solid #1890ff' : '1px solid #d9d9d9',
+                                    borderRadius: '8px',
+                                    width: '100%',
+                                    backgroundColor: paymentMethod === 'vnpay' ? '#e6f7ff' : 'white'
+                                }}>
+                                    <Space>
+                                        <BankOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+                                        <div>
+                                            <Text strong>VNPAY</Text>
+                                            <br />
+                                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                                Thẻ ATM, Internet Banking, Visa/Mastercard
+                                            </Text>
+                                        </div>
+                                    </Space>
+                                </Radio>
+                            </Space>
+                        </Radio.Group>
+
+                        {/* Chọn ngân hàng cho VNPAY */}
+                        {paymentMethod === 'vnpay' && (
+                            <div style={{ marginTop: 16 }}>
+                                <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                                    Chọn ngân hàng (không bắt buộc):
+                                </Text>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="-- Để trống để hiển thị danh sách ngân hàng --"
+                                    allowClear
+                                    value={selectedBank || undefined}
+                                    onChange={(value) => setSelectedBank(value || '')}
+                                    loading={loadingBanks}
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        { value: '', label: '-- Hiển thị tất cả ngân hàng --' },
+                                        ...Object.entries(vnpayBanks).map(([code, name]) => ({
+                                            value: code,
+                                            label: name,
+                                        }))
+                                    ]}
+                                />
+                                {(invoice?.balance || 0) < 10000 && (
+                                    <div style={{
+                                        padding: 12,
+                                        background: '#fff2f0',
+                                        borderRadius: 8,
+                                        border: '1px solid #ffccc7',
+                                        marginTop: 12
+                                    }}>
+                                        <Text type="danger" style={{ fontSize: 13 }}>
+                                            ⚠️ VNPAY yêu cầu số tiền thanh toán tối thiểu là 10.000 VNĐ. Vui lòng chọn PayOS để thanh toán đơn này.
+                                        </Text>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Thông tin khách hàng */}
                     <Descriptions title="Thông tin khách hàng" bordered column={2} size="small" style={{ marginBottom: 24 }}>

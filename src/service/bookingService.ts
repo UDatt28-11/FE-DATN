@@ -972,6 +972,126 @@ export async function createPayOSInvoicePaymentLink(
   }
 }
 
+// ============================================
+// VNPAY PAYMENT FUNCTIONS
+// ============================================
+
+/**
+ * Lấy danh sách ngân hàng hỗ trợ VNPAY
+ */
+export async function getVNPayBanks() {
+  try {
+    const { data } = await api.get('/vnpay/banks');
+    return data.data as Record<string, string>;
+  } catch (error: any) {
+    console.error("Error fetching VNPay banks:", error);
+    throw error;
+  }
+}
+
+/**
+ * Tạo URL thanh toán VNPAY cho booking
+ */
+export async function createVNPayPaymentLink(
+  bookingId: number,
+  amount: number,
+  description?: string,
+  bankCode?: string
+) {
+  try {
+    const { data } = await api.post('/user/vnpay/create-payment', {
+      booking_id: bookingId,
+      amount: amount,
+      description: description,
+      bank_code: bankCode,
+    });
+    
+    console.log('VNPay createPaymentLink response:', {
+      success: data.success,
+      has_data: !!data.data,
+      payment_url: data.data?.payment_url,
+    });
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Không thể tạo link thanh toán VNPAY');
+    }
+    
+    if (!data.data || !data.data.payment_url) {
+      console.error('VNPay response missing payment_url:', data);
+      throw new Error('VNPAY không trả về link thanh toán');
+    }
+    
+    return data.data as {
+      payment_url: string;
+      order_code: string;
+      amount: number;
+      booking_id: number;
+      expire_date?: string;
+    };
+  } catch (error: any) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error creating VNPay payment link:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Tạo URL thanh toán VNPAY cho invoice (thanh toán sau checkout)
+ */
+export async function createVNPayInvoicePaymentLink(
+  invoiceId: number,
+  amount: number,
+  description?: string,
+  bankCode?: string
+) {
+  try {
+    const { data } = await api.post('/user/vnpay/create-invoice-payment', {
+      invoice_id: invoiceId,
+      amount: amount,
+      description: description,
+      bank_code: bankCode,
+    });
+    
+    console.log('VNPay createInvoicePaymentLink response:', {
+      success: data.success,
+      has_data: !!data.data,
+      payment_url: data.data?.payment_url,
+    });
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Không thể tạo link thanh toán VNPAY');
+    }
+    
+    const paymentUrl = data.data?.payment_url;
+    
+    if (!paymentUrl) {
+      console.error('VNPay response missing payment_url:', data);
+      throw new Error('VNPAY không trả về link thanh toán');
+    }
+    
+    return {
+      payment_url: paymentUrl,
+      order_code: data.data?.order_code,
+      amount: data.data?.amount,
+      invoice_id: invoiceId,
+    };
+  } catch (error: any) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
+      console.error("Error creating VNPay invoice payment link:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+    }
+    throw error;
+  }
+}
+
 // Get checked-in guests (Quản lý lưu trú)
 export async function getCheckedInGuests(params?: {
   page?: number;
