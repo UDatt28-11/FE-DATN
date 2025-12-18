@@ -135,6 +135,70 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
         };
     };
 
+    const getDisplayStatus = (invoice: Invoice | null): string | undefined => {
+        if (!invoice) return undefined;
+
+        // Ưu tiên: nếu đã thanh toán đủ hoặc không còn số dư thì coi như "paid"
+        const total = invoice.total_amount ?? 0;
+        const paid = invoice.paid_amount ?? 0;
+        const balance = typeof invoice.balance === 'number' ? invoice.balance : total - paid;
+
+        if (total === 0 || balance <= 0) {
+            return 'paid';
+        }
+
+        // Nếu backend có payment_status thì dùng, map partially_paid -> pending để hiển thị thân thiện
+        if (invoice.payment_status) {
+            if (invoice.payment_status === 'paid') return 'paid';
+            if (invoice.payment_status === 'overdue') return 'overdue';
+            if (invoice.payment_status === 'cancelled') return 'cancelled';
+            return 'pending';
+        }
+
+        // Fallback theo invoice_status
+        if (invoice.invoice_status === 'paid') return 'paid';
+        if (invoice.invoice_status === 'cancelled') return 'cancelled';
+
+        return 'pending';
+    };
+
+    const getDisplayPaymentMethod = (invoice: Invoice | null): string => {
+        if (!invoice) return 'N/A';
+
+        const rawMethod = (invoice as any).payment_method || invoice.booking_order?.payment_method;
+        const normalize = (method?: string | null): string | undefined => {
+            if (!method) return undefined;
+            const lower = method.toLowerCase();
+            if (lower === 'payos' || lower === 'pay_os') return 'PayOS';
+            if (lower === 'cash') return 'Tiền mặt';
+            if (lower === 'bank_transfer') return 'Chuyển khoản';
+            if (lower === 'credit_card') return 'Thẻ tín dụng';
+            if (lower === 'e_wallet') return 'Ví điện tử';
+            return method;
+        };
+
+        const normalizedFromField = normalize(rawMethod);
+        if (normalizedFromField) return normalizedFromField;
+
+        // Nếu không có field payment_method, thử đoán theo invoice items (deposit PayOS)
+        const items: any[] =
+            (invoice as any).items ||
+            (invoice as any).invoice_items ||
+            (invoice as any).invoiceItems ||
+            [];
+
+        const hasPayOSDeposit = items.some(
+            (item) =>
+                item?.item_type === 'deposit' &&
+                typeof item.description === 'string' &&
+                item.description.toLowerCase().includes('payos'),
+        );
+
+        if (hasPayOSDeposit) return 'PayOS';
+
+        return 'N/A';
+    };
+
     const formatDate = (dateString?: string | null): string => {
         if (!dateString) return 'N/A';
         try {
@@ -256,13 +320,19 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                             <Text type="secondary">Số hóa đơn: {invoice.invoice_number || `#${invoice.id}`}</Text>
                         </Col>
                         <Col>
-                            <Tag
-                                icon={getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).icon}
-                                color={getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).color}
-                                style={{ fontSize: 14, padding: '4px 12px' }}
-                            >
-                                {getStatusConfig(invoice.status || invoice.payment_status || invoice.invoice_status).text}
-                            </Tag>
+                            {(() => {
+                                const statusKey = getDisplayStatus(invoice);
+                                const cfg = getStatusConfig(statusKey);
+                                return (
+                                    <Tag
+                                        icon={cfg.icon}
+                                        color={cfg.color}
+                                        style={{ fontSize: 14, padding: '4px 12px' }}
+                                    >
+                                        {cfg.text}
+                                    </Tag>
+                                );
+                            })()}
                         </Col>
                     </Row>
 
@@ -278,9 +348,6 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                         </Descriptions.Item>
                         <Descriptions.Item label="Số điện thoại">
                             {invoice.customer_phone || invoice.booking_order?.customer_phone || 'N/A'}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Địa chỉ">
-                            {invoice.customer_address || 'N/A'}
                         </Descriptions.Item>
                     </Descriptions>
 
@@ -298,7 +365,7 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                                     <Text strong>#{invoice.booking_order.order_code || invoice.booking_order.code}</Text>
                                 </Descriptions.Item>
                                 <Descriptions.Item label="Phương thức thanh toán">
-                                    {invoice.payment_method || invoice.booking_order.payment_method || 'N/A'}
+                                    {getDisplayPaymentMethod(invoice)}
                                 </Descriptions.Item>
                             </>
                         )}

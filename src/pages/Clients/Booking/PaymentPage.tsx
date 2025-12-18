@@ -194,6 +194,8 @@ const PaymentPage: React.FC = () => {
                             original_total_amount: originalTotalAmount,
                             total_amount: totalAmount, // Tổng tiền sau giảm giá
                         }),
+                        // Ghi rõ phương thức thanh toán là PayOS khi người dùng chọn thanh toán qua PayOS
+                        payment_method: bookingData.bookingPayload?.payment_method || 'payos',
                     };
                     
                     const createdBooking = await createUserBooking(bookingPayloadWithVoucher);

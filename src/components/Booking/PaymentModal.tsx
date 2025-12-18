@@ -202,6 +202,42 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         },
     ];
 
+    const getDisplayPaymentMethod = (invoice: Invoice | null): string => {
+        if (!invoice) return 'N/A';
+
+        const rawMethod = (invoice as any).payment_method || invoice.booking_order?.payment_method;
+        const normalize = (method?: string | null): string | undefined => {
+            if (!method) return undefined;
+            const lower = method.toLowerCase();
+            if (lower === 'payos' || lower === 'pay_os') return 'PayOS';
+            if (lower === 'cash') return 'Tiền mặt';
+            if (lower === 'bank_transfer') return 'Chuyển khoản';
+            if (lower === 'credit_card') return 'Thẻ tín dụng';
+            if (lower === 'e_wallet') return 'Ví điện tử';
+            return method;
+        };
+
+        const normalizedFromField = normalize(rawMethod);
+        if (normalizedFromField) return normalizedFromField;
+
+        const items: any[] =
+            (invoice as any).items ||
+            (invoice as any).invoice_items ||
+            (invoice as any).invoiceItems ||
+            [];
+
+        const hasPayOSDeposit = items.some(
+            (item) =>
+                item?.item_type === 'deposit' &&
+                typeof item.description === 'string' &&
+                item.description.toLowerCase().includes('payos'),
+        );
+
+        if (hasPayOSDeposit) return 'PayOS';
+
+        return 'N/A';
+    };
+
     if (!invoiceId) return null;
 
     return (
@@ -265,7 +301,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             {invoice.customer_phone || invoice.booking_order?.customer_phone || 'N/A'}
                         </Descriptions.Item>
                         <Descriptions.Item label="Địa chỉ">
-                            {invoice.customer_address || 'N/A'}
+                            {invoice.customer_address ||
+                                (invoice.booking_order?.guest?.address as string | undefined) ||
+                                'N/A'}
                         </Descriptions.Item>
                     </Descriptions>
 
@@ -283,7 +321,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     <Text strong>#{invoice.booking_order.order_code || invoice.booking_order.code}</Text>
                                 </Descriptions.Item>
                                 <Descriptions.Item label="Phương thức thanh toán">
-                                    {invoice.payment_method || invoice.booking_order.payment_method || 'N/A'}
+                                    {getDisplayPaymentMethod(invoice)}
                                 </Descriptions.Item>
                             </>
                         )}
