@@ -36,7 +36,6 @@ import {
     DollarOutlined,
     FileTextOutlined,
     RedoOutlined,
-    ShoppingOutlined,
     StarOutlined,
 } from '@ant-design/icons';
 import { getUserBookings, getUserBooking, getUserInvoices, cancelUserBooking, getUserBookingCounts } from '../../../service/bookingService';
@@ -45,7 +44,6 @@ import { formatVND } from '../../../utils/currency';
 import { useAuth } from '../../../context/AuthContext';
 import PaymentModal from '../../../components/Booking/PaymentModal';
 import ViewInvoiceModal from '../../../components/Booking/ViewInvoiceModal';
-import RequestServiceModal from '../../../components/Booking/RequestServiceModal';
 import ReviewModal from '../../../components/Booking/ReviewModal';
 import CancelBookingModal from '../../../components/Booking/CancelBookingModal';
 import ChangeDateModal from '../../../components/Booking/ChangeDateModal';
@@ -211,9 +209,6 @@ const MyBookingsPage: React.FC = () => {
     const [paymentInvoiceId, setPaymentInvoiceId] = useState<number | null>(null);
     const [paymentTotalAmount, setPaymentTotalAmount] = useState<number>(0);
     const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
-    const [requestServiceModalVisible, setRequestServiceModalVisible] = useState(false);
-    const [requestServiceBooking, setRequestServiceBooking] = useState<BookingOrder | null>(null);
-    const [requestServiceDetail, setRequestServiceDetail] = useState<BookingDetail | null>(null);
     const [viewInvoiceId, setViewInvoiceId] = useState<number | null>(null);
     const [reviewModalVisible, setReviewModalVisible] = useState(false);
     const [reviewBookingDetail, setReviewBookingDetail] = useState<BookingDetail | null>(null);
@@ -644,27 +639,6 @@ const MyBookingsPage: React.FC = () => {
                                     >
                                         Xem chi tiết
                                     </Button>
-                                    {(booking.status === 'checked_in' || booking.status === 'partially_checked_in') && (
-                                        <>
-                                            <Button
-                                                type="default"
-                                                icon={<ShoppingOutlined />}
-                                                onClick={() => {
-                                                    // Chọn booking detail đầu tiên hoặc cho user chọn
-                                                    const firstDetail = booking.details?.[0];
-                                                    if (firstDetail) {
-                                                        setRequestServiceBooking(booking);
-                                                        setRequestServiceDetail(firstDetail);
-                                                        setRequestServiceModalVisible(true);
-                                                    } else {
-                                                        message.warning('Không tìm thấy thông tin phòng');
-                                                    }
-                                                }}
-                                            >
-                                                Yêu cầu dịch vụ
-                                            </Button>
-                                        </>
-                                    )}
                                     {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') && (
                                         <>
                                             {/* Chỉ hiển thị nút "Thanh toán" nếu chưa thanh toán đầy đủ và chưa completed */}
@@ -738,8 +712,15 @@ const MyBookingsPage: React.FC = () => {
                                             )}
                                         </>
                                     )}
-                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị ở tab "Đã thanh toán" */}
-                                    {activeTab === 'paid' && booking.payment_status === 'paid' && booking.details && booking.details.length > 0 && (
+                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị ở tab "Đã thanh toán" 
+                                        VÀ booking đã checkout (tránh trường hợp mới check-in đã được đánh giá) */}
+                                    {activeTab === 'paid' 
+                                        && booking.payment_status === 'paid' 
+                                        && (booking.status === 'checked_out' 
+                                            || booking.status === 'partially_checked_out' 
+                                            || booking.status === 'completed')
+                                        && booking.details 
+                                        && booking.details.length > 0 && (
                                         <>
                                             {booking.details.map((detail: BookingDetail) => {
                                                 const hasReview = detail.review && detail.review.id;
@@ -1215,21 +1196,6 @@ const MyBookingsPage: React.FC = () => {
                 onCancel={() => {
                     setInvoiceModalVisible(false);
                     setViewInvoiceId(null);
-                }}
-            />
-
-            <RequestServiceModal
-                open={requestServiceModalVisible}
-                booking={requestServiceBooking}
-                bookingDetail={requestServiceDetail}
-                onCancel={() => {
-                    setRequestServiceModalVisible(false);
-                    setRequestServiceBooking(null);
-                    setRequestServiceDetail(null);
-                }}
-                onSuccess={() => {
-                    // Refresh bookings sau khi yêu cầu dịch vụ thành công
-                    fetchBookings();
                 }}
             />
 

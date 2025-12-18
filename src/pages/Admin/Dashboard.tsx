@@ -164,7 +164,7 @@ const Dashboard: React.FC = () => {
       key: "name",
     },
     {
-      title: "Tồn kho",
+      title: "Số lượng",
       dataIndex: "current_stock",
       key: "current_stock",
       render: (stock, record) => (
@@ -289,9 +289,7 @@ const Dashboard: React.FC = () => {
             <Card>
               <Statistic
                 title="Vật tư sắp hết"
-                value={
-                  supplyStats?.low_stock_count ?? lowStockSupplies.length
-                }
+                value={supplyStats?.low_stock_count ?? lowStockSupplies.length}
                 valueStyle={{ color: "#ff4d4f" }}
                 prefix={<WarningOutlined />}
               />

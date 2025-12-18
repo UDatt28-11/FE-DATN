@@ -77,8 +77,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 // 4. Custom Hook để sử dụng Context
 export const useAuth = () => {
     const context = useContext(AuthContext);
+
+    // Fallback an toàn nếu component nào đó dùng useAuth mà quên bọc AuthProvider
+    // Thay vì throw lỗi làm crash toàn bộ app, ta coi như user chưa đăng nhập.
     if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        return {
+            isLoggedIn: false,
+            user: null,
+            login: () => {
+                console.warn("useAuth: gọi login nhưng không có AuthProvider bao quanh component.");
+            },
+            logout: () => {
+                console.warn("useAuth: gọi logout nhưng không có AuthProvider bao quanh component.");
+            },
+            loading: false,
+        } as AuthContextType;
     }
+
     return context;
 };

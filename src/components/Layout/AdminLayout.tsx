@@ -112,13 +112,13 @@ const AdminLayout: React.FC = () => {
     {
       key: "check-in-requests",
       icon: <IdcardOutlined />,
-      label: "Yêu cầu check-in",
+      label: "Quản lí check-in",
       path: "/admin/check-in-requests",
     },
     {
       key: "checkout-requests",
       icon: <LogoutOutlined />,
-      label: "Yêu cầu checkout",
+      label: "Quản lí checkout",
       path: "/admin/checkout-requests",
     },
     {
@@ -180,7 +180,7 @@ const AdminLayout: React.FC = () => {
   // Xác định selected key dựa trên pathname hiện tại
   const selectedKeys = useMemo(() => {
     const currentPath = location.pathname;
-    
+
     // Tìm menu item có path khớp với pathname hiện tại
     const matchedItem = menuItems.find((item) => {
       // Kiểm tra exact match
@@ -189,12 +189,15 @@ const AdminLayout: React.FC = () => {
       }
       // Kiểm tra nếu pathname bắt đầu bằng item.path (cho các sub-routes)
       // Ví dụ: /admin/category/123 sẽ match với /admin/category
-      if (currentPath.startsWith(item.path + '/') || currentPath.startsWith(item.path + '?')) {
+      if (
+        currentPath.startsWith(item.path + "/") ||
+        currentPath.startsWith(item.path + "?")
+      ) {
         return true;
       }
       return false;
     });
-    
+
     return matchedItem ? [matchedItem.key] : [];
   }, [location.pathname]);
 
