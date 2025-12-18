@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Upload, Space, Switch, Select, Row, Col, Image, Popconfirm, Button, Tag, Spin, Checkbox, InputNumber } from "antd";
+import { Modal, Form, Input, Upload, Space, Switch, Select, Row, Col, Image, Popconfirm, Button, Tag, Spin, Checkbox, InputNumber, message } from "antd";
 import { PictureOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import type { RoomType, RoomTypeImage } from "../../../types/roomtype/roomtype";
 import roomtypeService from "../../../service/roomtypeService";
+import serviceService from "../../../service/serviceService";
+import type { Service } from "../../../types/service/service";
 import { toast } from "react-toastify";
 import axios from "../../../service/axiosConfig";
 
@@ -33,10 +35,13 @@ const EditCategory: React.FC<EditCategoryProps> = ({
   const [uploading, setUploading] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<number[]>([]);
   const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
 
   useEffect(() => {
     if (visible && roomType) {
       loadRoomTypeImages();
+      loadRoomTypeServices();
       form.setFieldsValue({
         name: roomType.name,
         description: roomType.description,
@@ -44,6 +49,7 @@ const EditCategory: React.FC<EditCategoryProps> = ({
         base_price: roomType.base_price,
         max_adults: roomType.max_adults,
         max_children: roomType.max_children,
+        service_ids: roomType.services?.map(s => s.id) || [],
       });
       setStatus(roomType.status);
     }
@@ -76,6 +82,22 @@ const EditCategory: React.FC<EditCategoryProps> = ({
       console.error("Error loading room type images:", error);
     } finally {
       setLoadingImages(false);
+    }
+  };
+
+  const loadRoomTypeServices = async () => {
+    if (!roomType || !roomType.property_id) return;
+
+    setLoadingServices(true);
+    try {
+      const serviceList = await serviceService.getAll({ property_id: roomType.property_id });
+      setServices(serviceList);
+    } catch (error: any) {
+      console.error('Error loading services:', error);
+      message.error('Không thể tải danh sách dịch vụ của cơ sở lưu trú');
+      setServices([]);
+    } finally {
+      setLoadingServices(false);
     }
   };
 
@@ -263,6 +285,27 @@ const EditCategory: React.FC<EditCategoryProps> = ({
             allowClear
           >
             {/* Có thể thêm danh sách properties nếu cần */}
+          </Select>
+        </Form.Item>
+
+        {/* Dịch vụ áp dụng cho loại phòng này */}
+        <Form.Item
+          name="service_ids"
+          label="Dịch vụ áp dụng cho loại phòng"
+          extra="Chỉ hiển thị dịch vụ thuộc cùng cơ sở lưu trú."
+        >
+          <Select
+            mode="multiple"
+            placeholder="Chọn các dịch vụ có thể sử dụng cho loại phòng này"
+            loading={loadingServices}
+            optionFilterProp="children"
+            allowClear
+          >
+            {services.map((service) => (
+              <Select.Option key={service.id} value={service.id}>
+                {service.name} - {service.price.toLocaleString("vi-VN")}₫ / {service.unit}
+              </Select.Option>
+            ))}
           </Select>
         </Form.Item>
 

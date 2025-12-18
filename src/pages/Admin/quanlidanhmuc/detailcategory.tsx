@@ -47,6 +47,7 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({
     const [loadingImages, setLoadingImages] = useState(false);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loadingRooms, setLoadingRooms] = useState(false);
+    const [roomTypeWithServices, setRoomTypeWithServices] = useState<RoomType | null>(null);
     
     // State cho Add/Edit Room
     const [addRoomVisible, setAddRoomVisible] = useState(false);
@@ -76,6 +77,7 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({
         } else {
             setRoomImages([]);
             setRooms([]);
+            setRoomTypeWithServices(null);
         }
     }, [visible, roomType, autoOpenAddRoom, onAutoAddRoomHandled]);
 
@@ -110,9 +112,23 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({
                 }
                 
                 setRoomImages(allImages);
+                
+                // Cập nhật roomType với services từ API
+                if (roomTypeData.services && Array.isArray(roomTypeData.services)) {
+                    setRoomTypeWithServices({
+                        ...roomType,
+                        services: roomTypeData.services,
+                    });
+                } else {
+                    setRoomTypeWithServices({
+                        ...roomType,
+                        services: [],
+                    });
+                }
             }
         } catch (error) {
             console.error("Error loading room type images:", error);
+            setRoomTypeWithServices(roomType);
         } finally {
             setLoadingImages(false);
         }
@@ -271,6 +287,9 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({
 
     if (!roomType) return null;
 
+    // Sử dụng roomTypeWithServices nếu có, nếu không dùng roomType
+    const displayRoomType = roomTypeWithServices || roomType;
+
     return (
         <Modal
             title={<Space><EyeOutlined />Chi tiết loại phòng</Space>}
@@ -285,29 +304,42 @@ const DetailCategory: React.FC<DetailCategoryProps> = ({
             <Row gutter={24}>
                 <Col span={10}>
                     <Image 
-                        src={roomType.image_url || "https://via.placeholder.com/300"} 
-                        alt={roomType.name} 
+                        src={displayRoomType.image_url || "https://via.placeholder.com/300"} 
+                        alt={displayRoomType.name} 
                         style={{ borderRadius: 12, width: "100%", marginBottom: 16 }} 
                         preview={{
-                            src: roomType.image_url || "https://via.placeholder.com/300"
+                            src: displayRoomType.image_url || "https://via.placeholder.com/300"
                         }}
                     />
                 </Col>
                 <Col span={14}>
-                    <Title level={3}>{roomType.name}</Title>
-                    <Paragraph style={{ marginTop: 16 }}>{roomType.description || "Chưa có mô tả"}</Paragraph>
+                    <Title level={3}>{displayRoomType.name}</Title>
+                    <Paragraph style={{ marginTop: 16 }}>{displayRoomType.description || "Chưa có mô tả"}</Paragraph>
                     <Descriptions column={1} bordered size="small" style={{ marginTop: 20 }}>
-                        <Descriptions.Item label="ID">{roomType.id}</Descriptions.Item>
+                        <Descriptions.Item label="ID">{displayRoomType.id}</Descriptions.Item>
                         <Descriptions.Item label="Giá / đêm">
                             <strong>
-                                {(roomType.base_price ?? 0).toLocaleString("vi-VN")} ₫
+                                {(displayRoomType.base_price ?? 0).toLocaleString("vi-VN")} ₫
                             </strong>
                         </Descriptions.Item>
                         <Descriptions.Item label="Sức chứa chuẩn">
-                            {(roomType.max_adults ?? 0)} người lớn, {(roomType.max_children ?? 0)} trẻ em
+                            {(displayRoomType.max_adults ?? 0)} người lớn, {(displayRoomType.max_children ?? 0)} trẻ em
                         </Descriptions.Item>
                         <Descriptions.Item label="Property">
-                            {roomType.property?.name || "-"}
+                            {displayRoomType.property?.name || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Dịch vụ">
+                            {displayRoomType.services && displayRoomType.services.length > 0 ? (
+                                <Space size={[4, 4]} wrap>
+                                    {displayRoomType.services.map((service) => (
+                                        <Tag key={service.id} color="blue">
+                                            {service.name} - {service.price.toLocaleString("vi-VN")}₫ / {service.unit}
+                                        </Tag>
+                                    ))}
+                                </Space>
+                            ) : (
+                                <Tag color="default">Chưa có dịch vụ</Tag>
+                            )}
                         </Descriptions.Item>
                         <Descriptions.Item label="Trạng thái">
                             {roomType.status === "active" ? (

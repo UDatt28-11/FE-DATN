@@ -826,6 +826,17 @@ const RoomList: React.FC = () => {
 
         // Validate sức chứa tổng so với desiredGuests (nếu người dùng đã nhập)
         if (desiredGuests && desiredGuests > 0) {
+            // Tính tổng số phòng
+            const totalRooms = selectedRoomTypes.reduce((sum, item) => {
+                return sum + (item.quantity || 1);
+            }, 0);
+
+            // Validate: Số phòng không được nhiều hơn số khách muốn đặt
+            if (totalRooms > desiredGuests) {
+                message.error(`Bạn đang đặt ${totalRooms} phòng, nhiều hơn số khách muốn đặt (${desiredGuests} người). Vui lòng giảm bớt số phòng.`);
+                return;
+            }
+
             const totalCapacity = selectedRoomTypes.reduce((sum, item) => {
                 const qty = item.quantity || 1;
                 const cap = (item.maxAdults || 0) + (item.maxChildren || 0);
@@ -1622,11 +1633,25 @@ const RoomList: React.FC = () => {
                             {desiredGuests > 0 && (
                                 <div style={{ marginTop: 12 }}>
                                     {(() => {
+                                        const totalRooms = (selectedRoomTypes || []).reduce((sum, item) => {
+                                            return sum + (item.quantity || 1);
+                                        }, 0);
+
                                         const totalCapacity = (selectedRoomTypes || []).reduce((sum, item) => {
                                             const qty = item.quantity || 1;
                                             const cap = (item.maxAdults || 0) + (item.maxChildren || 0);
                                             return sum + qty * cap;
                                         }, 0);
+
+                                        // Validate số phòng không được nhiều hơn số khách
+                                        if (totalRooms > desiredGuests) {
+                                            return (
+                                                <Text type="danger" style={{ fontSize: 12, display: 'block' }}>
+                                                    Bạn đang đặt <strong>{totalRooms}</strong> phòng, nhiều hơn số khách muốn đặt (<strong>{desiredGuests}</strong> người). 
+                                                    Vui lòng giảm bớt số phòng.
+                                                </Text>
+                                            );
+                                        }
 
                                         if (totalCapacity < desiredGuests) {
                                             return (
@@ -1673,6 +1698,13 @@ const RoomList: React.FC = () => {
                             }}
                             disabled={(() => {
                                 if (!desiredGuests || desiredGuests <= 0) return false;
+                                
+                                // Validate số phòng không được nhiều hơn số khách
+                                const totalRooms = (selectedRoomTypes || []).reduce((sum, item) => {
+                                    return sum + (item.quantity || 1);
+                                }, 0);
+                                if (totalRooms > desiredGuests) return true;
+
                                 const totalCapacity = (selectedRoomTypes || []).reduce((sum, item) => {
                                     const qty = item.quantity || 1;
                                     const cap = (item.maxAdults || 0) + (item.maxChildren || 0);

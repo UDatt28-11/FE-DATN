@@ -219,6 +219,29 @@ const ListCategory: React.FC = () => {
       render: (property: RoomType["property"]) => property?.name || "-",
     },
     {
+      title: "Dịch vụ",
+      dataIndex: "services",
+      key: "services",
+      width: 200,
+      render: (services: RoomType["services"]) => {
+        if (!services || services.length === 0) {
+          return <Tag color="default">Chưa có dịch vụ</Tag>;
+        }
+        return (
+          <Space size={[4, 4]} wrap>
+            {services.slice(0, 2).map((service) => (
+              <Tag key={service.id} color="blue">
+                {service.name}
+              </Tag>
+            ))}
+            {services.length > 2 && (
+              <Tag color="default">+{services.length - 2}</Tag>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
