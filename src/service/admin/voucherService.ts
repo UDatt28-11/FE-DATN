@@ -57,7 +57,7 @@ export interface ListVouchersParams {
   page?: number;
   per_page?: number;
   keyword?: string;
-  is_active?: boolean;
+  is_active?: boolean | number | string; // Có thể là boolean, number (1/0), hoặc string ("1"/"0")
   property_id?: number;
   sort?: string;
 }
@@ -69,7 +69,15 @@ export interface ListVouchersParams {
  */
 export async function getVouchers(params?: ListVouchersParams) {
   try {
-    const { data } = await api.get("/admin/vouchers", { params });
+    // Convert boolean is_active to number (1/0) để tránh lỗi validation Laravel
+    const processedParams = params ? { ...params } : {};
+    if (processedParams.is_active !== undefined) {
+      if (typeof processedParams.is_active === 'boolean') {
+        processedParams.is_active = processedParams.is_active ? 1 : 0;
+      }
+    }
+    
+    const { data } = await api.get("/admin/vouchers", { params: processedParams });
     return {
       vouchers: data.data as Voucher[],
       pagination: data.meta?.pagination as PaginationMeta,
