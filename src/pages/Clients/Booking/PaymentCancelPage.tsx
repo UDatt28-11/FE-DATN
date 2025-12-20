@@ -15,12 +15,14 @@ const PaymentCancelPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const bookingId = searchParams.get('booking_id');
+    const invoiceId = searchParams.get('invoice_id');
     const orderCode = searchParams.get('orderCode');
+    const errorMessage = searchParams.get('error'); // Error message from VNPay
 
     useEffect(() => {
         const fetchBooking = async () => {
+            // Không có booking_id thì không cần fetch, chỉ hiển thị thông báo
             if (!bookingId) {
-                setError('Không tìm thấy thông tin đơn đặt phòng');
                 setLoading(false);
                 return;
             }
@@ -30,7 +32,7 @@ const PaymentCancelPage: React.FC = () => {
                 setBooking(bookingData);
             } catch (err: any) {
                 console.error('Error fetching booking:', err);
-                setError('Không thể tải thông tin đơn đặt phòng');
+                // Không set error ở đây để vẫn hiển thị trang cancel
             } finally {
                 setLoading(false);
             }
@@ -52,33 +54,16 @@ const PaymentCancelPage: React.FC = () => {
         );
     }
 
-    if (error) {
-        return (
-            <div style={{ padding: '40px 20px', maxWidth: 800, margin: '0 auto' }}>
-                <Result
-                    status="error"
-                    title="Có lỗi xảy ra"
-                    subTitle={error}
-                    extra={[
-                        <Button type="primary" key="home" onClick={() => navigate('/')}>
-                            Về trang chủ
-                        </Button>,
-                    ]}
-                />
-            </div>
-        );
-    }
-
     return (
         <div style={{ padding: '40px 20px', maxWidth: 800, margin: '0 auto' }}>
             <Result
                 status="error"
                 icon={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                title="Thanh toán đã bị hủy"
+                title="Thanh toán không thành công"
                 subTitle={
                     <Space direction="vertical" size="small" style={{ marginTop: 16 }}>
                         <Paragraph>
-                            Bạn đã hủy quá trình thanh toán. Đơn đặt phòng của bạn vẫn được lưu và bạn có thể thanh toán lại bất cứ lúc nào.
+                            {errorMessage || 'Bạn đã hủy quá trình thanh toán hoặc có lỗi xảy ra. Đơn đặt phòng của bạn vẫn được lưu và bạn có thể thanh toán lại bất cứ lúc nào.'}
                         </Paragraph>
                         {orderCode && (
                             <Paragraph>
@@ -89,25 +74,35 @@ const PaymentCancelPage: React.FC = () => {
                     </Space>
                 }
                 extra={[
+                    booking && (
+                        <Button
+                            type="primary"
+                            key="retry"
+                            icon={<ReloadOutlined />}
+                            onClick={() => navigate(`/booking/payment`, { 
+                                state: {
+                                    bookingId: booking.id,
+                                    booking: booking,
+                                    guestInfo: {
+                                        fullName: booking.customer_name || '',
+                                        phone: booking.customer_phone || '',
+                                        email: booking.customer_email || '',
+                                    },
+                                    totalPrice: Number(booking.total_amount),
+                                }
+                            })}
+                            size="large"
+                        >
+                            Thanh toán lại
+                        </Button>
+                    ),
                     <Button
-                        type="primary"
-                        key="retry"
-                        icon={<ReloadOutlined />}
-                        onClick={() => navigate(`/booking/payment`, { 
-                            state: booking ? {
-                                bookingId: booking.id,
-                                booking: booking,
-                                guestInfo: {
-                                    fullName: booking.customer_name || '',
-                                    phone: booking.customer_phone || '',
-                                    email: booking.customer_email || '',
-                                },
-                                totalPrice: Number(booking.total_amount),
-                            } : {}
-                        })}
+                        key="bookings"
+                        onClick={() => navigate('/my-bookings')}
                         size="large"
+                        type={!booking ? "primary" : "default"}
                     >
-                        Thanh toán lại
+                        Xem đơn đặt phòng
                     </Button>,
                     <Button
                         key="home"
@@ -117,14 +112,7 @@ const PaymentCancelPage: React.FC = () => {
                     >
                         Về trang chủ
                     </Button>,
-                    <Button
-                        key="bookings"
-                        onClick={() => navigate('/my-bookings')}
-                        size="large"
-                    >
-                        Xem đơn đặt phòng
-                    </Button>,
-                ]}
+                ].filter(Boolean)}
             />
 
             {booking && (

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Result, Button, Spin, Card, Typography, Space, Divider } from 'antd';
+import { Result, Button, Spin, Card, Typography, Space, Divider, message } from 'antd';
 import { CheckCircleOutlined, HomeOutlined, FileTextOutlined } from '@ant-design/icons';
 import { getUserBooking, getUserInvoice } from '../../../service/bookingService';
 import { useBookingCart } from '../../../context/BookingCartContext';
@@ -15,12 +15,20 @@ const PaymentSuccessPage: React.FC = () => {
     const [booking, setBooking] = useState<BookingOrder | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isInvoicePayment, setIsInvoicePayment] = useState(false);
+    const [countdown, setCountdown] = useState(5);
     const { clearCart } = useBookingCart();
+    const cartCleared = useRef(false);
 
     const bookingId = searchParams.get('booking_id');
     const invoiceId = searchParams.get('invoice_id');
     const orderCode = searchParams.get('orderCode');
     const status = searchParams.get('status');
+    const type = searchParams.get('type'); // For VNPay type param
+    const amount = searchParams.get('amount');
+    const transactionNo = searchParams.get('transaction_no');
+
+    // Kiểm tra xem thanh toán có thành công không
+    const isPaymentSuccess = type === 'success' || status === 'PAID' || (!type && !status && (bookingId || invoiceId));
 
     useEffect(() => {
         const fetchData = async () => {
@@ -50,8 +58,10 @@ const PaymentSuccessPage: React.FC = () => {
                     
                     // Clear cart khi thanh toán cọc thành công và đã có invoice
                     // Kiểm tra payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
-                    if (bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') {
+                    if ((bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') && !cartCleared.current) {
+                        cartCleared.current = true;
                         clearCart();
+                        message.success('Đã xóa giỏ hàng sau khi thanh toán thành công');
                     }
                 } else {
                     setError('Không tìm thấy thông tin đơn đặt phòng');
@@ -66,6 +76,25 @@ const PaymentSuccessPage: React.FC = () => {
 
         fetchData();
     }, [bookingId, invoiceId, clearCart]);
+
+    // Auto redirect to my-bookings page after countdown
+    useEffect(() => {
+        if (!loading && !error && booking) {
+            const timer = setInterval(() => {
+                setCountdown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        // Navigate to my-bookings page
+                        navigate(isInvoicePayment ? '/my-bookings?tab=paid' : '/my-bookings');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [loading, error, booking, navigate, isInvoicePayment]);
 
 
     if (loading) {
@@ -112,10 +141,20 @@ const PaymentSuccessPage: React.FC = () => {
                                 : "Cảm ơn bạn đã thanh toán. Đơn đặt phòng của bạn đã được xác nhận."
                             }
                         </Paragraph>
-                        {orderCode && (
+                        {/* Hiển thị mã giao dịch từ VNPay hoặc PayOS */}
+                        {(orderCode || transactionNo) && (
                             <Paragraph>
                                 <Text type="secondary">Mã giao dịch: </Text>
-                                <Text strong>{orderCode}</Text>
+                                <Text strong>{transactionNo || orderCode}</Text>
+                            </Paragraph>
+                        )}
+                        {/* Hiển thị số tiền thanh toán từ VNPay */}
+                        {amount && (
+                            <Paragraph>
+                                <Text type="secondary">Số tiền thanh toán: </Text>
+                                <Text strong style={{ color: '#52c41a' }}>
+                                    {Number(amount).toLocaleString('vi-VN')} VNĐ
+                                </Text>
                             </Paragraph>
                         )}
                         {status && (
@@ -126,6 +165,12 @@ const PaymentSuccessPage: React.FC = () => {
                                 </Text>
                             </Paragraph>
                         )}
+                        {/* Countdown redirect */}
+                        <Paragraph style={{ marginTop: 16 }}>
+                            <Text type="secondary">
+                                Tự động chuyển đến trang đơn đặt phòng sau {countdown} giây...
+                            </Text>
+                        </Paragraph>
                     </Space>
                 }
                 extra={[
@@ -136,7 +181,7 @@ const PaymentSuccessPage: React.FC = () => {
                         onClick={() => navigate(isInvoicePayment ? '/my-bookings?tab=paid' : '/my-bookings')}
                         size="large"
                     >
-                        {isInvoicePayment ? 'Xem đơn đã thanh toán' : 'Xem đơn đặt phòng'}
+                        {isInvoicePayment ? 'Xem đơn đã thanh toán' : 'Xem đơn đặt phòng'} ({countdown}s)
                     </Button>,
                     <Button
                         key="home"
