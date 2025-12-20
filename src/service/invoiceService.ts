@@ -74,6 +74,7 @@ const invoiceService = {
           paid_invoices: 0,
           unpaid_invoices: 0,
           overdue_invoices: 0,
+          cancelled_invoices: 0,
           pending_revenue: 0,
           overdue_revenue: 0,
         } as InvoiceStatistics;

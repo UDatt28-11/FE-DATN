@@ -134,8 +134,10 @@ export interface InvoiceStatistics {
   total_invoices: number;
   total_revenue: number;
   paid_invoices: number;
+  unpaid_invoices?: number;
   pending_invoices: number;
   overdue_invoices: number;
+  cancelled_invoices?: number;
   total_outstanding: number;
   average_invoice_amount: number;
   

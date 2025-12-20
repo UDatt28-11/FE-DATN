@@ -15,8 +15,9 @@ import { toast } from "react-toastify";
 import invoiceService from "../../service/invoiceService";
 import supplyService from "../../service/supplyService";
 import reviewService from "../../service/reviewService";
-import promotionService from "../../service/promotionService";
 import userService from "../../service/userService";
+import amenityService from "../../service/amenityService";
+import { getVouchers } from "../../service/admin/voucherService";
 import {
   getBookingStatistics,
   type BookingStatistics,
@@ -28,9 +29,11 @@ const Dashboard: React.FC = () => {
   const [invoiceStats, setInvoiceStats] = useState<any>(null);
   const [supplyStats, setSupplyStats] = useState<any>(null);
   const [reviewStats, setReviewStats] = useState<any>(null);
-  const [promotionStats, setPromotionStats] = useState<any>(null);
+  const [activeVouchersCount, setActiveVouchersCount] = useState<number>(0);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<any[]>([]);
+  const [amenities, setAmenities] = useState<any[]>([]);
+  const [totalAmenities, setTotalAmenities] = useState<number>(0);
   const [bookingStats, setBookingStats] = useState<BookingStatistics | null>(
     null
   );
@@ -41,40 +44,145 @@ const Dashboard: React.FC = () => {
     new_users_this_month: number;
   } | null>(null);
 
-  // Fetch all statistics
-  const fetchAllStatistics = async () => {
-    setLoading(true);
+  // Fetch critical statistics first (for cards)
+  const fetchCriticalStats = async () => {
     try {
       const [
         invoiceData,
         supplyData,
         reviewData,
-        promotionData,
-        invoicesResponse,
-        lowStockResponse,
+        vouchersResponse,
         bookingStatistics,
         userStatistics,
+        amenitiesResponse,
       ] = await Promise.all([
         invoiceService.getStatistics().catch(() => null),
         supplyService.getStatistics().catch(() => null),
         reviewService.getStatistics().catch(() => null),
-        promotionService.getStatistics().catch(() => null),
-        invoiceService.getAll({ limit: 5 }).catch(() => []),
-        supplyService.getLowStock().catch(() => []),
+        getVouchers({ is_active: 1, per_page: 1 }).catch((err) => {
+          if (import.meta.env.DEV) {
+            console.error("Error fetching vouchers from /admin/vouchers:", err);
+          }
+          return {
+            vouchers: [],
+            pagination: {
+              total: 0,
+              current_page: 1,
+              per_page: 1,
+              last_page: 0,
+            },
+          };
+        }),
         getBookingStatistics().catch(() => null),
         userService.getStatistics().catch(() => null),
+        amenityService.getAmenities({ per_page: 1 }).catch(() => ({
+          success: true,
+          data: [],
+          meta: {
+            pagination: {
+              total: 0,
+              current_page: 1,
+              per_page: 1,
+              last_page: 0,
+            },
+          },
+        })),
       ]);
 
-      setInvoiceStats(invoiceData?.data || invoiceData);
+      // Set critical stats immediately
+      // invoiceService.getStatistics() trả về: res.data.data || res.data
+      let stats = invoiceData;
+      if (invoiceData?.data) {
+        stats = invoiceData.data;
+      } else if (invoiceData?.success && invoiceData?.data) {
+        stats = invoiceData.data;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log("🔍 Invoice Statistics Raw:", invoiceData);
+        console.log("🔍 Invoice Statistics Processed:", stats);
+        console.log("🔍 Cancelled Invoices:", stats?.cancelled_invoices);
+      }
+      setInvoiceStats(stats);
       setSupplyStats(supplyData?.data || supplyData);
       setReviewStats(reviewData);
-      setPromotionStats(promotionData);
       setBookingStats(bookingStatistics);
+
+      // userService.getStatistics() trả về: { success: true, data: {...} }
       if (userStatistics?.success && userStatistics.data) {
+        setUserStats(userStatistics.data);
+      } else if (userStatistics?.data) {
+        // Fallback: nếu không có success field
         setUserStats(userStatistics.data);
       }
 
-      // Handle invoices response
+      // Handle vouchers response from /admin/vouchers API
+      // getVouchers trả về: { vouchers: Voucher[], pagination: { total, current_page, per_page, last_page } }
+      const vouchersData = vouchersResponse as any;
+
+      // Debug log để kiểm tra response (chỉ trong dev mode)
+      if (import.meta.env.DEV) {
+        console.log("🔍 Vouchers API response:", {
+          vouchersData,
+          pagination: vouchersData?.pagination,
+          vouchers: vouchersData?.vouchers,
+          vouchersLength: vouchersData?.vouchers?.length,
+        });
+      }
+
+      // Lấy số lượng voucher đang hoạt động từ pagination.total
+      // Backend filter is_active=true nên pagination.total sẽ là số voucher active
+      let activeCount = 0;
+      if (
+        vouchersData?.pagination?.total !== undefined &&
+        vouchersData.pagination.total !== null
+      ) {
+        activeCount = Number(vouchersData.pagination.total);
+      } else if (
+        vouchersData?.vouchers &&
+        Array.isArray(vouchersData.vouchers)
+      ) {
+        // Fallback: đếm số lượng voucher có is_active = true
+        activeCount = vouchersData.vouchers.filter(
+          (v: any) => v.is_active === true || v.is_active === 1
+        ).length;
+      }
+      setActiveVouchersCount(activeCount);
+
+      // Handle amenities
+      const amenRes: any = amenitiesResponse;
+      let totalAmenitiesCount = 0;
+      if (amenRes?.success && amenRes?.data && Array.isArray(amenRes.data)) {
+        totalAmenitiesCount =
+          amenRes.meta?.pagination?.total || amenRes.data.length;
+      } else if (amenRes?.data && Array.isArray(amenRes.data)) {
+        totalAmenitiesCount =
+          amenRes.meta?.pagination?.total || amenRes.data.length;
+      } else if (amenRes?.data?.data && Array.isArray(amenRes.data.data)) {
+        totalAmenitiesCount =
+          amenRes.data.meta?.pagination?.total || amenRes.data.data.length;
+      }
+      setTotalAmenities(totalAmenitiesCount);
+    } catch (error) {
+      console.error("Error fetching critical stats:", error);
+    }
+  };
+
+  // Fetch table data (less critical, can load after)
+  const fetchTableData = async () => {
+    try {
+      const [invoicesResponse, lowStockResponse, amenitiesResponse] =
+        await Promise.all([
+          invoiceService.getAll({ per_page: 5 }).catch(() => []),
+          supplyService.getLowStock().catch(() => []),
+          amenityService.getAmenities({ per_page: 5 }).catch(() => ({
+            success: true,
+            data: [],
+            meta: { pagination: { total: 0 } },
+          })),
+        ]);
+
+      // Handle invoices
       let invoices: any[] = [];
       const invRes: any = invoicesResponse;
       if (Array.isArray(invRes)) {
@@ -82,9 +190,20 @@ const Dashboard: React.FC = () => {
       } else if (invRes?.data && Array.isArray(invRes.data)) {
         invoices = invRes.data;
       }
+
+      // Debug log để kiểm tra invoice data
+      if (import.meta.env.DEV) {
+        console.log("🔍 Invoice API response:", {
+          invoicesResponse,
+          invoices,
+          firstInvoice: invoices[0],
+          bookingOrder: invoices[0]?.bookingOrder,
+        });
+      }
+
       setRecentInvoices(invoices.slice(0, 5));
 
-      // Handle lowStock response
+      // Handle lowStock
       let lowStock: Supply[] = [];
       const stockRes: any = lowStockResponse;
       if (Array.isArray(stockRes)) {
@@ -93,11 +212,10 @@ const Dashboard: React.FC = () => {
         lowStock = stockRes.data;
       }
 
-      // Nếu chưa có vật tư "sắp hết" nhưng vẫn có vật tư trong kho,
-      // lấy TOP 5 vật tư có tồn kho thấp nhất để hiển thị trên Dashboard
+      // Fallback: get top 5 low stock if no low stock items
       if (
         lowStock.length === 0 &&
-        (supplyData?.data?.total_supplies || supplyData?.total_supplies) > 0
+        (supplyStats?.total_supplies || supplyStats?.data?.total_supplies) > 0
       ) {
         try {
           const allSupplies = await supplyService.getAll();
@@ -105,15 +223,46 @@ const Dashboard: React.FC = () => {
             .sort((a, b) => a.current_stock - b.current_stock)
             .slice(0, 5);
         } catch (e) {
-          console.error("Error loading fallback supplies for dashboard:", e);
+          // Silent fail
         }
       }
-
       setLowStockSupplies(lowStock);
+
+      // Handle amenities for table
+      const amenRes: any = amenitiesResponse;
+      let amenitiesList: any[] = [];
+      if (amenRes?.success && amenRes?.data && Array.isArray(amenRes.data)) {
+        amenitiesList = amenRes.data;
+      } else if (amenRes?.data && Array.isArray(amenRes.data)) {
+        amenitiesList = amenRes.data;
+      } else if (amenRes?.data?.data && Array.isArray(amenRes.data.data)) {
+        amenitiesList = amenRes.data.data;
+      } else if (Array.isArray(amenRes)) {
+        amenitiesList = amenRes;
+      }
+      setAmenities(amenitiesList);
+    } catch (error) {
+      console.error("Error fetching table data:", error);
+    }
+  };
+
+  // Fetch all statistics
+  const fetchAllStatistics = async () => {
+    setLoading(true);
+    try {
+      // Fetch critical stats first (cards) - these show immediately
+      await fetchCriticalStats();
+
+      // Hide loading spinner after critical stats are loaded
+      setLoading(false);
+
+      // Then fetch table data in background (non-blocking)
+      fetchTableData().catch((err) => {
+        console.error("Error loading table data:", err);
+      });
     } catch (error) {
       console.error("Error fetching statistics:", error);
       toast.error("Không thể tải dữ liệu thống kê!");
-    } finally {
       setLoading(false);
     }
   };
@@ -125,15 +274,26 @@ const Dashboard: React.FC = () => {
   // Recent invoices columns
   const invoiceColumns: ColumnsType<any> = [
     {
-      title: "Số HĐ",
-      dataIndex: "invoice_number",
-      key: "invoice_number",
-      render: (text) => <span style={{ fontWeight: 600 }}>{text}</span>,
+      title: "ID hóa đơn",
+      dataIndex: "id",
+      key: "id",
+      render: (id) => <span style={{ fontWeight: 600 }}>#{id}</span>,
     },
     {
-      title: "Khách hàng",
+      title: "Tên khách hàng",
       dataIndex: "customer_name",
       key: "customer_name",
+      render: (text, record) => {
+        // Lấy từ bookingOrder nếu không có customer_name trực tiếp
+        const customerName =
+          text ||
+          record.bookingOrder?.customer_name ||
+          record.booking_order?.customer_name ||
+          record.bookingOrder?.guest?.full_name ||
+          record.booking_order?.guest?.full_name ||
+          "N/A";
+        return customerName;
+      },
     },
     {
       title: "Tổng tiền",
@@ -143,15 +303,20 @@ const Dashboard: React.FC = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "payment_status",
-      key: "payment_status",
+      dataIndex: "status",
+      key: "status",
       render: (status) => {
-        const colors: Record<string, string> = {
-          pending: "warning",
-          paid: "success",
-          overdue: "error",
+        const statusMap: Record<string, { text: string; color: string }> = {
+          paid: { text: "Đã thanh toán", color: "success" },
+          pending: { text: "Chờ thanh toán", color: "warning" },
+          overdue: { text: "Quá hạn", color: "error" },
+          cancelled: { text: "Đã hủy", color: "default" },
         };
-        return <Tag color={colors[status] || "default"}>{status}</Tag>;
+        const statusInfo = statusMap[status] || {
+          text: status || "N/A",
+          color: "default",
+        };
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
       },
     },
   ];
@@ -224,7 +389,10 @@ const Dashboard: React.FC = () => {
                 prefix={<FileTextOutlined />}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-                {invoiceStats?.pending_invoices || 0} chờ thanh toán
+                {invoiceStats?.unpaid_invoices ||
+                  invoiceStats?.pending_invoices ||
+                  0}{" "}
+                chờ thanh toán
               </div>
             </Card>
           </Col>
@@ -247,15 +415,15 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="Khách hàng"
+                title="Người dùng"
                 value={userStats?.total_users ?? 0}
                 valueStyle={{ color: "#eb2f96" }}
                 prefix={<UserOutlined />}
               />
               <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
                 {userStats
-                  ? `${userStats.new_users_this_month} khách hàng mới tháng này`
-                  : "Khách hàng đang hoạt động trong hệ thống"}
+                  ? `${userStats.new_users_this_month} Người dùng mới tháng này`
+                  : "Người dùng đang hoạt động trong hệ thống"}
               </div>
             </Card>
           </Col>
@@ -279,7 +447,7 @@ const Dashboard: React.FC = () => {
             <Card>
               <Statistic
                 title="Mã giảm giá đang hoạt động"
-                value={promotionStats?.active_promotions || 0}
+                value={activeVouchersCount}
                 valueStyle={{ color: "#52c41a" }}
               />
             </Card>
@@ -288,10 +456,10 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="Vật tư sắp hết"
-                value={supplyStats?.low_stock_count ?? lowStockSupplies.length}
-                valueStyle={{ color: "#ff4d4f" }}
-                prefix={<WarningOutlined />}
+                title="Tiện ích"
+                value={totalAmenities || 0}
+                valueStyle={{ color: "#1890ff" }}
+                prefix={<ShoppingOutlined />}
               />
             </Card>
           </Col>
@@ -331,12 +499,36 @@ const Dashboard: React.FC = () => {
 
           <Col xs={24} lg={12}>
             <Card
-              title="Vật tư sắp hết"
-              extra={<a href="/admin/supplies">Xem chi tiết</a>}
+              title="Tiện ích"
+              extra={<a href="/admin/amenities">Xem chi tiết</a>}
             >
               <Table
-                columns={supplyColumns}
-                dataSource={lowStockSupplies}
+                columns={[
+                  {
+                    title: "Tên tiện ích",
+                    dataIndex: "name",
+                    key: "name",
+                  },
+                  {
+                    title: "Loại",
+                    dataIndex: "type",
+                    key: "type",
+                    render: (type) => {
+                      const typeMap: Record<string, string> = {
+                        basic: "Cơ bản",
+                        advanced: "Nâng cao",
+                        safety: "An toàn",
+                      };
+                      return typeMap[type] || type;
+                    },
+                  },
+                  {
+                    title: "Danh mục",
+                    dataIndex: "category",
+                    key: "category",
+                  },
+                ]}
+                dataSource={amenities.slice(0, 5)}
                 rowKey="id"
                 pagination={false}
                 size="small"
@@ -371,7 +563,9 @@ const Dashboard: React.FC = () => {
                     <div
                       style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}
                     >
-                      {invoiceStats?.pending_invoices || 0}
+                      {invoiceStats?.unpaid_invoices ||
+                        invoiceStats?.pending_invoices ||
+                        0}
                     </div>
                     <div style={{ color: "#888" }}>Chờ thanh toán</div>
                   </div>
@@ -384,9 +578,9 @@ const Dashboard: React.FC = () => {
                     <div
                       style={{ marginTop: 8, fontSize: 24, fontWeight: 600 }}
                     >
-                      {invoiceStats?.overdue_invoices || 0}
+                      {invoiceStats?.cancelled_invoices || 0}
                     </div>
-                    <div style={{ color: "#888" }}>Quá hạn</div>
+                    <div style={{ color: "#888" }}>Đã hủy</div>
                   </div>
                 </Col>
               </Row>
