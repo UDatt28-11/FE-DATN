@@ -130,11 +130,15 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 </Form.Item>
 
                 <Form.Item
-                    label="Mật khẩu mới"
+                    label="* Mật khẩu mới"
                     name="password"
                     rules={[
                         { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
                         { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
+                        {
+                            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+                            message: 'Mật khẩu phải bao gồm chữ hoa, chữ thường và số!',
+                        },
                     ]}
                     style={{ marginBottom: 20 }}
                 >
@@ -149,7 +153,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 </Form.Item>
 
                 <Form.Item
-                    label="Xác nhận mật khẩu"
+                    label="* Xác nhận mật khẩu"
                     name="password_confirmation"
                     dependencies={['password']}
                     rules={[
