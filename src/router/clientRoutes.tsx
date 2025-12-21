@@ -133,6 +133,17 @@ export const clientRoutes: RouteObject[] = [
     ),
   },
   {
+    // Route cho payment error - sử dụng lại PaymentCancelPage với thông báo lỗi
+    path: "/payment/error",
+    element: (
+      <ClientLayout>
+        <ProtectedRoute>
+          <PaymentCancelPage />
+        </ProtectedRoute>
+      </ClientLayout>
+    ),
+  },
+  {
     path: "/my-bookings",
     element: (
       <ClientLayout>

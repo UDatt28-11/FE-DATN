@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     Table,
     Card,
@@ -17,6 +17,9 @@ import {
     Spin,
     Divider,
     Alert,
+    Tabs,
+    Upload,
+    Image,
 } from 'antd';
 import {
     EyeOutlined,
@@ -33,6 +36,7 @@ import {
     DeleteOutlined,
     DollarOutlined,
     ToolOutlined,
+    UploadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -66,6 +70,8 @@ interface DamagedItem {
     unit_price: number;
     notes?: string;
     total: number;
+    damage_images?: File[];
+    preview_images?: string[];
 }
 
 const ListCheckoutRequests: React.FC = () => {
@@ -77,6 +83,8 @@ const ListCheckoutRequests: React.FC = () => {
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'today' | 'overdue' | 'all'>('all');
+    const [allRequests, setAllRequests] = useState<CheckoutRequest[]>([]);
 
     // State cho checkout với thiệt hại
     const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
@@ -90,13 +98,34 @@ const ListCheckoutRequests: React.FC = () => {
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
         try {
-            const result = await getCheckoutRequests({
-                page,
-                per_page: 15,
-                status: status === 'all' ? undefined : (status as any),
+            // Fetch tất cả bằng cách gọi nhiều lần với per_page=100 (backend limit)
+            let allData: CheckoutRequest[] = [];
+            let currentPage = 1;
+            let hasMore = true;
+            const perPage = 100;
+
+            while (hasMore) {
+                const result = await getCheckoutRequests({
+                    page: currentPage,
+                    per_page: perPage,
+                    status: status === 'all' ? undefined : (status as any),
+                });
+                
+                allData = [...allData, ...result.data];
+                
+                // Kiểm tra còn trang tiếp theo không
+                const totalPages = result.pagination?.last_page || 1;
+                hasMore = currentPage < totalPages;
+                currentPage++;
+            }
+
+            setAllRequests(allData);
+            setPagination({
+                current_page: 1,
+                per_page: allData.length,
+                total: allData.length,
+                last_page: 1,
             });
-            setRequests(result.data);
-            setPagination(result.pagination);
         } catch (error: any) {
             console.error('Error fetching checkout requests:', error);
             message.error(error.response?.data?.message || 'Không thể tải danh sách yêu cầu checkout');
@@ -108,6 +137,48 @@ const ListCheckoutRequests: React.FC = () => {
     useEffect(() => {
         fetchData(1, statusFilter);
     }, [statusFilter]);
+
+    // Filter requests dựa trên activeTab, check_out_date và statusFilter
+    const filteredRequests = useMemo(() => {
+        const today = dayjs().startOf('day');
+        
+        return allRequests.filter((request) => {
+            // Filter theo status trước
+            if (statusFilter !== 'all' && request.status !== statusFilter) {
+                return false;
+            }
+
+            // Filter theo check_out_date
+            const checkOutDate = request.booking_detail?.check_out_date;
+            if (!checkOutDate) return false;
+
+            const checkoutDay = dayjs(checkOutDate).startOf('day');
+
+            switch (activeTab) {
+                case 'upcoming':
+                    // Chưa tới ngày trả
+                    return checkoutDay.isAfter(today);
+                case 'today':
+                    // Trả trong hôm nay
+                    return checkoutDay.isSame(today);
+                case 'overdue':
+                    // Trả muộn
+                    return checkoutDay.isBefore(today);
+                case 'all':
+                default:
+                    return true;
+            }
+        });
+    }, [allRequests, activeTab, statusFilter]);
+
+    // Pagination cho filtered requests
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 15;
+    const paginatedRequests = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        return filteredRequests.slice(start, end);
+    }, [filteredRequests, currentPage]);
 
     // Mở modal checkout với thiệt hại
     const handleOpenCheckoutModal = async (request: CheckoutRequest) => {
@@ -138,13 +209,14 @@ const ListCheckoutRequests: React.FC = () => {
 
         setProcessingCheckout(true);
         try {
-            const validDamageItems: DamagedSupply[] = damagedItems
+            const validDamageItems = damagedItems
                 .filter(item => item.supply_id > 0 && item.quantity > 0)
                 .map(item => ({
                     supply_id: item.supply_id,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     notes: item.notes,
+                    damage_images: item.damage_images || [],
                 }));
 
             await approveCheckoutRequest(selectedRequest.id, {
@@ -183,6 +255,8 @@ const ListCheckoutRequests: React.FC = () => {
                 unit_price: 0,
                 notes: '',
                 total: 0,
+                damage_images: [],
+                preview_images: [],
             },
         ]);
     };
@@ -226,8 +300,52 @@ const ListCheckoutRequests: React.FC = () => {
                 ...newItems[index],
                 notes: value,
             };
+        } else if (field === 'damage_images') {
+            newItems[index] = {
+                ...newItems[index],
+                damage_images: value,
+            };
         }
 
+        setDamagedItems(newItems);
+    };
+
+    const handleImageUpload = (index: number, fileList: any) => {
+        const newItems = [...damagedItems];
+        const files = fileList.map((file: any) => file.originFileObj || file);
+        const previews = fileList.map((file: any) => {
+            if (file.url) return file.url;
+            if (file.originFileObj) {
+                return URL.createObjectURL(file.originFileObj);
+            }
+            return null;
+        }).filter(Boolean);
+        
+        newItems[index] = {
+            ...newItems[index],
+            damage_images: files,
+            preview_images: previews,
+        };
+        
+        setDamagedItems(newItems);
+        return false; // Prevent auto upload
+    };
+
+    const handleRemoveImage = (itemIndex: number, imageIndex: number) => {
+        const newItems = [...damagedItems];
+        const item = newItems[itemIndex];
+        
+        if (item.damage_images) {
+            item.damage_images.splice(imageIndex, 1);
+        }
+        if (item.preview_images) {
+            const previewUrl = item.preview_images[imageIndex];
+            if (previewUrl && previewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(previewUrl);
+            }
+            item.preview_images.splice(imageIndex, 1);
+        }
+        
         setDamagedItems(newItems);
     };
 
@@ -259,7 +377,7 @@ const ListCheckoutRequests: React.FC = () => {
     };
 
     const handleTableChange = (page: number) => {
-        fetchData(page, statusFilter);
+        setCurrentPage(page);
     };
 
     // Tính tổng thiệt hại
@@ -275,6 +393,7 @@ const ListCheckoutRequests: React.FC = () => {
         {
             title: 'Mã đặt phòng',
             key: 'booking_code',
+            width: 150,
             render: (_: any, record: CheckoutRequest) => (
                 <span>#{record.booking_order?.order_code || record.booking_order_id}</span>
             ),
@@ -282,6 +401,7 @@ const ListCheckoutRequests: React.FC = () => {
         {
             title: 'Khách hàng',
             key: 'guest',
+            width: 180,
             render: (_: any, record: CheckoutRequest) => (
                 <Space direction="vertical" size="small">
                     <div>
@@ -296,6 +416,7 @@ const ListCheckoutRequests: React.FC = () => {
         {
             title: 'Phòng',
             key: 'room',
+            width: 120,
             render: (_: any, record: CheckoutRequest) => (
                 <Space direction="vertical" size="small">
                     <div>
@@ -310,13 +431,14 @@ const ListCheckoutRequests: React.FC = () => {
         {
             title: 'Ngày check-in/out',
             key: 'dates',
+            width: 180,
             render: (_: any, record: CheckoutRequest) => (
                 <Space direction="vertical" size="small">
                     <div>
-                        <CalendarOutlined /> {record.booking_detail?.check_in_date || 'N/A'}
+                        <CalendarOutlined /> {record.booking_detail?.check_in_date ? dayjs(record.booking_detail.check_in_date).format('DD/MM/YYYY') : 'N/A'}
                     </div>
                     <div>
-                        <LogoutOutlined /> {record.booking_detail?.check_out_date || 'N/A'}
+                        <LogoutOutlined /> {record.booking_detail?.check_out_date ? dayjs(record.booking_detail.check_out_date).format('DD/MM/YYYY') : 'N/A'}
                     </div>
                 </Space>
             ),
@@ -325,12 +447,14 @@ const ListCheckoutRequests: React.FC = () => {
             title: 'Ghi chú',
             dataIndex: 'notes',
             key: 'notes',
+            width: 150,
             render: (notes: string) => notes || <span style={{ color: '#999' }}>Không có</span>,
         },
         {
             title: 'Trạng thái',
             dataIndex: 'status',
             key: 'status',
+            width: 120,
             render: (status: string) => {
                 const config: Record<string, { color: string; text: string }> = {
                     pending: { color: 'orange', text: 'Chờ xử lý' },
@@ -345,12 +469,14 @@ const ListCheckoutRequests: React.FC = () => {
             title: 'Ngày yêu cầu',
             dataIndex: 'created_at',
             key: 'created_at',
+            width: 150,
             render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
         },
         {
             title: 'Thao tác',
             key: 'action',
-            width: 280,
+            width: 250,
+            fixed: 'right' as const,
             render: (_: any, record: CheckoutRequest) => (
                 <Space>
                     <Button
@@ -400,7 +526,10 @@ const ListCheckoutRequests: React.FC = () => {
                         <Space>
                             <Select
                                 value={statusFilter}
-                                onChange={(value) => setStatusFilter(value)}
+                                onChange={(value) => {
+                                    setStatusFilter(value);
+                                    setCurrentPage(1);
+                                }}
                                 style={{ width: 150 }}
                             >
                                 <Option value="all">Tất cả</Option>
@@ -410,7 +539,10 @@ const ListCheckoutRequests: React.FC = () => {
                             </Select>
                             <Button
                                 icon={<ReloadOutlined />}
-                                onClick={() => fetchData(pagination?.current_page || 1, statusFilter)}
+                                onClick={() => {
+                                    fetchData(1, statusFilter);
+                                    setCurrentPage(1);
+                                }}
                             >
                                 Làm mới
                             </Button>
@@ -418,16 +550,55 @@ const ListCheckoutRequests: React.FC = () => {
                     </Col>
                 </Row>
 
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={(key) => {
+                        setActiveTab(key as any);
+                        setCurrentPage(1);
+                    }}
+                    items={[
+                        {
+                            key: 'upcoming',
+                            label: `Chưa tới ngày trả (${allRequests.filter(r => {
+                                const date = r.booking_detail?.check_out_date;
+                                return date && dayjs(date).startOf('day').isAfter(dayjs().startOf('day'));
+                            }).length})`,
+                        },
+                        {
+                            key: 'today',
+                            label: `Trả trong hôm nay (${allRequests.filter(r => {
+                                const date = r.booking_detail?.check_out_date;
+                                return date && dayjs(date).startOf('day').isSame(dayjs().startOf('day'));
+                            }).length})`,
+                        },
+                        {
+                            key: 'overdue',
+                            label: `Trả muộn (${allRequests.filter(r => {
+                                const date = r.booking_detail?.check_out_date;
+                                return date && dayjs(date).startOf('day').isBefore(dayjs().startOf('day'));
+                            }).length})`,
+                        },
+                        {
+                            key: 'all',
+                            label: `Tất cả (${allRequests.length})`,
+                        },
+                    ]}
+                    style={{ marginBottom: 16 }}
+                />
+
                 <Table
                     columns={columns}
-                    dataSource={requests}
+                    dataSource={paginatedRequests}
                     rowKey="id"
                     loading={loading}
+                    size="small"
+                    scroll={{ x: 'max-content' }}
                     pagination={{
-                        current: pagination?.current_page || 1,
-                        pageSize: pagination?.per_page || 15,
-                        total: pagination?.total || 0,
+                        current: currentPage,
+                        pageSize: pageSize,
+                        total: filteredRequests.length,
                         onChange: handleTableChange,
+                        showSizeChanger: false,
                     }}
                 />
             </Card>
@@ -690,6 +861,58 @@ const ListCheckoutRequests: React.FC = () => {
                                                             icon={<DeleteOutlined />}
                                                             onClick={() => handleRemoveDamageItem(index)}
                                                         />
+                                                    </Space>
+                                                </Col>
+                                            </Row>
+                                            <Row style={{ marginTop: 8 }}>
+                                                <Col span={24}>
+                                                    <div style={{ marginBottom: 4, fontSize: 12 }}>Ảnh minh chứng:</div>
+                                                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                        <Upload
+                                                            multiple
+                                                            beforeUpload={() => false}
+                                                            fileList={item.damage_images?.map((file, fileIndex) => ({
+                                                                uid: `${index}-${fileIndex}`,
+                                                                name: file.name,
+                                                                status: 'done',
+                                                                url: item.preview_images?.[fileIndex] || undefined,
+                                                                originFileObj: file,
+                                                            })) || []}
+                                                            onChange={(info) => handleImageUpload(index, info.fileList)}
+                                                            accept="image/*"
+                                                            listType="picture-card"
+                                                            maxCount={5}
+                                                        >
+                                                            {(item.damage_images?.length || 0) < 5 && (
+                                                                <div>
+                                                                    <UploadOutlined />
+                                                                    <div style={{ marginTop: 8 }}>Upload</div>
+                                                                </div>
+                                                            )}
+                                                        </Upload>
+                                                        {item.preview_images && item.preview_images.length > 0 && (
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                                                {item.preview_images.map((preview, imgIndex) => (
+                                                                    <div key={imgIndex} style={{ position: 'relative' }}>
+                                                                        <Image
+                                                                            src={preview}
+                                                                            width={50}
+                                                                            height={50}
+                                                                            style={{ objectFit: 'cover', borderRadius: 4 }}
+                                                                            preview
+                                                                        />
+                                                                        <Button
+                                                                            type="text"
+                                                                            danger
+                                                                            size="small"
+                                                                            icon={<DeleteOutlined />}
+                                                                            style={{ position: 'absolute', top: -8, right: -8 }}
+                                                                            onClick={() => handleRemoveImage(index, imgIndex)}
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </Space>
                                                 </Col>
                                             </Row>

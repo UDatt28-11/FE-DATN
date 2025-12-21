@@ -124,24 +124,6 @@ const AdminLayout: React.FC = () => {
       path: "/admin/checkout-requests",
     },
     {
-      key: "service-requests",
-      icon: <ShoppingOutlined />,
-      label: "Yêu cầu dịch vụ",
-      path: "/admin/service-requests",
-    },
-    {
-      key: "amenity-requests",
-      icon: <AppstoreOutlined />,
-      label: "Yêu cầu tiện ích",
-      path: "/admin/amenity-requests",
-    },
-    {
-      key: "promotionManagement",
-      icon: <DollarOutlined />,
-      label: "Quản lí Khuyến mãi",
-      path: "/admin/promotion",
-    },
-    {
       key: "voucherManagement",
       icon: <GiftOutlined />,
       label: "Quản lý Voucher",
@@ -334,8 +316,9 @@ const AdminLayout: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
             position: "sticky",
             top: 0,
-            zIndex: 1,
+            zIndex: 1000,
             borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+            minHeight: 64,
           }}
         >
           <Space size="large" align="center">

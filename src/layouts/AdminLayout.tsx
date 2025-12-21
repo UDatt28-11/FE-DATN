@@ -95,12 +95,6 @@ const AdminLayout: React.FC = () => {
       path: "/admin/invoice",
     },
     {
-      key: "promotionManagement",
-      icon: <DollarOutlined />,
-      label: "Quản lí mã giảm giá",
-      path: "/admin/promotion",
-    },
-    {
       key: "reviewManagement",
       icon: <StarOutlined />,
       label: "Quản lý đánh giá",
@@ -290,8 +284,9 @@ const AdminLayout: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
             position: "sticky",
             top: 0,
-            zIndex: 1,
+            zIndex: 1000,
             borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+            minHeight: 64,
           }}
         >
           <Space size="large">

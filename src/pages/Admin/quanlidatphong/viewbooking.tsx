@@ -20,6 +20,7 @@ import {
   Row,
   Col,
   Typography,
+  Checkbox,
 } from "antd";
 import { toast } from "react-toastify";
 import {
@@ -218,7 +219,7 @@ const ViewBooking: React.FC = () => {
   };
 
   
-  // Request service for guest (tạo service request)
+  // Thêm dịch vụ trực tiếp vào hóa đơn
   const handleAddService = async (values: any) => {
     if (!booking?.id) {
       message.error("Không tìm thấy thông tin booking");
@@ -230,21 +231,50 @@ const ViewBooking: React.FC = () => {
       return;
     }
 
+    if (!values.service_id) {
+      message.error("Vui lòng chọn dịch vụ");
+      return;
+    }
+
+    if (!values.quantity || values.quantity < 1) {
+      message.error("Vui lòng nhập số lượng hợp lệ");
+      return;
+    }
+
+    // Kiểm tra có invoice chưa
+    if (!invoices || invoices.length === 0) {
+      message.error("Chưa có hóa đơn. Vui lòng tạo hóa đơn trước!");
+      return;
+    }
+
+    const invoiceId = invoices[0].id;
+
+    const serviceData = {
+      service_id: Number(values.service_id),
+      quantity: Number(values.quantity),
+      description: values.description || undefined,
+      is_paid: values.is_paid === true || values.is_paid === 'true' || false, // Đảm bảo boolean
+      booking_detail_id: Number(values.booking_detail_id),
+    };
+
+    console.log('Adding service to invoice:', {
+      invoiceId,
+      serviceData,
+      is_paid_value: values.is_paid,
+      is_paid_type: typeof values.is_paid,
+    });
+
     try {
-      await requestServiceForGuest(booking.id, {
-        booking_detail_id: Number(values.booking_detail_id),
-        service_id: Number(values.service_id),
-        notes: values.description || undefined,
-      });
-      message.success("Đã tạo yêu cầu dịch vụ cho khách!");
+      await invoiceService.addService(invoiceId, serviceData);
+      message.success("Đã thêm dịch vụ vào hóa đơn!");
       setAddServiceModalVisible(false);
       serviceForm.resetFields();
       if (booking?.id) {
-        fetchBookingDetail(booking.id);
+        fetchInvoices(booking.id);
       }
     } catch (error: any) {
-      console.error("Error requesting service:", error);
-      message.error(error.response?.data?.message || "Không thể tạo yêu cầu dịch vụ!");
+      console.error("Error adding service:", error);
+      message.error(error.response?.data?.message || "Không thể thêm dịch vụ!");
     }
   };
 
@@ -1146,7 +1176,20 @@ const ViewBooking: React.FC = () => {
                           dataIndex: "unit_price",
                           key: "unit_price",
                           align: "right" as const,
-                          render: (price: number) => `${(price || 0).toLocaleString("vi-VN")}₫`,
+                          render: (price: number, record: InvoiceItem) => {
+                            const isPaid = record.description?.includes("[Đã thanh toán]");
+                            return (
+                              <Typography.Text
+                                style={{
+                                  textDecoration: isPaid ? "line-through" : "none",
+                                  color: isPaid ? "#8c8c8c" : "inherit",
+                                  opacity: isPaid ? 0.6 : 1,
+                                }}
+                              >
+                                {(price || 0).toLocaleString("vi-VN")}₫
+                              </Typography.Text>
+                            );
+                          },
                         },
                         {
                           title: "Thuế",
@@ -1163,10 +1206,23 @@ const ViewBooking: React.FC = () => {
                           render: (total: number, record: InvoiceItem) => {
                             const amount = total || record.total_line || 0;
                             const isNegative = amount < 0;
+                            const isPaid = record.description?.includes("[Đã thanh toán]");
                             return (
-                              <Typography.Text strong style={{ color: isNegative ? "#ff4d4f" : "#52c41a" }}>
+                              <Typography.Text
+                                strong
+                                style={{
+                                  color: isPaid ? "#8c8c8c" : isNegative ? "#ff4d4f" : "#52c41a",
+                                  textDecoration: isPaid ? "line-through" : "none",
+                                  opacity: isPaid ? 0.6 : 1,
+                                }}
+                              >
                                 {isNegative ? "-" : ""}
                                 {Math.abs(amount).toLocaleString("vi-VN")}₫
+                                {isPaid && (
+                                  <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
+                                    (Đã thanh toán)
+                                  </span>
+                                )}
                               </Typography.Text>
                             );
                           },
@@ -1556,7 +1612,7 @@ const ViewBooking: React.FC = () => {
         title={
           <Space>
             <ShoppingOutlined />
-            <span>Yêu cầu dịch vụ cho khách</span>
+            <span>Thêm dịch vụ vào hóa đơn</span>
           </Space>
         }
         open={addServiceModalVisible}
@@ -1619,6 +1675,28 @@ const ViewBooking: React.FC = () => {
                 </Select.Option>
               ))}
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="quantity"
+            label="Số lượng"
+            rules={[
+              { required: true, message: "Vui lòng nhập số lượng" },
+              { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+            ]}
+          >
+            <InputNumber
+              min={1}
+              style={{ width: "100%" }}
+              placeholder="Nhập số lượng"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="is_paid"
+            valuePropName="checked"
+          >
+            <Checkbox>Đã thanh toán</Checkbox>
           </Form.Item>
 
           <Form.Item
