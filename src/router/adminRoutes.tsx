@@ -51,6 +51,8 @@ import ViewSupply from "../pages/Admin/quanlivattu/viewsupply";
 import SupplyLogs from "../pages/Admin/quanlivattu/supplyLogs";
 import ListCheckInRequests from "../pages/Admin/quanlidatphong/listCheckInRequests";
 import ListCheckoutRequests from "../pages/Admin/quanlidatphong/listCheckoutRequests";
+import ListServiceRequests from "../pages/Admin/quanlidatphong/listServiceRequests";
+import ListAmenityRequests from "../pages/Admin/quanlidatphong/listAmenityRequests";
 import ListService from "../pages/Admin/quanlidichvu/ListService";
 
 // Quản lý voucher
