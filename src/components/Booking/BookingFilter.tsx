@@ -15,7 +15,7 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
     const [form] = Form.useForm();
 
     const handleSubmit = (values: any) => {
-        const { checkIn, checkOut, guests } = values;
+        const { checkIn, checkOut, guests, adults, children } = values;
 
         // Validate ngày nhận/trả phòng
         if (!checkIn || !checkOut) {
@@ -31,11 +31,18 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
         }
 
         if (onSubmit) {
+            // Nếu có adults và children, sử dụng chúng
+            // Nếu không, fallback về guests (backward compatibility)
+            const numAdults = adults || guests || 2;
+            const numChildren = children || 0;
+            
             onSubmit({
                 ...values,
                 checkIn: checkInDate,
                 checkOut: checkOutDate,
-                guests: guests || 1,
+                guests: guests || numAdults,
+                adults: numAdults,
+                children: numChildren,
             });
         }
     };
@@ -80,20 +87,45 @@ const BookingFilter: React.FC<BookingFilterProps> = ({
                     />
                 </Form.Item>
 
-                {/* Số người */}
+                {/* Người lớn */}
                 <Form.Item
-                    name="guests"
-                    label="Số người"
+                    name="adults"
+                    label="Người lớn"
                     className="form-group"
                     initialValue={2}
                 >
                     <InputNumber
                         min={1}
-                        max={100}
+                        max={20}
                         size="large"
                         style={{ width: '100%' }}
                         controls={true}
                     />
+                </Form.Item>
+
+                {/* Trẻ em */}
+                <Form.Item
+                    name="children"
+                    label="Trẻ em"
+                    className="form-group"
+                    initialValue={0}
+                >
+                    <InputNumber
+                        min={0}
+                        max={10}
+                        size="large"
+                        style={{ width: '100%' }}
+                        controls={true}
+                    />
+                </Form.Item>
+
+                {/* Số người (backward compatibility - ẩn nhưng vẫn tính toán) */}
+                <Form.Item
+                    name="guests"
+                    hidden
+                    initialValue={2}
+                >
+                    <InputNumber />
                 </Form.Item>
 
                 {/* Button */}

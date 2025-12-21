@@ -95,12 +95,6 @@ const AdminLayout: React.FC = () => {
       path: "/admin/invoice",
     },
     {
-      key: "promotionManagement",
-      icon: <DollarOutlined />,
-      label: "Quản lí mã giảm giá",
-      path: "/admin/promotion",
-    },
-    {
       key: "reviewManagement",
       icon: <StarOutlined />,
       label: "Quản lý đánh giá",
@@ -281,7 +275,7 @@ const AdminLayout: React.FC = () => {
         {/* Header - Modern Glass Effect */}
         <Header
           style={{
-            padding: "0 32px",
+            padding: "16px 32px",
             background: "rgba(255, 255, 255, 0.9)",
             backdropFilter: "blur(20px)",
             display: "flex",
@@ -290,8 +284,9 @@ const AdminLayout: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
             position: "sticky",
             top: 0,
-            zIndex: 1,
+            zIndex: 1000,
             borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+            minHeight: 64,
           }}
         >
           <Space size="large">
@@ -307,11 +302,11 @@ const AdminLayout: React.FC = () => {
                 color: "#1e3a8a",
               }}
             />
-            <div>
-              <Title level={4} style={{ margin: 0, color: "#1e3a8a" }}>
-                Chào mừng trở lại! 👋
+            <div style={{ lineHeight: 1.5 }}>
+              <Title level={4} style={{ margin: 0, marginBottom: 4, color: "#1e3a8a" }}>
+                Trang quản trị
               </Title>
-              <Text type="secondary" style={{ fontSize: 13 }}>
+              <Text type="secondary" style={{ fontSize: 13, display: "block" }}>
                 {new Date().toLocaleDateString("vi-VN", {
                   weekday: "long",
                   year: "numeric",

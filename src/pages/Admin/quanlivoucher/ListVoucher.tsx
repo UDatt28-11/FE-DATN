@@ -125,24 +125,25 @@ const ListVoucher: React.FC = () => {
         {
             title: 'Mã voucher',
             key: 'code',
-            width: 200,
+            width: 180,
             render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                    <Space>
+                    <Space size={4}>
                         <Tag 
                             color={record.discount_type === 'percentage' ? 'red' : 'green'}
                             icon={record.discount_type === 'percentage' ? <PercentageOutlined /> : <DollarOutlined />}
+                            style={{ margin: 0 }}
                         >
                             {record.code}
                         </Tag>
                         <Tooltip title="Sao chép">
                             <CopyOutlined 
-                                style={{ cursor: 'pointer', color: '#1890ff' }}
+                                style={{ cursor: 'pointer', color: '#1890ff', fontSize: 14 }}
                                 onClick={() => copyCode(record.code)}
                             />
                         </Tooltip>
                     </Space>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
                         {record.name || record.code}
                     </Text>
                 </Space>
@@ -151,22 +152,22 @@ const ListVoucher: React.FC = () => {
         {
             title: 'Giảm giá',
             key: 'discount',
-            width: 150,
+            width: 160,
             render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                    <Text strong style={{ color: '#eb2f96' }}>
+                    <Text strong style={{ color: '#eb2f96', fontSize: 13 }}>
                         {record.discount_type === 'percentage' 
                             ? `${record.discount_value}%`
                             : new Intl.NumberFormat('vi-VN').format(record.discount_value) + 'đ'
                         }
                     </Text>
                     {record.max_discount_amount && (
-                        <Text type="secondary" style={{ fontSize: 11 }}>
+                        <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
                             Tối đa: {new Intl.NumberFormat('vi-VN').format(record.max_discount_amount)}đ
                         </Text>
                     )}
                     {record.min_order_amount > 0 && (
-                        <Text type="secondary" style={{ fontSize: 11 }}>
+                        <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
                             Đơn tối thiểu: {new Intl.NumberFormat('vi-VN').format(record.min_order_amount)}đ
                         </Text>
                     )}
@@ -176,13 +177,13 @@ const ListVoucher: React.FC = () => {
         {
             title: 'Thời gian',
             key: 'dates',
-            width: 180,
+            width: 170,
             render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                    <Text style={{ fontSize: 12 }}>
+                    <Text style={{ fontSize: 11, display: 'block' }}>
                         Từ: {dayjs(record.start_date).format('DD/MM/YYYY HH:mm')}
                     </Text>
-                    <Text style={{ fontSize: 12 }}>
+                    <Text style={{ fontSize: 11, display: 'block' }}>
                         Đến: {dayjs(record.end_date).format('DD/MM/YYYY HH:mm')}
                     </Text>
                 </Space>
@@ -191,14 +192,14 @@ const ListVoucher: React.FC = () => {
         {
             title: 'Sử dụng',
             key: 'usage',
-            width: 120,
+            width: 110,
             align: 'center',
             render: (_, record) => (
-                <Space direction="vertical" size={0} style={{ textAlign: 'center' }}>
-                    <Text strong>
+                <Space direction="vertical" size={0} style={{ textAlign: 'center', width: '100%' }}>
+                    <Text strong style={{ fontSize: 12 }}>
                         {record.usage_count} / {record.usage_limit || '∞'}
                     </Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
                         {record.max_usage_per_user} lần/user
                     </Text>
                 </Space>
@@ -207,19 +208,17 @@ const ListVoucher: React.FC = () => {
         {
             title: 'Trạng thái',
             key: 'status',
-            width: 140,
+            width: 130,
             render: (_, record) => {
                 const { color, text } = getVoucherStatus(record);
                 return (
-                    <Space direction="vertical" size={4}>
-                        <Tag color={color}>{text}</Tag>
-                        <Space size={4}>
-                            {record.is_public ? (
-                                <Tag color="cyan" style={{ fontSize: 10 }}>Công khai</Tag>
-                            ) : (
-                                <Tag style={{ fontSize: 10 }}>Riêng tư</Tag>
-                            )}
-                        </Space>
+                    <Space direction="vertical" size={2}>
+                        <Tag color={color} style={{ margin: 0, fontSize: 11 }}>{text}</Tag>
+                        {record.is_public ? (
+                            <Tag color="cyan" style={{ margin: 0, fontSize: 10 }}>Công khai</Tag>
+                        ) : (
+                            <Tag style={{ margin: 0, fontSize: 10 }}>Riêng tư</Tag>
+                        )}
                     </Space>
                 );
             },
@@ -235,19 +234,21 @@ const ListVoucher: React.FC = () => {
                     onChange={(checked) => handleToggleActive(record.id, checked)}
                     checkedChildren="Bật"
                     unCheckedChildren="Tắt"
+                    size="small"
                 />
             ),
         },
         {
             title: 'Thao tác',
             key: 'actions',
-            width: 120,
-            fixed: 'right',
+            width: 100,
+            fixed: 'right' as const,
             render: (_, record) => (
-                <Space>
+                <Space size="small">
                     <Tooltip title="Chỉnh sửa">
                         <Button
                             type="text"
+                            size="small"
                             icon={<EditOutlined />}
                             onClick={() => navigate(`/admin/vouchers/edit/${record.id}`)}
                         />
@@ -263,6 +264,7 @@ const ListVoucher: React.FC = () => {
                         <Tooltip title="Xóa">
                             <Button
                                 type="text"
+                                size="small"
                                 danger
                                 icon={<DeleteOutlined />}
                             />
@@ -334,7 +336,8 @@ const ListVoucher: React.FC = () => {
                             pageSize: pag.pageSize || 10,
                         }));
                     }}
-                    scroll={{ x: 1100 }}
+                    scroll={{ x: 950 }}
+                    size="small"
                 />
             </Card>
         </div>

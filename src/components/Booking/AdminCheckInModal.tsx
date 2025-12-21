@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Modal,
     Form,
     Input,
     Select,
+    InputNumber,
     Upload,
     Button,
     Space,
@@ -80,20 +81,26 @@ const validateDateOfBirth = (identityType: string) => (_: any, value: any) => {
     return Promise.resolve();
 };
 
-// Generate options for day, month, year selects
-const generateDayOptions = (month?: number, year?: number) => {
-    let maxDay = 31;
-    if (month) {
-        if ([4, 6, 9, 11].includes(month)) {
-            maxDay = 30;
-        } else if (month === 2) {
-            if (year && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
-                maxDay = 29;
-            } else {
-                maxDay = 28;
-            }
+// Tính số ngày tối đa của tháng
+const getMaxDayForMonth = (month?: number, year?: number): number => {
+    if (!month) return 31;
+    
+    if ([4, 6, 9, 11].includes(month)) {
+        return 30; // Tháng 4, 6, 9, 11 có 30 ngày
+    } else if (month === 2) {
+        // Tháng 2: kiểm tra năm nhuận
+        if (year && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+            return 29; // Năm nhuận
+        } else {
+            return 28; // Năm không nhuận
         }
     }
+    return 31; // Các tháng còn lại có 31 ngày
+};
+
+// Generate options for day, month, year selects (giữ lại cho tương thích)
+const generateDayOptions = (month?: number, year?: number) => {
+    const maxDay = getMaxDayForMonth(month, year);
     return Array.from({ length: maxDay }, (_, i) => ({
         value: i + 1,
         label: String(i + 1).padStart(2, '0'),
@@ -257,8 +264,65 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 if (!guestData) {
                     throw new Error(`Thông tin khách ${index + 1} không hợp lệ`);
                 }
-                const fileList = guestData?.identity_image?.fileList as UploadFile[];
-                const file = fileList?.[0]?.originFileObj as File | undefined;
+                
+                // Lấy nhiều ảnh (mới) hoặc 1 ảnh (tương thích ngược)
+                // Ant Design Upload trả về fileList trong value
+                const identityImagesValue = guestData?.identity_images;
+                const identityImageValue = guestData?.identity_image;
+                
+                // Debug log
+                console.log('AdminCheckInModal - Processing files for guest', index, {
+                    identity_images_value: identityImagesValue,
+                    identity_image_value: identityImageValue,
+                    identity_images_type: typeof identityImagesValue,
+                    identity_images_is_array: Array.isArray(identityImagesValue),
+                });
+                
+                // Ưu tiên nhiều ảnh, fallback về 1 ảnh
+                const files: File[] = [];
+                
+                // Kiểm tra identity_images (nhiều ảnh)
+                if (identityImagesValue) {
+                    // Có thể là fileList (array của UploadFile) hoặc array trực tiếp
+                    const fileList = Array.isArray(identityImagesValue) 
+                        ? identityImagesValue 
+                        : (identityImagesValue as any)?.fileList || [];
+                    
+                    if (fileList.length > 0) {
+                        fileList.forEach((fileItem: any) => {
+                            // UploadFile có originFileObj
+                            if (fileItem?.originFileObj instanceof File) {
+                                files.push(fileItem.originFileObj);
+                            } 
+                            // Hoặc có thể là File trực tiếp
+                            else if (fileItem instanceof File) {
+                                files.push(fileItem);
+                            }
+                        });
+                    }
+                }
+                
+                // Fallback: Kiểm tra identity_image (1 ảnh)
+                if (files.length === 0 && identityImageValue) {
+                    const fileList = Array.isArray(identityImageValue) 
+                        ? identityImageValue 
+                        : (identityImageValue as any)?.fileList || [];
+                    
+                    if (fileList.length > 0) {
+                        const fileItem = fileList[0];
+                        if (fileItem?.originFileObj instanceof File) {
+                            files.push(fileItem.originFileObj);
+                        } else if (fileItem instanceof File) {
+                            files.push(fileItem);
+                        }
+                    }
+                }
+                
+                console.log('AdminCheckInModal - Files extracted', {
+                    guest_index: index,
+                    files_count: files.length,
+                    files: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
+                });
 
                 // Combine day, month, year into date_of_birth
                 let dateOfBirth: string | undefined;
@@ -292,7 +356,8 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                     date_of_birth: dateOfBirth,
                     identity_type: guestData.identity_type,
                     identity_number: guestData.identity_number,
-                    identity_image: file,
+                    identity_image: files[0], // Tương thích ngược
+                    identity_images: files, // Nhiều ảnh
                     booking_detail_id: bookingDetail.id,
                 };
             });
@@ -327,7 +392,15 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
         if (Array.isArray(e)) {
             return e;
         }
-        return e?.fileList;
+        // Handle file list from Upload component
+        if (e?.fileList) {
+            return e.fileList;
+        }
+        // Handle single file
+        if (e?.file) {
+            return [e.file];
+        }
+        return [];
     };
 
     if (!booking) return null;
@@ -476,19 +549,82 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                             const year = getFieldValue([`guests_${index}`, 'birth_year']);
                                             const dayOptions = generateDayOptions(month, year);
                                             
+                                            const maxDay = getMaxDayForMonth(month, year);
+                                            
                                             return (
                                                 <Space.Compact style={{ width: '100%' }}>
                                                     <Form.Item
                                                         name={[`guests_${index}`, 'birth_day']}
                                                         noStyle
-                                                        rules={[{ required: true, message: 'Chọn ngày' }]}
+                                                        dependencies={[[`guests_${index}`, 'birth_month'], [`guests_${index}`, 'birth_year']]}
+                                                        rules={[
+                                                            { required: true, message: 'Chọn ngày' },
+                                                            ({ getFieldValue }) => ({
+                                                                validator: (_, value) => {
+                                                                    if (!value) {
+                                                                        return Promise.reject('Vui lòng chọn ngày');
+                                                                    }
+                                                                    const currentMonth = getFieldValue([`guests_${index}`, 'birth_month']);
+                                                                    const currentYear = getFieldValue([`guests_${index}`, 'birth_year']);
+                                                                    const maxDayForCurrentMonth = getMaxDayForMonth(currentMonth, currentYear);
+                                                                    
+                                                                    if (value > maxDayForCurrentMonth) {
+                                                                        return Promise.reject(`Tháng ${currentMonth} chỉ có tối đa ${maxDayForCurrentMonth} ngày`);
+                                                                    }
+                                                                    
+                                                                    return Promise.resolve();
+                                                                },
+                                                            }),
+                                                        ]}
                                                     >
                                                         <Select
                                                             placeholder="Ngày"
-                                                            options={dayOptions}
+                                                            options={generateDayOptions(month, year)}
                                                             showSearch
                                                             optionFilterProp="label"
+                                                            filterOption={(input, option) => {
+                                                                const label = String(option?.label || '');
+                                                                return label.includes(input);
+                                                            }}
                                                             style={{ width: '33%' }}
+                                                            onChange={(value) => {
+                                                                // Tự động focus sang tháng khi chọn ngày
+                                                                setTimeout(() => {
+                                                                    const formElement = document.querySelector(`form`);
+                                                                    if (formElement) {
+                                                                        const monthSelects = formElement.querySelectorAll('.ant-select');
+                                                                        const monthSelect = monthSelects[index * 3 + 1]?.querySelector('.ant-select-selector') as HTMLElement;
+                                                                        if (monthSelect) {
+                                                                            monthSelect.focus();
+                                                                            monthSelect.click();
+                                                                        }
+                                                                    }
+                                                                }, 100);
+                                                            }}
+                                                            onSearch={(value) => {
+                                                                // Khi nhập đủ 2 ký tự số, tự động chọn và focus sang tháng
+                                                                const numValue = parseInt(value);
+                                                                if (value.length >= 2 && !isNaN(numValue) && numValue >= 1 && numValue <= 31) {
+                                                                    const currentMonth = getFieldValue([`guests_${index}`, 'birth_month']);
+                                                                    const currentYear = getFieldValue([`guests_${index}`, 'birth_year']);
+                                                                    const maxDayForCurrentMonth = getMaxDayForMonth(currentMonth, currentYear);
+                                                                    
+                                                                    if (numValue <= maxDayForCurrentMonth) {
+                                                                        form.setFieldValue([`guests_${index}`, 'birth_day'], numValue);
+                                                                        setTimeout(() => {
+                                                                            const formElement = document.querySelector(`form`);
+                                                                            if (formElement) {
+                                                                                const monthSelects = formElement.querySelectorAll('.ant-select');
+                                                                                const monthSelect = monthSelects[index * 3 + 1]?.querySelector('.ant-select-selector') as HTMLElement;
+                                                                                if (monthSelect) {
+                                                                                    monthSelect.focus();
+                                                                                    monthSelect.click();
+                                                                                }
+                                                                            }
+                                                                        }, 100);
+                                                                    }
+                                                                }
+                                                            }}
                                                         />
                                                     </Form.Item>
                                                     <Form.Item
@@ -500,14 +636,29 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                                             placeholder="Tháng"
                                                             options={generateMonthOptions()}
                                                             style={{ width: '34%' }}
-                                                            onChange={() => {
+                                                            onChange={(value) => {
                                                                 const currentDay = getFieldValue([`guests_${index}`, 'birth_day']);
-                                                                const newMonth = form.getFieldValue([`guests_${index}`, 'birth_month']);
-                                                                const newYear = form.getFieldValue([`guests_${index}`, 'birth_year']);
-                                                                const newDayOptions = generateDayOptions(newMonth, newYear);
-                                                                if (currentDay && currentDay > newDayOptions.length) {
-                                                                    form.setFieldValue([`guests_${index}`, 'birth_day'], newDayOptions.length);
+                                                                const newYear = getFieldValue([`guests_${index}`, 'birth_year']);
+                                                                const maxDayForMonth = getMaxDayForMonth(value, newYear);
+                                                                
+                                                                // Validate và điều chỉnh ngày nếu cần
+                                                                if (currentDay && currentDay > maxDayForMonth) {
+                                                                    form.setFieldValue([`guests_${index}`, 'birth_day'], maxDayForMonth);
                                                                 }
+                                                                
+                                                                // Tự động focus sang năm
+                                                                setTimeout(() => {
+                                                                    const formElement = document.querySelector(`form`);
+                                                                    if (formElement) {
+                                                                        const yearSelects = formElement.querySelectorAll('.ant-select');
+                                                                        // Tìm select thứ 3 trong Space.Compact (select năm)
+                                                                        const yearSelect = yearSelects[index * 3 + 2]?.querySelector('.ant-select-selector') as HTMLElement;
+                                                                        if (yearSelect) {
+                                                                            yearSelect.focus();
+                                                                            yearSelect.click();
+                                                                        }
+                                                                    }
+                                                                }, 150);
                                                             }}
                                                         />
                                                     </Form.Item>
@@ -523,6 +674,23 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                                                     const birthDay = getFieldValue([`guests_${index}`, 'birth_day']);
                                                                     const birthMonth = getFieldValue([`guests_${index}`, 'birth_month']);
                                                                     const birthYear = getFieldValue([`guests_${index}`, 'birth_year']);
+                                                                    
+                                                                    // Validate năm
+                                                                    if (birthYear) {
+                                                                        const currentYear = dayjs().year();
+                                                                        const minYear = currentYear - 100;
+                                                                        if (birthYear < minYear || birthYear > currentYear) {
+                                                                            return Promise.reject('Năm không hợp lệ');
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    // Validate ngày với tháng và năm
+                                                                    if (birthDay && birthMonth && birthYear) {
+                                                                        const maxDayForMonth = getMaxDayForMonth(birthMonth, birthYear);
+                                                                        if (birthDay > maxDayForMonth) {
+                                                                            return Promise.reject(`Tháng ${birthMonth} năm ${birthYear} chỉ có tối đa ${maxDayForMonth} ngày`);
+                                                                        }
+                                                                    }
                                                                     
                                                                     // Chỉ validate nếu đã có đủ thông tin và đã chọn loại giấy tờ
                                                                     if (identityType && birthDay && birthMonth && birthYear) {
@@ -547,9 +715,11 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                                                                 const currentDay = getFieldValue([`guests_${index}`, 'birth_day']);
                                                                 const newMonth = form.getFieldValue([`guests_${index}`, 'birth_month']);
                                                                 const newYear = form.getFieldValue([`guests_${index}`, 'birth_year']);
-                                                                const newDayOptions = generateDayOptions(newMonth, newYear);
-                                                                if (currentDay && currentDay > newDayOptions.length) {
-                                                                    form.setFieldValue([`guests_${index}`, 'birth_day'], newDayOptions.length);
+                                                                const maxDayForMonth = getMaxDayForMonth(newMonth, newYear);
+                                                                
+                                                                // Validate và điều chỉnh ngày nếu cần
+                                                                if (currentDay && currentDay > maxDayForMonth) {
+                                                                    form.setFieldValue([`guests_${index}`, 'birth_day'], maxDayForMonth);
                                                                 }
                                                             }}
                                                         />
@@ -608,21 +778,42 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         </Form.Item>
 
                         <Form.Item
-                            name={[`guests_${index}`, 'identity_image']}
-                            label="Ảnh giấy tờ (tùy chọn)"
+                            name={[`guests_${index}`, 'identity_images']}
+                            label="Ảnh giấy tờ"
                             valuePropName="fileList"
                             getValueFromEvent={normFile}
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Vui lòng upload ít nhất 1 ảnh giấy tờ',
+                                },
+                                {
+                                    validator: (_: any, fileList: UploadFile[]) => {
+                                        if (!fileList || fileList.length === 0) {
+                                            return Promise.reject('Vui lòng upload ít nhất 1 ảnh giấy tờ');
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
+                            extra="Có thể upload nhiều ảnh (mặt trước và mặt sau CCCD/Hộ chiếu)"
                         >
                             <Upload
                                 listType="picture-card"
-                                maxCount={1}
+                                maxCount={5}
                                 beforeUpload={() => false} // Prevent auto upload
                                 accept="image/*"
+                                showUploadList={{
+                                    showPreviewIcon: true,
+                                    showRemoveIcon: true,
+                                }}
                             >
-                                <div>
-                                    <PlusOutlined />
-                                    <div style={{ marginTop: 8 }}>Upload</div>
-                                </div>
+                                {(form.getFieldValue([`guests_${index}`, 'identity_images'])?.length || 0) < 5 && (
+                                    <div>
+                                        <PlusOutlined />
+                                        <div style={{ marginTop: 8 }}>Upload</div>
+                                    </div>
+                                )}
                             </Upload>
                         </Form.Item>
                     </Card>

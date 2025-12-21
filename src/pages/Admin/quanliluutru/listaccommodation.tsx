@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, Input, Tag, Card, Badge, message, Modal, List, Descriptions, Divider, Typography } from "antd";
-import { HomeOutlined, UserOutlined, CalendarOutlined, IdcardOutlined, PhoneOutlined, SearchOutlined, ReloadOutlined, EyeOutlined, TeamOutlined } from "@ant-design/icons";
+import { Table, Button, Space, Input, Tag, Card, Badge, message, Modal, List, Descriptions, Divider, Typography, Image } from "antd";
+import { HomeOutlined, UserOutlined, CalendarOutlined, IdcardOutlined, PhoneOutlined, SearchOutlined, ReloadOutlined, EyeOutlined, TeamOutlined, PictureOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { getCheckedInGuests } from "../../../service/bookingService";
 
 const { Text } = Typography;
+
+interface IdentityImage {
+    id: number;
+    image_url: string;
+    side?: string;
+    order: number;
+}
 
 interface CheckedInGuest {
     id: number;
@@ -13,7 +20,8 @@ interface CheckedInGuest {
     date_of_birth?: string;
     identity_type?: string;
     identity_number?: string;
-    identity_image_url?: string;
+    identity_image_url?: string; // Tương thích ngược
+    identity_images?: IdentityImage[]; // Nhiều ảnh (mới)
     check_in_time?: string;
     booking?: {
         id: number;
@@ -315,6 +323,40 @@ const ListAccommodation: React.FC = () => {
                             <Descriptions.Item label="Số giấy tờ">
                                 <strong>{selectedGuest.identity_number}</strong>
                             </Descriptions.Item>
+                            <Descriptions.Item label="Ảnh giấy tờ" span={2}>
+                                {(() => {
+                                    const firstStay = selectedGuest.stays[0];
+                                    const images = firstStay?.identity_images && firstStay.identity_images.length > 0 
+                                        ? firstStay.identity_images 
+                                        : (firstStay?.identity_image_url ? [{ image_url: firstStay.identity_image_url, side: 'front', order: 0 }] : []);
+                                    
+                                    if (images.length === 0) {
+                                        return <Text type="secondary">Chưa có ảnh</Text>;
+                                    }
+                                    
+                                    return (
+                                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                            {images.map((img, idx) => (
+                                                <Space key={idx} size="small" style={{ width: '100%' }}>
+                                                    <Image
+                                                        src={img.image_url}
+                                                        alt={`Ảnh giấy tờ ${img.side === 'front' ? 'mặt trước' : img.side === 'back' ? 'mặt sau' : ''}`}
+                                                        width={60}
+                                                        height={40}
+                                                        style={{ borderRadius: 4, border: '1px solid #d9d9d9', objectFit: 'cover' }}
+                                                        preview={{
+                                                            mask: 'Xem ảnh',
+                                                        }}
+                                                    />
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                        {img.side === 'front' ? 'Mặt trước' : img.side === 'back' ? 'Mặt sau' : `Ảnh ${idx + 1}`}
+                                                    </Text>
+                                                </Space>
+                                            ))}
+                                        </Space>
+                                    );
+                                })()}
+                            </Descriptions.Item>
                         </Descriptions>
 
                         <Divider orientation="left">
@@ -373,6 +415,35 @@ const ListAccommodation: React.FC = () => {
                                                         : 'Chưa check-in'}
                                                 </Text>
                                             </div>
+                                            {(() => {
+                                                const images = stay.identity_images && stay.identity_images.length > 0 
+                                                    ? stay.identity_images 
+                                                    : (stay.identity_image_url ? [{ image_url: stay.identity_image_url, side: 'front', order: 0 }] : []);
+                                                
+                                                if (images.length === 0) return null;
+                                                
+                                                return (
+                                                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                                        {images.map((img, idx) => (
+                                                            <Space key={idx} size="small">
+                                                                <Image
+                                                                    src={img.image_url}
+                                                                    alt={`Ảnh giấy tờ ${img.side === 'front' ? 'mặt trước' : img.side === 'back' ? 'mặt sau' : ''}`}
+                                                                    width={50}
+                                                                    height={35}
+                                                                    style={{ borderRadius: 4, border: '1px solid #d9d9d9', objectFit: 'cover' }}
+                                                                    preview={{
+                                                                        mask: 'Xem',
+                                                                    }}
+                                                                />
+                                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                                    {img.side === 'front' ? 'Mặt trước' : img.side === 'back' ? 'Mặt sau' : `Ảnh ${idx + 1}`}
+                                                                </Text>
+                                                            </Space>
+                                                        ))}
+                                                    </Space>
+                                                );
+                                            })()}
                                         </Space>
                                     </Card>
                                 </List.Item>

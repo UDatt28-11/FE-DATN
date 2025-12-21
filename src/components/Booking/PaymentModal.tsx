@@ -13,6 +13,7 @@ import {
     Col,
     Select,
     Radio,
+    Image,
 } from 'antd';
 import {
     DollarOutlined,
@@ -21,6 +22,7 @@ import {
     CloseCircleOutlined,
     BankOutlined,
     QrcodeOutlined,
+    PictureOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getUserInvoice, createPayOSInvoicePaymentLink, createVNPayInvoicePaymentLink, getVNPayBanks } from '../../service/bookingService';
@@ -56,6 +58,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [vnpayBanks, setVnpayBanks] = useState<Record<string, string>>({});
     const [selectedBank, setSelectedBank] = useState<string>('');
     const [loadingBanks, setLoadingBanks] = useState(false);
+    const [damageImagesModal, setDamageImagesModal] = useState<{ visible: boolean; images: string[]; title: string }>({
+        visible: false,
+        images: [],
+        title: '',
+    });
 
     useEffect(() => {
         console.log('PaymentModal useEffect - isOpen:', isOpen, 'invoiceId:', invoiceId);
@@ -238,7 +245,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             key: 'unit_price',
             width: 120,
             align: 'right',
-            render: (price: number) => formatVND(price),
+            render: (price: number, record: InvoiceItem) => {
+                const isPaid = record.description?.includes('[Đã thanh toán]');
+                return (
+                    <Text
+                        style={{
+                            textDecoration: isPaid ? 'line-through' : 'none',
+                            color: isPaid ? '#8c8c8c' : 'inherit',
+                            opacity: isPaid ? 0.6 : 1,
+                        }}
+                    >
+                        {formatVND(price)}
+                    </Text>
+                );
+            },
         },
         {
             title: 'Thành tiền',
@@ -248,11 +268,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             render: (_: any, record: InvoiceItem) => {
                 const total = record.total || record.total_line || (record.unit_price * record.quantity);
                 const isNegative = total < 0;
+                const isPaid = record.description?.includes('[Đã thanh toán]');
                 return (
-                    <Text strong style={{ color: isNegative ? '#ff4d4f' : undefined }}>
+                    <Text
+                        strong
+                        style={{
+                            color: isPaid ? '#8c8c8c' : isNegative ? '#ff4d4f' : undefined,
+                            textDecoration: isPaid ? 'line-through' : 'none',
+                            opacity: isPaid ? 0.6 : 1,
+                        }}
+                    >
                         {isNegative ? '-' : ''}{formatVND(Math.abs(total))}
+                        {isPaid && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#52c41a' }}>
+                                (Đã thanh toán)
+                            </span>
+                        )}
                     </Text>
                 );
+            },
+        },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            width: 100,
+            align: 'center',
+            render: (_: any, record: InvoiceItem) => {
+                if (record.item_type === 'damage_fee' && record.damage_images && record.damage_images.length > 0) {
+                    return (
+                        <Button
+                            type="link"
+                            icon={<PictureOutlined />}
+                            onClick={() => {
+                                setDamageImagesModal({
+                                    visible: true,
+                                    images: record.damage_images!.map(img => img.image_url),
+                                    title: record.description || 'Ảnh minh chứng thiệt hại',
+                                });
+                            }}
+                        >
+                            Xem ảnh
+                        </Button>
+                    );
+                }
+                return null;
             },
         },
     ];
@@ -296,6 +355,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     if (!invoiceId) return null;
 
     return (
+        <>
         <Modal
             title={
                 <Space>
@@ -578,6 +638,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
             )}
         </Modal>
+
+        {/* Modal hiển thị ảnh thiệt hại */}
+        <Modal
+            title={damageImagesModal.title}
+            open={damageImagesModal.visible}
+            onCancel={() => setDamageImagesModal({ visible: false, images: [], title: '' })}
+            footer={null}
+            width={800}
+        >
+            <Image.PreviewGroup>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                    {damageImagesModal.images.map((url, index) => (
+                        <Image
+                            key={index}
+                            src={url}
+                            width={200}
+                            style={{ borderRadius: 4 }}
+                            alt={`Ảnh minh chứng ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            </Image.PreviewGroup>
+        </Modal>
+        </>
     );
 };
 

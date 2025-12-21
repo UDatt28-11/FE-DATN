@@ -19,6 +19,8 @@ import {
     message,
     Spin,
     Empty,
+    Upload,
+    Image,
 } from 'antd';
 import {
     LogoutOutlined,
@@ -29,6 +31,8 @@ import {
     DeleteOutlined,
     EyeOutlined,
     ToolOutlined,
+    UploadOutlined,
+    DeleteOutlined as DeleteIcon,
 } from '@ant-design/icons';
 import type { BookingOrder, BookingService } from '../../types/booking/booking';
 import { checkOutDirect, getSuppliesForCheckout, previewCheckout } from '../../service/bookingService';
@@ -54,6 +58,8 @@ interface DamagedItem {
     unit_price: number;
     notes?: string;
     total: number;
+    damage_images?: File[];
+    preview_images?: string[];
 }
 
 interface PreviewData {
@@ -147,6 +153,8 @@ const AdminCheckoutModal: React.FC<AdminCheckoutModalProps> = ({
                 unit_price: 0,
                 notes: '',
                 total: 0,
+                damage_images: [],
+                preview_images: [],
             },
         ]);
     };
@@ -188,6 +196,50 @@ const AdminCheckoutModal: React.FC<AdminCheckoutModalProps> = ({
                 ...newItems[index],
                 notes: value,
             };
+        } else if (field === 'damage_images') {
+            newItems[index] = {
+                ...newItems[index],
+                damage_images: value,
+            };
+        }
+        
+        setDamagedItems(newItems);
+    };
+
+    const handleImageUpload = (index: number, fileList: any) => {
+        const newItems = [...damagedItems];
+        const files = fileList.map((file: any) => file.originFileObj || file);
+        const previews = fileList.map((file: any) => {
+            if (file.url) return file.url;
+            if (file.originFileObj) {
+                return URL.createObjectURL(file.originFileObj);
+            }
+            return null;
+        }).filter(Boolean);
+        
+        newItems[index] = {
+            ...newItems[index],
+            damage_images: files,
+            preview_images: previews,
+        };
+        
+        setDamagedItems(newItems);
+        return false; // Prevent auto upload
+    };
+
+    const handleRemoveImage = (itemIndex: number, imageIndex: number) => {
+        const newItems = [...damagedItems];
+        const item = newItems[itemIndex];
+        
+        if (item.damage_images) {
+            item.damage_images.splice(imageIndex, 1);
+        }
+        if (item.preview_images) {
+            const previewUrl = item.preview_images[imageIndex];
+            if (previewUrl && previewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(previewUrl);
+            }
+            item.preview_images.splice(imageIndex, 1);
         }
         
         setDamagedItems(newItems);
@@ -235,6 +287,7 @@ const AdminCheckoutModal: React.FC<AdminCheckoutModalProps> = ({
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     notes: item.notes,
+                    damage_images: item.damage_images || [],
                 })),
                 additional_services: [],
             });
@@ -358,6 +411,60 @@ const AdminCheckoutModal: React.FC<AdminCheckoutModalProps> = ({
                     value={record.notes}
                     onChange={(e) => handleDamageItemChange(index, 'notes', e.target.value)}
                 />
+            ),
+        },
+        {
+            title: 'Ảnh minh chứng',
+            key: 'damage_images',
+            width: 200,
+            render: (_: any, record: DamagedItem, index: number) => (
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    <Upload
+                        multiple
+                        beforeUpload={() => false}
+                        fileList={record.damage_images?.map((file, fileIndex) => ({
+                            uid: `${index}-${fileIndex}`,
+                            name: file.name,
+                            status: 'done',
+                            url: record.preview_images?.[fileIndex] || undefined,
+                            originFileObj: file,
+                        })) || []}
+                        onChange={(info) => handleImageUpload(index, info.fileList)}
+                        accept="image/*"
+                        listType="picture-card"
+                        maxCount={5}
+                    >
+                        {(record.damage_images?.length || 0) < 5 && (
+                            <div>
+                                <UploadOutlined />
+                                <div style={{ marginTop: 8 }}>Upload</div>
+                            </div>
+                        )}
+                    </Upload>
+                    {record.preview_images && record.preview_images.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {record.preview_images.map((preview, imgIndex) => (
+                                <div key={imgIndex} style={{ position: 'relative' }}>
+                                    <Image
+                                        src={preview}
+                                        width={50}
+                                        height={50}
+                                        style={{ objectFit: 'cover', borderRadius: 4 }}
+                                        preview
+                                    />
+                                    <Button
+                                        type="text"
+                                        danger
+                                        size="small"
+                                        icon={<DeleteIcon />}
+                                        style={{ position: 'absolute', top: -8, right: -8 }}
+                                        onClick={() => handleRemoveImage(index, imgIndex)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Space>
             ),
         },
         {

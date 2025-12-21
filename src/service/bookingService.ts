@@ -597,7 +597,8 @@ export type CheckInGuestData = {
   date_of_birth?: string;
   identity_type: "cccd" | "passport";
   identity_number: string;
-  identity_image?: File;
+  identity_image?: File; // Tương thích ngược
+  identity_images?: File[]; // Nhiều ảnh (mới)
   booking_detail_id: number;
 };
 
@@ -758,19 +759,72 @@ export interface DamagedSupply {
 export interface ApproveCheckoutRequestParams {
   room_status?: 'available' | 'maintenance';
   notes?: string;
-  damaged_supplies?: DamagedSupply[];
+  damaged_supplies?: (DamagedSupply & { damage_images?: File[] })[];
 }
 
 export async function approveCheckoutRequest(
   id: number, 
   params?: ApproveCheckoutRequestParams
 ) {
-  const { data } = await api.post(`/admin/checkout-requests/${id}/approve`, params || {});
-  return {
-    data: data.data as CheckoutRequest,
-    damage_summary: data.damage_summary,
-    invoice: data.invoice,
-  };
+  // Kiểm tra xem có ảnh thiệt hại không
+  const hasImages = params?.damaged_supplies?.some(
+    item => item.damage_images && item.damage_images.length > 0
+  );
+
+  if (hasImages) {
+    // Nếu có ảnh, dùng FormData
+    const formData = new FormData();
+    
+    if (params?.room_status) {
+      formData.append('room_status', params.room_status);
+    }
+    if (params?.notes) {
+      formData.append('notes', params.notes);
+    }
+
+    // Thêm damaged_supplies với ảnh
+    if (params?.damaged_supplies) {
+      params.damaged_supplies.forEach((item, index) => {
+        formData.append(`damaged_supplies[${index}][supply_id]`, item.supply_id.toString());
+        formData.append(`damaged_supplies[${index}][quantity]`, item.quantity.toString());
+        if (item.unit_price !== undefined) {
+          formData.append(`damaged_supplies[${index}][unit_price]`, item.unit_price.toString());
+        }
+        if (item.notes) {
+          formData.append(`damaged_supplies[${index}][notes]`, item.notes);
+        }
+        
+        // Thêm ảnh
+        if (item.damage_images && item.damage_images.length > 0) {
+          item.damage_images.forEach((file, fileIndex) => {
+            if (file instanceof File) {
+              formData.append(`damaged_supplies[${index}][damage_images][${fileIndex}]`, file);
+            }
+          });
+        }
+      });
+    }
+
+    const { data } = await api.post(`/admin/checkout-requests/${id}/approve`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return {
+      data: data.data as CheckoutRequest,
+      damage_summary: data.damage_summary,
+      invoice: data.invoice,
+    };
+  } else {
+    // Nếu không có ảnh, gửi JSON bình thường
+    const { data } = await api.post(`/admin/checkout-requests/${id}/approve`, params || {});
+    return {
+      data: data.data as CheckoutRequest,
+      damage_summary: data.damage_summary,
+      invoice: data.invoice,
+    };
+  }
 }
 
 export async function rejectCheckoutRequest(id: number, rejectionReason: string) {
@@ -797,9 +851,41 @@ export async function checkInDirect(
       formData.append(`guests[${index}][identity_number]`, guest.identity_number);
       formData.append(`guests[${index}][booking_detail_id]`, guest.booking_detail_id.toString());
       
-      // Thêm file nếu có
-      if (guest.identity_image) {
-        formData.append(`guests[${index}][identity_image]`, guest.identity_image);
+      // Thêm nhiều ảnh (mới) - ưu tiên
+      if (guest.identity_images && Array.isArray(guest.identity_images) && guest.identity_images.length > 0) {
+        console.log('bookingService - Appending identity_images', {
+          guest_index: index,
+          files_count: guest.identity_images.length,
+        });
+        guest.identity_images.forEach((file, fileIndex) => {
+          if (file instanceof File) {
+            formData.append(`guests[${index}][identity_images][]`, file);
+            console.log('bookingService - Appended file', {
+              guest_index: index,
+              file_index: fileIndex,
+              file_name: file.name,
+              file_size: file.size,
+            });
+          } else {
+            console.warn('bookingService - File is not a File instance', {
+              guest_index: index,
+              file_index: fileIndex,
+              file_type: typeof file,
+            });
+          }
+        });
+      }
+      // Fallback: Thêm 1 ảnh (tương thích ngược)
+      else if (guest.identity_image) {
+        console.log('bookingService - Appending single identity_image', {
+          guest_index: index,
+          file_name: guest.identity_image instanceof File ? guest.identity_image.name : 'unknown',
+        });
+        if (guest.identity_image instanceof File) {
+          formData.append(`guests[${index}][identity_image]`, guest.identity_image);
+        }
+      } else {
+        console.log('bookingService - No identity images for guest', index);
       }
     });
     
@@ -1314,6 +1400,7 @@ export async function checkOutDirect(
       quantity: number;
       unit_price?: number;
       notes?: string;
+      damage_images?: File[];
     }[];
     additional_services?: {
       service_id: number;
@@ -1323,21 +1410,97 @@ export async function checkOutDirect(
   }
 ) {
   try {
-    const { data } = await api.post(`/staff/check-out/${bookingId}`, checkoutData);
-    return {
-      booking: data.data as BookingOrder,
-      damage_summary: data.damage_summary as {
-        total_damage_fee: number;
-        items: {
-          supply: string;
-          quantity: number;
-          unit_price: number;
-          total: number;
-          notes?: string;
-        }[];
-      },
-      invoice: data.invoice,
-    };
+    // Kiểm tra xem có ảnh thiệt hại không
+    const hasImages = checkoutData.damaged_supplies?.some(
+      item => item.damage_images && item.damage_images.length > 0
+    );
+
+    if (hasImages) {
+      // Nếu có ảnh, dùng FormData
+      const formData = new FormData();
+      
+      formData.append('room_status', checkoutData.room_status);
+      if (checkoutData.notes) {
+        formData.append('notes', checkoutData.notes);
+      }
+      if (checkoutData.booking_detail_ids) {
+        checkoutData.booking_detail_ids.forEach((id, index) => {
+          formData.append(`booking_detail_ids[${index}]`, id.toString());
+        });
+      }
+      if (checkoutData.create_invoice !== undefined) {
+        formData.append('create_invoice', checkoutData.create_invoice.toString());
+      }
+
+      // Thêm damaged_supplies với ảnh
+      if (checkoutData.damaged_supplies) {
+        checkoutData.damaged_supplies.forEach((item, index) => {
+          formData.append(`damaged_supplies[${index}][supply_id]`, item.supply_id.toString());
+          formData.append(`damaged_supplies[${index}][quantity]`, item.quantity.toString());
+          if (item.unit_price !== undefined) {
+            formData.append(`damaged_supplies[${index}][unit_price]`, item.unit_price.toString());
+          }
+          if (item.notes) {
+            formData.append(`damaged_supplies[${index}][notes]`, item.notes);
+          }
+          
+          // Thêm ảnh
+          if (item.damage_images && item.damage_images.length > 0) {
+            item.damage_images.forEach((file, fileIndex) => {
+              if (file instanceof File) {
+                formData.append(`damaged_supplies[${index}][damage_images][${fileIndex}]`, file);
+              }
+            });
+          }
+        });
+      }
+
+      // Thêm additional_services
+      if (checkoutData.additional_services) {
+        checkoutData.additional_services.forEach((service, index) => {
+          formData.append(`additional_services[${index}][service_id]`, service.service_id.toString());
+          formData.append(`additional_services[${index}][quantity]`, service.quantity.toString());
+        });
+      }
+
+      const { data } = await api.post(`/staff/check-out/${bookingId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      return {
+        booking: data.data as BookingOrder,
+        damage_summary: data.damage_summary as {
+          total_damage_fee: number;
+          items: {
+            supply: string;
+            quantity: number;
+            unit_price: number;
+            total: number;
+            notes?: string;
+          }[];
+        },
+        invoice: data.invoice,
+      };
+    } else {
+      // Nếu không có ảnh, gửi JSON bình thường
+      const { data } = await api.post(`/staff/check-out/${bookingId}`, checkoutData);
+      return {
+        booking: data.data as BookingOrder,
+        damage_summary: data.damage_summary as {
+          total_damage_fee: number;
+          items: {
+            supply: string;
+            quantity: number;
+            unit_price: number;
+            total: number;
+            notes?: string;
+          }[];
+        },
+        invoice: data.invoice,
+      };
+    }
   } catch (error: any) {
     if (error.response?.status !== 401 && error.response?.status !== 403) {
       console.error("Error checking out (admin):", error);
