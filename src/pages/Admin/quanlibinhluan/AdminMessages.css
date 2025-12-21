@@ -16,8 +16,29 @@
   gap: 24px;
 }
 
+/* Two columns layout for conversations */
+.admin-messages-content-two-columns {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.conversations-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-chat-column {
+  border-right: 1px solid #e8e8e8;
+  padding-right: 12px;
+}
+
+.user-chat-column {
+  padding-left: 12px;
+}
+
 .conversations-list-card {
-  flex: 0 0 400px;
+  flex: 0 0 100%;
   height: calc(100vh - 200px);
   overflow: hidden;
   display: flex;

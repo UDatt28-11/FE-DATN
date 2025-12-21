@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Typography, Select, message as antdMessage } from 'antd';
-import { MessageOutlined } from '@ant-design/icons';
+import { Typography, message as antdMessage } from 'antd';
+import { MessageOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import type { AdminConversation } from '../../../service/adminConversationService';
 import { useConversations } from './hooks/useConversations';
 import { useMessages } from './hooks/useMessages';
@@ -9,14 +9,15 @@ import ConversationDrawer from './components/ConversationDrawer';
 import './AdminMessages.css';
 
 const { Title } = Typography;
-const { Option } = Select;
 
 const AdminMessages: React.FC = () => {
-  const [typeFilter, setTypeFilter] = useState<'all' | 'user_to_user' | 'user_to_ai'>('all');
   const [selectedConversation, setSelectedConversation] = useState<AdminConversation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const { conversations, loading, reloadConversations } = useConversations(typeFilter);
+  // Load both types of conversations separately
+  const { conversations: aiConversations, loading: aiLoading, reloadConversations: reloadAIConversations } = useConversations('user_to_ai');
+  const { conversations: userConversations, loading: userLoading, reloadConversations: reloadUserConversations } = useConversations('user_to_user');
+
   const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(
     selectedConversation?.id ?? null,
     drawerOpen
@@ -37,17 +38,17 @@ const AdminMessages: React.FC = () => {
 
       try {
         await sendMessage(selectedConversation.id, content);
-        // Only refresh conversations list (not reload messages) to update latest message
-        // Use setTimeout to avoid blocking UI
+        // Refresh both conversation lists
         setTimeout(() => {
-          reloadConversations();
+          reloadAIConversations();
+          reloadUserConversations();
         }, 500);
         antdMessage.success('Đã gửi phản hồi');
       } catch (error) {
         // Error already handled in useMessages hook
       }
     },
-    [selectedConversation, sendMessage, reloadConversations]
+    [selectedConversation, sendMessage, reloadAIConversations, reloadUserConversations]
   );
 
   return (
@@ -56,20 +57,32 @@ const AdminMessages: React.FC = () => {
         <Title level={2}>
           <MessageOutlined /> Quản lý tin nhắn
         </Title>
-        <Select value={typeFilter} onChange={setTypeFilter} style={{ width: 200 }}>
-          <Option value="all">Tất cả</Option>
-          <Option value="user_to_user">User to User</Option>
-          <Option value="user_to_ai">AI Chat</Option>
-        </Select>
       </div>
 
-      <div className="admin-messages-content">
-        <ConversationList
-          conversations={conversations}
-          loading={loading}
-          selectedConversationId={selectedConversation?.id ?? null}
-          onSelectConversation={handleSelectConversation}
-        />
+      <div className="admin-messages-content-two-columns">
+        {/* Left Column - AI Chat */}
+        <div className="conversations-column ai-chat-column">
+          <ConversationList
+            conversations={aiConversations}
+            loading={aiLoading}
+            selectedConversationId={selectedConversation?.id ?? null}
+            onSelectConversation={handleSelectConversation}
+            title="Danh sách cuộc trò chuyện AI"
+            icon={<RobotOutlined />}
+          />
+        </div>
+
+        {/* Right Column - User Chat */}
+        <div className="conversations-column user-chat-column">
+          <ConversationList
+            conversations={userConversations}
+            loading={userLoading}
+            selectedConversationId={selectedConversation?.id ?? null}
+            onSelectConversation={handleSelectConversation}
+            title="Danh sách cuộc trò chuyện User"
+            icon={<UserOutlined />}
+          />
+        </div>
 
         <ConversationDrawer
           conversation={selectedConversation}

@@ -52,23 +52,32 @@ const MessageList: React.FC = () => {
       {messages.map((message) => (
         <MessageItem key={message.id} message={message} />
       ))}
-      {isLoading && !isLoggedIn && (
+      {/* Loading indicator for AI mode */}
+      {isLoading && chatMode === 'ai' && (
         <div className="message-loading-indicator">
           <Spin size="small" tip="AI đang suy nghĩ..." />
         </div>
       )}
-      {isLoggedIn && messages.length > 0 && messages[messages.length - 1]?.message_type === 'user' && (
-        <div style={{ padding: '8px 16px' }}>
-          <Alert
-            message="Tin nhắn đã được gửi"
-            description="Admin sẽ trả lời bạn sớm nhất có thể."
-            type="info"
-            showIcon
-            closable
-            style={{ fontSize: '12px' }}
-          />
-        </div>
-      )}
+      {/* Admin mode: Show notification when waiting for admin reply */}
+      {chatMode === 'admin' && messages.length > 0 && (() => {
+        const lastMessage = messages[messages.length - 1];
+        const isLastMessageFromUser = lastMessage?.message_type === 'user';
+        const isLastMessageFromAdmin = lastMessage?.sender?.role === 'admin' || lastMessage?.sender?.role === 'staff';
+        
+        // Show notification only if last message is from user (waiting for admin reply)
+        return isLastMessageFromUser && !isLastMessageFromAdmin ? (
+          <div style={{ padding: '8px 16px' }}>
+            <Alert
+              message="Tin nhắn đã được gửi"
+              description="Admin sẽ trả lời bạn sớm nhất có thể."
+              type="info"
+              showIcon
+              closable={false}
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+        ) : null;
+      })()}
       <div ref={messagesEndRef} />
     </div>
   );
