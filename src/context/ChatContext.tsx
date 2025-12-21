@@ -46,6 +46,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   });
   const [context, setContextState] = useState<ChatContextType | null>(null);
   const [chatMode, setChatMode] = useState<'admin' | 'ai' | null>(null);
+  const [loadingMessagesForConversationId, setLoadingMessagesForConversationId] = useState<number | null>(null);
+  const loadedConversationIdRef = React.useRef<number | null>(null);
 
   // Initialize session ID for guest users
   useEffect(() => {
@@ -69,39 +71,88 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]); // Only depend on isLoggedIn to avoid infinite loop
 
-  const loadMessages = useCallback(async () => {
-    if (!conversation) return;
+  // Internal function to load messages with explicit parameters
+  const _loadMessages = useCallback(async (conversationId: number, currentSessionId?: string, forceReload = false) => {
+    if (!conversationId) return;
+    
+    // Prevent duplicate fetch if already loading for this conversation
+    if (loadingMessagesForConversationId === conversationId && isLoading) {
+      return;
+    }
+    
+    // If we already loaded messages for this conversation and not forcing reload, skip
+    if (!forceReload && loadedConversationIdRef.current === conversationId && messages.length > 0) {
+      return;
+    }
 
     try {
+      setLoadingMessagesForConversationId(conversationId);
       setIsLoading(true);
-      const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
+      const sessionIdToUse = currentSessionId || sessionId || localStorage.getItem('chat_session_id') || undefined;
       const response = await chatService.getMessages(
-        conversation.id,
-        currentSessionId
+        conversationId,
+        sessionIdToUse
       );
       
       // Reverse messages to show oldest first
       setMessages(response.data.reverse());
+      loadedConversationIdRef.current = conversationId;
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
       setIsLoading(false);
+      setLoadingMessagesForConversationId(null);
     }
-  }, [conversation, sessionId]);
+  }, [sessionId, isLoading, loadingMessagesForConversationId, messages.length]);
+
+  // Public function that uses current conversation
+  const loadMessages = useCallback(async () => {
+    if (!conversation) return;
+    await _loadMessages(conversation.id);
+  }, [conversation, _loadMessages]);
 
   const initializeConversationWithMode = useCallback(async (mode: 'admin' | 'ai') => {
-    if (conversation) return; // Don't initialize if already has conversation
+    // Check if we already have a conversation for this mode
+    // Don't re-initialize if conversation already exists and matches the mode
+    if (conversation) {
+      // Check if conversation type matches the requested mode
+      const conversationType = conversation.type;
+      const expectedType = mode === 'admin' ? 'user_to_user' : 'user_to_ai';
+      if (conversationType === expectedType) {
+        // Already have the correct conversation, just load messages if needed
+        if (loadedConversationIdRef.current !== conversation.id || messages.length === 0) {
+          await _loadMessages(conversation.id);
+        }
+        return;
+      }
+    }
     
     try {
       setIsLoading(true);
       setChatMode(mode);
       const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
       const response = await chatService.getConversation(currentSessionId, mode);
-      setConversation(response.data);
+      
+      const newConversation = response.data;
+      
+      // Reset loaded conversation ref if switching to a different conversation
+      if (conversation && conversation.id !== newConversation?.id) {
+        loadedConversationIdRef.current = null;
+      }
+      
+      setConversation(newConversation);
+      
       if (response.session_id) {
         setSessionId(response.session_id);
         localStorage.setItem('chat_session_id', response.session_id);
       }
+      
+      // Load messages immediately after getting conversation (avoid double fetch)
+      // Only load if we haven't loaded for this conversation yet
+      if (newConversation && loadedConversationIdRef.current !== newConversation.id) {
+        await _loadMessages(newConversation.id, response.session_id || currentSessionId);
+      }
+      
       // Auto open chat when mode is selected
       if (!isOpen) {
         setIsOpen(true);
@@ -111,25 +162,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [conversation, sessionId, isOpen]);
-
-  // Load messages when conversation is available
-  useEffect(() => {
-    if (conversation && isOpen) {
-      loadMessages();
-    }
-  }, [conversation, isOpen, loadMessages]);
+  }, [conversation, sessionId, isOpen, messages.length, _loadMessages]);
 
   // Poll for new messages (for admin mode to get admin replies)
   useEffect(() => {
     if (!conversation || !isOpen || chatMode !== 'admin') return;
 
+    const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
     const pollInterval = setInterval(() => {
-      loadMessages();
+      // Force reload when polling to get new admin messages
+      _loadMessages(conversation.id, currentSessionId, true);
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [conversation, isOpen, chatMode, loadMessages]);
+  }, [conversation?.id, isOpen, chatMode, sessionId, _loadMessages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -203,6 +249,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setIsLoading(true);
       await chatService.clearHistory(conversation.id, sessionId || undefined);
       setMessages([]);
+      // Reset loaded conversation reference after clearing
+      loadedConversationIdRef.current = null;
     } catch (error) {
       console.error('Error clearing history:', error);
     } finally {
@@ -218,6 +266,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setIsOpen(false);
     // Reset chat mode when closing (user will need to choose again next time)
     setChatMode(null);
+    // Reset loaded conversation reference
+    loadedConversationIdRef.current = null;
   }, []);
 
   const toggleChat = useCallback(() => {
