@@ -43,6 +43,7 @@ import {
   WarningOutlined,
   PrinterOutlined,
   FilePdfOutlined,
+  SplitCellsOutlined,
 } from "@ant-design/icons";
 import { Alert } from "antd";
 import dayjs from "dayjs";
@@ -70,6 +71,7 @@ const ViewBooking: React.FC = () => {
   // State cho quản lý invoices của booking hiện tại
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [addServiceModalVisible, setAddServiceModalVisible] = useState(false);
   const [addDamageModalVisible, setAddDamageModalVisible] = useState(false);
   const [completeServiceModalVisible, setCompleteServiceModalVisible] = useState(false);
@@ -130,20 +132,37 @@ const ViewBooking: React.FC = () => {
       // nên lấy toàn bộ rồi lọc theo booking_order_id ở FE
       const allInvoices = await invoiceService.getAll();
       const filtered = allInvoices.filter(
-        (inv: Invoice) => inv.booking_order_id === bookingId
+        (inv: Invoice) => 
+          inv.booking_order_id === bookingId && 
+          inv.invoice_status !== 'cancelled' && 
+          (inv as any).status !== 'cancelled'
       );
       
-      // Nếu có invoice, fetch chi tiết với invoiceItems
+      // Fetch chi tiết cho TẤT CẢ invoices (không chỉ invoice đầu tiên)
       if (filtered.length > 0) {
-        const invoiceDetail = await invoiceService.getById(filtered[0].id, 'bookingOrder,bookingOrder.guest,invoiceItems,payments');
-        // Map invoice_items từ backend thành items
-        if ((invoiceDetail as any).invoice_items && !invoiceDetail.items) {
-          invoiceDetail.items = (invoiceDetail as any).invoice_items;
+        const invoiceDetails = await Promise.all(
+          filtered.map(async (inv) => {
+            try {
+              const invoiceDetail = await invoiceService.getById(inv.id, 'bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments');
+              // Map invoice_items từ backend thành items
+              if ((invoiceDetail as any).invoice_items && !invoiceDetail.items) {
+                invoiceDetail.items = (invoiceDetail as any).invoice_items;
+              }
+              if ((invoiceDetail as any).invoiceItems && !invoiceDetail.items) {
+                invoiceDetail.items = (invoiceDetail as any).invoiceItems;
+              }
+              return invoiceDetail;
+            } catch (error) {
+              console.error(`Error fetching invoice ${inv.id}:`, error);
+              return inv; // Trả về invoice cơ bản nếu không fetch được chi tiết
+            }
+          })
+        );
+        setInvoices(invoiceDetails);
+        // Tự động chọn invoice đầu tiên nếu chưa có invoice nào được chọn
+        if (invoiceDetails.length > 0 && !selectedInvoiceId) {
+          setSelectedInvoiceId(invoiceDetails[0].id);
         }
-        if ((invoiceDetail as any).invoiceItems && !invoiceDetail.items) {
-          invoiceDetail.items = (invoiceDetail as any).invoiceItems;
-        }
-        setInvoices([invoiceDetail]);
       } else {
         setInvoices([]);
       }
@@ -247,7 +266,8 @@ const ViewBooking: React.FC = () => {
       return;
     }
 
-    const invoiceId = invoices[0].id;
+    // Sử dụng invoice được chọn hoặc invoice đầu tiên
+    const invoiceId = selectedInvoiceId || invoices[0].id;
 
     const serviceData = {
       service_id: Number(values.service_id),
@@ -308,7 +328,8 @@ const ViewBooking: React.FC = () => {
   // Add damage to invoice
   const handleAddDamage = async (values: any) => {
     if (!invoices || invoices.length === 0) return;
-    const invoiceId = invoices[0].id;
+    // Sử dụng invoice được chọn hoặc invoice đầu tiên
+    const invoiceId = selectedInvoiceId || invoices[0].id;
     try {
       await invoiceService.addDamage(invoiceId, {
         supply_id: Number(values.supply_id),
@@ -354,6 +375,39 @@ const ViewBooking: React.FC = () => {
       console.error("Error updating status:", error);
       toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
     }
+  };
+
+  // Tách hóa đơn theo phòng
+  const handleSplitInvoiceByRooms = async (invoiceId: number) => {
+    Modal.confirm({
+      title: 'Xác nhận tách hóa đơn',
+      content: 'Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.',
+      okText: 'Xác nhận',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setLoadingInvoices(true);
+          const result = await invoiceService.splitByRooms(invoiceId);
+          message.success(`Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`);
+          // Reload invoices
+          if (booking?.id) {
+            fetchInvoices(booking.id);
+          }
+        } catch (error: any) {
+          console.error("Error splitting invoice:", error);
+          message.error(error.response?.data?.message || "Không thể tách hóa đơn!");
+        } finally {
+          setLoadingInvoices(false);
+        }
+      },
+    });
+  };
+
+  // Kiểm tra xem có thể tách hóa đơn không (có nhiều hơn 1 phòng)
+  const canSplitInvoice = (invoice: Invoice) => {
+    if (!booking || !booking.details) return false;
+    const details = booking.details || (booking as any).bookingDetails || [];
+    return details.length > 1 && invoice.invoice_status !== 'cancelled';
   };
   
   // Approve service request (xác nhận dịch vụ)
@@ -1115,24 +1169,38 @@ const ViewBooking: React.FC = () => {
                     </Card>
                   ) : (
                     (() => {
-                      const raw = invoices[0] as any;
-                      const invoice: Invoice & { items?: InvoiceItem[] } = {
-                        ...(raw as Invoice),
-                        items:
-                          raw.items ||
-                          raw.invoice_items ||
-                          raw.invoiceItems ||
-                          [],
-                      };
+                      // Helper function để render một invoice
+                      const renderInvoice = (invoiceRaw: any) => {
+                        const invoice: Invoice & { items?: InvoiceItem[] } = {
+                          ...(invoiceRaw as Invoice),
+                          items:
+                            invoiceRaw.items ||
+                            invoiceRaw.invoice_items ||
+                            invoiceRaw.invoiceItems ||
+                            [],
+                        };
 
-                      const remainingAmount =
-                        (invoice.total_amount || 0) -
-                        (invoice.paid_amount || 0);
+                        const remainingAmount =
+                          (invoice.total_amount || 0) -
+                          (invoice.paid_amount || 0);
 
-                      // Lấy danh sách dịch vụ chờ xác nhận cho booking này
-                      const rawDetails = booking?.details || (booking as any)?.bookingDetails;
-                      const details = Array.isArray(rawDetails) ? rawDetails : [];
-                      const itemColumns: any[] = [
+                        // Lấy thông tin phòng từ invoice items hoặc booking details
+                        const rawDetails = booking?.details || (booking as any)?.bookingDetails;
+                        const details = Array.isArray(rawDetails) ? rawDetails : [];
+                        
+                        // Tìm phòng liên quan đến invoice này (từ invoice items có booking_detail_id)
+                        let relatedRoom: any = null;
+                        if (invoice.items && invoice.items.length > 0) {
+                          const firstItem = invoice.items.find(item => item.booking_detail_id);
+                          if (firstItem?.booking_detail_id) {
+                            relatedRoom = details.find((d: any) => d.id === firstItem.booking_detail_id);
+                          }
+                        }
+
+                        const roomName = relatedRoom?.room?.name || relatedRoom?.room_name || 'Tất cả phòng';
+
+                        // Lấy danh sách dịch vụ chờ xác nhận cho booking này
+                        const itemColumns: any[] = [
                         {
                           title: "Mô tả",
                           dataIndex: "description",
@@ -1268,6 +1336,25 @@ const ViewBooking: React.FC = () => {
                                 In hóa đơn
                               </Button>
                               <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
+                              
+                              {/* Button tách hóa đơn theo phòng */}
+                              {canSplitInvoice(invoice) && (
+                                <Popconfirm
+                                  title="Tách hóa đơn theo phòng"
+                                  description="Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy. Bạn có chắc chắn?"
+                                  onConfirm={() => handleSplitInvoiceByRooms(invoice.id)}
+                                  okText="Xác nhận"
+                                  cancelText="Hủy"
+                                >
+                                  <Button 
+                                    icon={<SplitCellsOutlined />} 
+                                    type="default"
+                                    danger
+                                  >
+                                    Tách hóa đơn theo phòng
+                                  </Button>
+                                </Popconfirm>
+                              )}
                               
                               {/* Trạng thái hóa đơn */}
                               <Select
@@ -1564,6 +1651,57 @@ const ViewBooking: React.FC = () => {
                             )}
                           </Card>
                         </div>
+                      );
+                      };
+
+                      // Nếu chỉ có 1 invoice, hiển thị trực tiếp
+                      if (invoices.length === 1) {
+                        return renderInvoice(invoices[0]);
+                      }
+
+                      // Nếu có nhiều invoices, dùng Tabs
+                      const invoiceTabs = invoices.map((inv, index) => {
+                        const raw = inv as any;
+                        // Tìm phòng liên quan từ invoice items
+                        const rawDetails = booking?.details || (booking as any)?.bookingDetails;
+                        const details = Array.isArray(rawDetails) ? rawDetails : [];
+                        let relatedRoom: any = null;
+                        const items = raw.items || raw.invoice_items || raw.invoiceItems || [];
+                        if (items.length > 0) {
+                          const firstItem = items.find((item: any) => item.booking_detail_id);
+                          if (firstItem?.booking_detail_id) {
+                            relatedRoom = details.find((d: any) => d.id === firstItem.booking_detail_id);
+                          }
+                        }
+                        const roomName = relatedRoom?.room?.name || relatedRoom?.room_name || 'Tất cả phòng';
+                        // Kiểm tra xem invoice này có phải là invoice đã tách không (dựa vào số lượng phòng)
+                        // Nếu invoice chỉ có items của 1 phòng (booking_detail_id giống nhau), có thể là invoice đã tách
+                        const uniqueRoomIds = new Set(items.filter((item: any) => item.booking_detail_id).map((item: any) => item.booking_detail_id));
+                        const isSplit = uniqueRoomIds.size === 1 && invoices.length > 1;
+                        
+                        return {
+                          key: String(inv.id),
+                          label: (
+                            <Space>
+                              {isSplit && <Tag color="blue">Đã tách</Tag>}
+                              <span>{roomName}</span>
+                              <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                                ({inv.invoice_number || `INV-${String(inv.id).padStart(6, "0")}`})
+                              </span>
+                            </Space>
+                          ),
+                          children: renderInvoice(inv),
+                        };
+                      });
+
+                      return (
+                        <Tabs
+                          defaultActiveKey={String(invoices[0]?.id)}
+                          activeKey={selectedInvoiceId ? String(selectedInvoiceId) : undefined}
+                          onChange={(key) => setSelectedInvoiceId(Number(key))}
+                          items={invoiceTabs}
+                          type="card"
+                        />
                       );
                     })()
                   )}
