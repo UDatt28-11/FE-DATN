@@ -12,7 +12,6 @@ import {
     Slider,
     Space,
     Image,
-    Checkbox,
     Divider,
     Empty,
     Spin,
@@ -27,14 +26,11 @@ import {
     Modal,
     Descriptions,
     Avatar,
-    Popover,
 } from "antd";
 import {
     HomeOutlined,
     EnvironmentOutlined,
-    FilterOutlined,
     UserOutlined,
-    SearchOutlined,
     ReloadOutlined,
     CalendarOutlined,
     ShoppingCartOutlined,
@@ -123,7 +119,7 @@ const useDebounce = (value: any, delay: number) => {
 
 const RoomList: React.FC = () => {
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
 
     // Sử dụng useAuth - nếu không có AuthProvider sẽ throw error
     // Component này cần được wrap trong AuthProvider ở App level
@@ -169,13 +165,11 @@ const RoomList: React.FC = () => {
     const [averageRating, setAverageRating] = useState<number>(0);
 
     // State cho filter options (amenities)
-    // const [roomTypeOptions, setRoomTypeOptions] = useState<RoomType[]>([]); // Không dùng nữa
     const [amenities, setAmenities] = useState<Amenity[]>([]);
     const [loadingOptions, setLoadingOptions] = useState<boolean>(false);
-
+    
     // State cho các bộ lọc
     const [searchQuery, setSearchQuery] = useState<string>("");
-    // const [selectedRoomTypeIds, setSelectedRoomTypeIds] = useState<number[]>([]); // Đã bỏ filter theo loại phòng
     const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>([]);
     const [selectedKeyAmenityIds, setSelectedKeyAmenityIds] = useState<number[]>([]); // Key amenities (Bồn tắm, Ban công, etc.)
     const [selectedViewIds, setSelectedViewIds] = useState<number[]>([]); // View amenities
@@ -187,7 +181,6 @@ const RoomList: React.FC = () => {
     const [roomCapacityPreset, setRoomCapacityPreset] = useState<string | null>(null); // Preset: 'couple', 'family', 'group'
     const [sortBy, setSortBy] = useState<string>("created_at");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-    const [filterModalVisible, setFilterModalVisible] = useState<boolean>(false);
 
     // State cho tính năng chia phòng nhanh (Smart Room Allocation)
     // Nếu chưa có số khách (desiredGuests <= 0) thì để null để input hiển thị trống
@@ -195,21 +188,13 @@ const RoomList: React.FC = () => {
         desiredGuests && desiredGuests > 0 ? desiredGuests : null
     );
     const [showRoomSuggestions, setShowRoomSuggestions] = useState<boolean>(false);
-    const [urlParamsInitialized, setUrlParamsInitialized] = useState<boolean>(false);
 
-    // State cho Guest Picker (Người lớn, Trẻ em, Phòng)
-    const [guestPickerVisible, setGuestPickerVisible] = useState<boolean>(false);
+    // State cho Guest Picker (Người lớn, Trẻ em)
     const [numAdults, setNumAdults] = useState<number>(2);
     const [numChildren, setNumChildren] = useState<number>(0);
-    const [numRooms, setNumRooms] = useState<number>(1);
-    const [childrenAges, setChildrenAges] = useState<number[]>([]);
     
     // State cho search bar (số trẻ em trong tìm kiếm nhanh)
     const [searchChildren, setSearchChildren] = useState<number>(0);
-
-    // Giới hạn
-    const MAX_ADULTS = 6;
-    const MAX_CHILDREN = 2;
 
     // Đọc URL params và khởi tạo giá trị ban đầu (từ Homepage search bar)
     useEffect(() => {
@@ -230,36 +215,32 @@ const RoomList: React.FC = () => {
         }
 
         // Set tổng số khách và hiển thị gợi ý chia phòng
-        // Khi có total_guests, KHÔNG áp dụng filter maxAdults/maxChildren
-        // Thay vào đó, hiển thị modal gợi ý chia phòng thông minh
+        // Khi có total_guests, vẫn áp dụng filter theo số người để chỉ hiển thị phòng phù hợp
         if (totalGuestsParam) {
             const guests = parseInt(totalGuestsParam, 10);
             if (!isNaN(guests) && guests > 1) {
                 setTotalGuests(guests);
                 setDesiredGuests(guests);
-                // Không set maxAdults/maxChildren để hiển thị tất cả phòng
-                // Modal gợi ý chia phòng sẽ được hiển thị tự động
             }
-        } else {
-            // Chỉ áp dụng filter số khách nếu KHÔNG có total_guests
-            // (tức là user đang filter thủ công, không phải từ homepage search)
-            if (adultsParam) {
-                const adults = parseInt(adultsParam, 10);
-                if (!isNaN(adults) && adults > 0) {
-                    setMaxAdults(adults);
-                }
-            }
-
-            if (childrenParam) {
-                const children = parseInt(childrenParam, 10);
-                if (!isNaN(children) && children >= 0) {
-                    setMaxChildren(children);
-                    setSearchChildren(children);
-                }
+        }
+        
+        // Luôn áp dụng filter số khách nếu có adults param
+        if (adultsParam) {
+            const adults = parseInt(adultsParam, 10);
+            if (!isNaN(adults) && adults > 0) {
+                setMaxAdults(adults);
+                setNumAdults(adults);
             }
         }
 
-        setUrlParamsInitialized(true);
+        if (childrenParam) {
+            const children = parseInt(childrenParam, 10);
+            if (!isNaN(children) && children >= 0) {
+                setMaxChildren(children);
+                setSearchChildren(children);
+                setNumChildren(children);
+            }
+        }
     }, [searchParams, setDateRange]);
 
     // Popup "Tìm nhanh" chỉ hiển thị khi người dùng bấm nút, không tự động mở
@@ -981,8 +962,9 @@ const RoomList: React.FC = () => {
 
                 // Guests filter (client-side)
                 // Tính toán capacity: 1 trẻ = 2 người lớn (chỉ trong thuật toán, không hiển thị)
+                // Chỉ filter khi số khách > 1 (mặc định là 1, tức là không filter)
                 const requiredCapacity = maxAdults + (maxChildren * 2);
-                if (requiredCapacity > 0) {
+                if (requiredCapacity > 1) {
                     filteredRoomTypes = filteredRoomTypes.filter(rt => {
                         const roomCapacity = (rt.max_adults || 0) + ((rt.max_children || 0) * 2);
                         return roomCapacity >= requiredCapacity;
@@ -1064,7 +1046,7 @@ const RoomList: React.FC = () => {
 
                 // Set data from backend pagination
                 setRoomTypes(filteredRoomTypes);
-                setTotalRoomTypes(response.meta?.total || filteredRoomTypes.length);
+                setTotalRoomTypes(response.meta?.pagination?.total || filteredRoomTypes.length);
             }
         } catch (error: any) {
             // Ignore abort errors
@@ -1138,21 +1120,6 @@ const RoomList: React.FC = () => {
         setTotalGuests(0);
         setShowRoomSuggestions(false);
         // setSearchParams({}); // Không dùng nữa
-    };
-
-    // Xử lý chọn preset nhóm khách
-    const handleCapacityPresetChange = (preset: string | null) => {
-        setRoomCapacityPreset(preset);
-        if (preset === 'couple') {
-            setMaxAdults(2);
-            setMaxChildren(0);
-        } else if (preset === 'family') {
-            setMaxAdults(2);
-            setMaxChildren(1);
-        } else if (preset === 'group') {
-            setMaxAdults(4);
-            setMaxChildren(0);
-        }
     };
 
     // Disable dates: chỉ disable ngày quá khứ, cho phép chọn lại ngày nhận
@@ -1500,23 +1467,19 @@ const RoomList: React.FC = () => {
                                     {/* Input số người lớn */}
                                     <Space.Compact>
                                         <InputNumber
-                                            min={0}
-                                            max={100}
-                                            value={totalGuests}
+                                            min={1}
+                                            max={20}
+                                            value={numAdults}
                                             style={{ width: 120 }}
                                             placeholder="Người lớn"
                                             onChange={(value) => {
-                                                // Cho phép để trống: khi user xóa hết -> value === null
-                                                if (value === null || value === undefined) {
-                                                    setTotalGuests(null);
-                                                    // Khi không nhập gì, không dùng desiredGuests để kiểm tra sức chứa
-                                                    setDesiredGuests(0);
-                                                    return;
-                                                }
-
-                                                const guests = Number(value) || 0;
-                                                setTotalGuests(guests);
-                                                setDesiredGuests(guests);
+                                                const adults = Number(value) || 1;
+                                                setNumAdults(adults);
+                                                setMaxAdults(adults);
+                                                // Cập nhật totalGuests và desiredGuests
+                                                const totalCapacity = adults + (numChildren * 2);
+                                                setTotalGuests(totalCapacity);
+                                                setDesiredGuests(totalCapacity);
                                             }}
                                         />
                                         <Button type="default" disabled style={{ pointerEvents: 'none' }}>người lớn</Button>
@@ -1525,19 +1488,23 @@ const RoomList: React.FC = () => {
                                     <Space.Compact>
                                         <InputNumber
                                             min={0}
-                                            max={totalGuests && totalGuests > 0 ? totalGuests * 2 : 20}
-                                            value={searchChildren}
+                                            max={numAdults * 2}
+                                            value={numChildren}
                                             style={{ width: 120 }}
                                             placeholder="Trẻ em"
                                             onChange={(value) => {
                                                 const children = Number(value) || 0;
-                                                const guests = totalGuests || 0;
                                                 // Validate: số trẻ em không được lớn hơn gấp 2 lần số người lớn
-                                                if (guests > 0 && children > guests * 2) {
-                                                    // Không cập nhật giá trị, giữ nguyên giá trị cũ
+                                                if (children > numAdults * 2) {
                                                     return;
                                                 }
+                                                setNumChildren(children);
                                                 setSearchChildren(children);
+                                                setMaxChildren(children);
+                                                // Cập nhật totalGuests và desiredGuests
+                                                const totalCapacity = numAdults + (children * 2);
+                                                setTotalGuests(totalCapacity);
+                                                setDesiredGuests(totalCapacity);
                                             }}
                                         />
                                         <Button type="default" disabled style={{ pointerEvents: 'none' }}>trẻ em</Button>
@@ -1546,27 +1513,24 @@ const RoomList: React.FC = () => {
                                     <Button
                                         type="default"
                                         disabled={
-                                            !totalGuests || 
-                                            totalGuests <= 0 || 
-                                            (searchChildren > 0 && searchChildren > (totalGuests || 0) * 2) ||
+                                            numAdults <= 0 || 
+                                            (numChildren > 0 && numChildren > numAdults * 2) ||
                                             !dateRange || 
                                             !dateRange[0] || 
                                             !dateRange[1]
                                         }
                                         onClick={() => {
-                                            const guests = totalGuests || 0;
-                                            const children = searchChildren || 0;
-                                            
                                             // Validate: số trẻ em không được lớn hơn gấp 2 lần số người lớn
-                                            if (guests > 0 && children > guests * 2) {
-                                                return; // Cản thao tác, không hiển thị thông báo
+                                            if (numChildren > numAdults * 2) {
+                                                return;
                                             }
                                             
                                             // Tính tổng capacity: người lớn + (trẻ em * 2)
-                                            const totalCapacity = guests + (children * 2);
+                                            const totalCapacity = numAdults + (numChildren * 2);
                                             setDesiredGuests(totalCapacity);
-                                            if (totalCapacity < 2) {
-                                                message.warning('Vui lòng nhập số khách (ít nhất 2) để gợi ý chia phòng phù hợp.');
+                                            setTotalGuests(totalCapacity);
+                                            if (numAdults < 1) {
+                                                message.warning('Vui lòng nhập số người lớn (ít nhất 1) để gợi ý chia phòng phù hợp.');
                                                 return;
                                             }
                                             if (!dateRange || !dateRange[0] || !dateRange[1]) {
@@ -1594,26 +1558,8 @@ const RoomList: React.FC = () => {
                         </Row>
                     </div>
 
-                    {/* Button mở Filter Modal - Thay thế sidebar */}
+                    {/* Thanh sắp xếp */}
                     <div className="filter-sort-bar">
-                        <Button
-                            type="default"
-                            icon={<FilterOutlined />}
-                            onClick={() => setFilterModalVisible(true)}
-                            className="filter-btn"
-                        >
-                            Bộ lọc
-                            {((selectedAmenityIds?.length || 0) > 0 || (selectedKeyAmenityIds?.length || 0) > 0 ||
-                                (selectedViewIds?.length || 0) > 0 || (selectedFloorIds?.length || 0) > 0 ||
-                                (priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 || minRating > 0 ||
-                                maxAdults > 1 || maxChildren > 0) && (
-                                    <Badge count={(selectedAmenityIds?.length || 0) + (selectedKeyAmenityIds?.length || 0) +
-                                        (selectedViewIds?.length || 0) + (selectedFloorIds?.length || 0) +
-                                        ((priceRange?.[0] || 0) > 0 || (priceRange?.[1] || 5000000) < 5000000 ? 1 : 0) +
-                                        (minRating > 0 ? 1 : 0) + (maxAdults > 1 ? 1 : 0) + (maxChildren > 0 ? 1 : 0)}
-                                        offset={[8, 0]} />
-                                )}
-                        </Button>
                         <div className="sort-section">
                             <Text className="sort-label">Sắp xếp:</Text>
                             <Select
@@ -1631,10 +1577,144 @@ const RoomList: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Danh sách phòng - Full width */}
+                    {/* Layout: Full width with Sidebar Filter + Room List */}
                     <Row gutter={[24, 24]}>
-                        <Col xs={24}>
-                            {/* Danh sách phòng */}
+                        {/* Sidebar Filter */}
+                        <Col xs={24} md={6} lg={5}>
+                            <Card 
+                                title="Bộ lọc"
+                                className="filter-sidebar"
+                                style={{ 
+                                    borderRadius: 12,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                    position: 'sticky',
+                                    top: 24
+                                }}
+                                styles={{ body: { padding: '16px' } }}
+                            >
+                                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                                    {/* Tìm kiếm */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            Tìm kiếm
+                                        </Text>
+                                        <Search
+                                            placeholder="Tìm theo tên phòng..."
+                                            allowClear
+                                            size="small"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onSearch={(value) => setSearchQuery(value)}
+                                        />
+                                    </div>
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Khoảng giá */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            Khoảng giá
+                                        </Text>
+                                        <Slider
+                                            range
+                                            min={0}
+                                            max={5000000}
+                                            step={100000}
+                                            value={priceRange}
+                                            onChange={(value) => setPriceRange(value as [number, number])}
+                                            tooltip={{
+                                                formatter: (value) => formatVND(value || 0)
+                                            }}
+                                        />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888' }}>
+                                            <span>{formatVNDWithUnit(priceRange[0])}</span>
+                                            <span>{formatVNDWithUnit(priceRange[1])}</span>
+                                        </div>
+                                    </div>
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Đánh giá */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            Đánh giá
+                                        </Text>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            size="small"
+                                            value={minRating}
+                                            onChange={setMinRating}
+                                        >
+                                            <Option value={0}>Tất cả</Option>
+                                            <Option value={4}>⭐ 4+</Option>
+                                            <Option value={4.5}>⭐ 4.5+</Option>
+                                        </Select>
+                                    </div>
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Số khách */}
+                                    <div>
+                                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                                            Số khách
+                                        </Text>
+                                        <Row gutter={12}>
+                                            <Col span={12}>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>Người lớn</Text>
+                                                <Select
+                                                    style={{ width: '100%' }}
+                                                    size="small"
+                                                    value={maxAdults}
+                                                    onChange={(value) => {
+                                                        setMaxAdults(value);
+                                                        setNumAdults(value);
+                                                        setRoomCapacityPreset(null);
+                                                    }}
+                                                >
+                                                    <Option value={1}>1</Option>
+                                                    <Option value={2}>2</Option>
+                                                    <Option value={3}>3</Option>
+                                                    <Option value={4}>4</Option>
+                                                    <Option value={6}>6+</Option>
+                                                </Select>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>Trẻ em</Text>
+                                                <Select
+                                                    style={{ width: '100%' }}
+                                                    size="small"
+                                                    value={maxChildren}
+                                                    onChange={(value) => {
+                                                        setMaxChildren(value);
+                                                        setNumChildren(value);
+                                                        setRoomCapacityPreset(null);
+                                                    }}
+                                                >
+                                                    <Option value={0}>0</Option>
+                                                    <Option value={1}>1</Option>
+                                                    <Option value={2}>2</Option>
+                                                    <Option value={3}>3+</Option>
+                                                </Select>
+                                            </Col>
+                                        </Row>
+                                    </div>
+
+                                    <Divider style={{ margin: '8px 0' }} />
+
+                                    {/* Nút đặt lại */}
+                                    <Button 
+                                        type="default" 
+                                        block
+                                        onClick={handleResetFilters}
+                                    >
+                                        Đặt lại bộ lọc
+                                    </Button>
+                                </Space>
+                            </Card>
+                        </Col>
+
+                        {/* Danh sách phòng */}
+                        <Col xs={24} md={18} lg={19}>
                             {loading ? (
                                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                                     <Spin size="large" />
@@ -2179,268 +2259,6 @@ const RoomList: React.FC = () => {
                 )}
             </Drawer>
 
-            {/* Modal Bộ lọc */}
-            <Modal
-                title={
-                    <Space>
-                        <FilterOutlined />
-                        <span>Bộ lọc</span>
-                    </Space>
-                }
-                open={filterModalVisible}
-                onCancel={() => setFilterModalVisible(false)}
-                footer={[
-                    <Button key="reset" onClick={handleResetFilters}>
-                        Đặt lại
-                    </Button>,
-                    <Button key="apply" type="primary" onClick={() => setFilterModalVisible(false)}>
-                        Áp dụng
-                    </Button>,
-                ]}
-                width={800}
-                centered
-            >
-                <div style={{ maxHeight: '70vh', overflowY: 'auto', padding: '8px 0' }}>
-                    <Row gutter={[24, 24]}>
-                        {/* Cột trái */}
-                        <Col xs={24} md={12}>
-                            {/* Search Box */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Tìm kiếm
-                                </Text>
-                                <Search
-                                    placeholder="Tìm theo tên phòng, địa chỉ..."
-                                    allowClear
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onSearch={(value) => setSearchQuery(value)}
-                                    enterButton={<SearchOutlined />}
-                                />
-                            </div>
-
-                            {/* Khoảng giá */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Khoảng giá (VNĐ/đêm)
-                                </Text>
-                                <Slider
-                                    range
-                                    min={0}
-                                    max={5000000}
-                                    step={100000}
-                                    value={priceRange}
-                                    onChange={(value) => setPriceRange(value as [number, number])}
-                                    tooltip={{
-                                        formatter: (value) => formatVND(value || 0)
-                                    }}
-                                />
-                                <Space style={{ width: '100%', justifyContent: 'space-between', marginTop: 8 }}>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {formatVND(priceRange[0])}
-                                    </Text>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {formatVND(priceRange[1])}
-                                    </Text>
-                                </Space>
-                            </div>
-
-                            {/* Đánh giá tối thiểu */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Đánh giá tối thiểu
-                                </Text>
-                                <Select
-                                    style={{ width: '100%' }}
-                                    value={minRating}
-                                    onChange={setMinRating}
-                                >
-                                    <Option value={0}>Tất cả</Option>
-                                    <Option value={4}>
-                                        <Space>
-                                            <Rate disabled defaultValue={4} style={{ fontSize: 12 }} />
-                                            <span>trở lên</span>
-                                        </Space>
-                                    </Option>
-                                    <Option value={4.5}>
-                                        <Space>
-                                            <Rate disabled defaultValue={4.5} allowHalf style={{ fontSize: 12 }} />
-                                            <span>trở lên</span>
-                                        </Space>
-                                    </Option>
-                                    <Option value={4.8}>
-                                        <Space>
-                                            <Rate disabled defaultValue={4.8} allowHalf style={{ fontSize: 12 }} />
-                                            <span>trở lên</span>
-                                        </Space>
-                                    </Option>
-                                </Select>
-                            </div>
-
-                            {/* 🎯 Chia phòng thông minh cho nhóm đông 
-                                (ô nhập số khách đã được đưa ra thanh trên cùng cạnh chọn ngày) */}
-
-                            {/* Nhóm khách */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Nhóm khách (cách khác)
-                                </Text>
-                                <Select
-                                    style={{ width: '100%' }}
-                                    value={roomCapacityPreset}
-                                    onChange={handleCapacityPresetChange}
-                                    placeholder="Chọn nhóm khách"
-                                    allowClear
-                                >
-                                    <Option value="couple">Dành cho cặp đôi (2 người)</Option>
-                                    <Option value="family">Dành cho gia đình nhỏ (2 người lớn + 1 trẻ em)</Option>
-                                    <Option value="group">Dành cho nhóm bạn (4-6 người)</Option>
-                                </Select>
-                            </div>
-
-                            {/* Số người lớn */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Số người lớn
-                                </Text>
-                                <Select
-                                    style={{ width: '100%' }}
-                                    value={maxAdults}
-                                    onChange={(value) => {
-                                        setMaxAdults(value);
-                                        setRoomCapacityPreset(null);
-                                    }}
-                                >
-                                    <Option value={1}>1 người</Option>
-                                    <Option value={2}>2 người</Option>
-                                    <Option value={3}>3 người</Option>
-                                    <Option value={4}>4 người</Option>
-                                    <Option value={6}>6 người trở lên</Option>
-                                </Select>
-                            </div>
-
-                            {/* Số trẻ em */}
-                            <div>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Số trẻ em <Text type="secondary" style={{ fontSize: 11, fontWeight: 'normal' }}>(6-12 tuổi)</Text>
-                                </Text>
-                                <Select
-                                    style={{ width: '100%' }}
-                                    value={maxChildren}
-                                    onChange={(value) => {
-                                        setMaxChildren(value);
-                                        setRoomCapacityPreset(null);
-                                    }}
-                                >
-                                    <Option value={0}>Không có</Option>
-                                    <Option value={1}>1 trẻ</Option>
-                                    <Option value={2}>2 trẻ</Option>
-                                    <Option value={3}>3 trẻ trở lên</Option>
-                                </Select>
-                            </div>
-                        </Col>
-
-                        {/* Cột phải */}
-                        <Col xs={24} md={12}>
-                            {/* Tiện nghi đặc biệt */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Tiện nghi đặc biệt
-                                </Text>
-                                {loadingOptions ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    <Checkbox.Group
-                                        style={{ width: '100%' }}
-                                        value={selectedKeyAmenityIds}
-                                        onChange={(values) => setSelectedKeyAmenityIds(values as number[])}
-                                    >
-                                        <Space direction="vertical" style={{ width: '100%' }}>
-                                            {amenities
-                                                .filter(amenity => amenity.filter_category === 'key_amenity')
-                                                .map((amenity) => (
-                                                    <Checkbox key={amenity.id} value={amenity.id}>
-                                                        {amenity.name}
-                                                    </Checkbox>
-                                                ))}
-                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'key_amenity').length === 0) && (
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    Không có tiện nghi đặc biệt
-                                                </Text>
-                                            )}
-                                        </Space>
-                                    </Checkbox.Group>
-                                )}
-                            </div>
-
-                            {/* Hướng nhìn */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Hướng nhìn
-                                </Text>
-                                {loadingOptions ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    <Checkbox.Group
-                                        style={{ width: '100%' }}
-                                        value={selectedViewIds}
-                                        onChange={(values) => setSelectedViewIds(values as number[])}
-                                    >
-                                        <Space direction="vertical" style={{ width: '100%' }}>
-                                            {amenities
-                                                .filter(amenity => amenity.filter_category === 'view')
-                                                .map((amenity) => (
-                                                    <Checkbox key={amenity.id} value={amenity.id}>
-                                                        {amenity.name}
-                                                    </Checkbox>
-                                                ))}
-                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'view').length === 0) && (
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    Không có thông tin hướng nhìn
-                                                </Text>
-                                            )}
-                                        </Space>
-                                    </Checkbox.Group>
-                                )}
-                            </div>
-
-                            {/* Vị trí tầng */}
-                            <div style={{ marginBottom: 24 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                                    Vị trí tầng
-                                </Text>
-                                {loadingOptions ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    <Checkbox.Group
-                                        style={{ width: '100%' }}
-                                        value={selectedFloorIds}
-                                        onChange={(values) => setSelectedFloorIds(values as number[])}
-                                    >
-                                        <Space direction="vertical" style={{ width: '100%' }}>
-                                            {amenities
-                                                .filter(amenity => amenity.filter_category === 'floor')
-                                                .map((amenity) => (
-                                                    <Checkbox key={amenity.id} value={amenity.id}>
-                                                        {amenity.name}
-                                                    </Checkbox>
-                                                ))}
-                                            {(!amenities || amenities.filter(amenity => amenity.filter_category === 'floor').length === 0) && (
-                                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                                    Không có thông tin tầng
-                                                </Text>
-                                            )}
-                                        </Space>
-                                    </Checkbox.Group>
-                                )}
-                            </div>
-
-                            {/* Bộ lọc tiện ích đã được ẩn. Tiện ích/dịch vụ hiện là thông tin chung cấp homestay. */}
-                        </Col>
-                    </Row>
-                </div>
-            </Modal>
-
             {/* Modal Gợi ý chia phòng thông minh */}
             <Modal
                 title={
@@ -2596,7 +2414,7 @@ const RoomList: React.FC = () => {
                                                     {formatVND(suggestion.totalPrice)}
                                                 </Text>
                                                 <Text type="secondary" style={{ fontSize: 11 }}>
-                                                    {' '}≈ {formatVND(Math.round(suggestion.totalPrice / totalGuests))}/người
+                                                    {' '}≈ {formatVND(Math.round(suggestion.totalPrice / (totalGuests || 1)))}/người
                                                 </Text>
                                             </Col>
                                         </Row>

@@ -101,13 +101,6 @@ const AdminLayout: React.FC = () => {
       path: "/admin/review",
     },
     {
-      key: "messageManagement",
-      icon: <MessageOutlined />,
-      label: "Quản lý bình luận",
-      path: "/admin/message",
-    },
-
-    {
       key: "messages",
       icon: <MessageOutlined />,
       label: "Tin nhắn",
