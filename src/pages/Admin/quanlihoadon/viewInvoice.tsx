@@ -29,6 +29,7 @@ import {
   DeleteOutlined,
   ShoppingOutlined,
   WarningOutlined,
+  SplitCellsOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { toast } from "react-toastify";
@@ -267,6 +268,40 @@ const ViewInvoice: React.FC = () => {
     }
   };
 
+  const handleSplitByRooms = async () => {
+    if (!invoice || !id) return;
+    
+    Modal.confirm({
+      title: 'Xác nhận tách hóa đơn',
+      content: 'Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.',
+      okText: 'Xác nhận',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const result = await invoiceService.splitByRooms(id);
+          message.success(`Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`);
+          // Chuyển về trang danh sách hóa đơn
+          navigate('/admin/invoice');
+        } catch (error: any) {
+          console.error("Error splitting invoice:", error);
+          message.error(error.response?.data?.message || "Không thể tách hóa đơn!");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // Kiểm tra xem hóa đơn có thể tách được không (có nhiều hơn 1 phòng)
+  const canSplitByRooms = () => {
+    if (!invoice || !invoice.booking_order) return false;
+    // Kiểm tra xem có nhiều hơn 1 phòng không
+    const bookingOrder = invoice.booking_order as any;
+    const details = bookingOrder.details || [];
+    return details.length > 1 && invoice.invoice_status !== 'cancelled';
+  };
+
   const itemColumns: ColumnsType<InvoiceItem> = [
     {
       title: "Mô tả",
@@ -401,6 +436,23 @@ const ViewInvoice: React.FC = () => {
             In hóa đơn
           </Button>
           <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
+          {canSplitByRooms() && (
+            <Popconfirm
+              title="Tách hóa đơn theo phòng"
+              description="Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy. Bạn có chắc chắn?"
+              onConfirm={handleSplitByRooms}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <Button 
+                icon={<SplitCellsOutlined />} 
+                type="default"
+                danger
+              >
+                Tách hóa đơn theo phòng
+              </Button>
+            </Popconfirm>
+          )}
           
           {/* Trạng thái hóa đơn */}
           <Select

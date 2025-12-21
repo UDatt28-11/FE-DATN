@@ -266,6 +266,24 @@ const invoiceService = {
   },
 
   /**
+   * POST /invoices/{id}/split-by-rooms
+   * Tách hóa đơn theo phòng (mỗi phòng một hóa đơn riêng)
+   * Tự động phân bổ voucher và tiền cọc theo tỷ lệ giá phòng
+   */
+  async splitByRooms(id: number | string): Promise<{
+    original_invoice_id: number;
+    split_invoices: Array<{
+      split_invoice: any;
+      new_invoice: Invoice;
+      room: any;
+    }>;
+    total_split: number;
+  }> {
+    const res = await api.post(`/admin/invoices/${id}/split-by-rooms`);
+    return res.data.data || res.data;
+  },
+
+  /**
    * POST /invoices/{id}/apply-discount
    * Áp dụng giảm giá cho hóa đơn
    */
