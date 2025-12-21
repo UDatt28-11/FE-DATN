@@ -299,6 +299,8 @@ const invoiceService = {
       service_id: number;
       quantity: number;
       description?: string;
+      is_paid?: boolean; // Dịch vụ đã thanh toán hay chưa
+      booking_detail_id?: number; // ID phòng để hiển thị trong description
     }
   ): Promise<Invoice> {
     const res = await api.post(`/admin/invoices/${id}/add-service`, data);

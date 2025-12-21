@@ -203,6 +203,9 @@ const RoomList: React.FC = () => {
     const [numChildren, setNumChildren] = useState<number>(0);
     const [numRooms, setNumRooms] = useState<number>(1);
     const [childrenAges, setChildrenAges] = useState<number[]>([]);
+    
+    // State cho search bar (số trẻ em trong tìm kiếm nhanh)
+    const [searchChildren, setSearchChildren] = useState<number>(0);
 
     // Giới hạn
     const MAX_ADULTS = 6;
@@ -251,6 +254,7 @@ const RoomList: React.FC = () => {
                 const children = parseInt(childrenParam, 10);
                 if (!isNaN(children) && children >= 0) {
                     setMaxChildren(children);
+                    setSearchChildren(children);
                 }
             }
         }
@@ -265,16 +269,142 @@ const RoomList: React.FC = () => {
         type: 'optimal' | 'economical' | 'comfortable';
         label: string;
         description: string;
-        rooms: { roomType: RoomTypeWithDetails; quantity: number }[];
+        rooms: { 
+            roomType: RoomTypeWithDetails; 
+            quantity: number;
+            allocatedAdults: number;  // Số người lớn được phân bổ vào loại phòng này
+            allocatedChildren: number; // Số trẻ em được phân bổ vào loại phòng này
+        }[];
         totalRooms: number;
         totalPrice: number;
         totalCapacity: number;
         wastedCapacity: number;
+        totalAdults: number;  // Tổng số người lớn
+        totalChildren: number; // Tổng số trẻ em
     }
 
+    // Hàm phân bổ số người lớn và trẻ em vào từng loại phòng
+    // Đảm bảo mỗi phòng đều có ít nhất 1 người lớn
+    const allocateGuestsToRooms = (
+        rooms: { roomType: RoomTypeWithDetails; quantity: number }[],
+        totalAdults: number,
+        totalChildren: number
+    ): { 
+        roomType: RoomTypeWithDetails; 
+        quantity: number;
+        allocatedAdults: number;
+        allocatedChildren: number;
+    }[] => {
+        let remainingAdults = totalAdults;
+        let remainingChildren = totalChildren;
+        
+        // Tính tổng số phòng
+        const totalRooms = rooms.reduce((sum, r) => sum + r.quantity, 0);
+        
+        // Kiểm tra: số người lớn phải >= số phòng (mỗi phòng cần ít nhất 1 người lớn)
+        if (remainingAdults < totalRooms) {
+            // Nếu không đủ người lớn, không thể phân bổ đúng
+            // Trả về phân bổ tối thiểu (mỗi phòng 1 người lớn nếu có thể)
+            return rooms.map(({ roomType, quantity }) => {
+                const adultsPerRoom = Math.floor(remainingAdults / totalRooms);
+                const allocatedAdults = Math.min(adultsPerRoom * quantity, remainingAdults);
+                remainingAdults -= allocatedAdults;
+                return {
+                    roomType,
+                    quantity,
+                    allocatedAdults,
+                    allocatedChildren: 0
+                };
+            });
+        }
+        
+        // Sắp xếp phòng theo sức chứa giảm dần (ưu tiên phòng lớn trước)
+        const sortedRooms = [...rooms].sort((a, b) => {
+            const capacityA = (a.roomType.max_adults || 0) + (a.roomType.max_children || 0);
+            const capacityB = (b.roomType.max_adults || 0) + (b.roomType.max_children || 0);
+            return capacityB - capacityA;
+        });
+        
+        return sortedRooms.map(({ roomType, quantity }) => {
+            const maxAdults = roomType.max_adults || 0;
+            const maxChildren = roomType.max_children || 0;
+            let allocatedAdults = 0;
+            let allocatedChildren = 0;
+            
+            // Phân bổ cho từng phòng trong quantity
+            for (let i = 0; i < quantity; i++) {
+                // Đảm bảo mỗi phòng có ít nhất 1 người lớn
+                const minAdultsForRoom = 1;
+                const adultsToAllocate = Math.max(
+                    minAdultsForRoom,
+                    Math.min(remainingAdults, maxAdults)
+                );
+                
+                // Kiểm tra xem còn đủ người lớn không
+                if (remainingAdults >= minAdultsForRoom) {
+                    allocatedAdults += adultsToAllocate;
+                    remainingAdults -= adultsToAllocate;
+                } else {
+                    // Nếu không đủ người lớn, không thể phân bổ phòng này
+                    break;
+                }
+                
+                // Sau đó phân bổ trẻ em (nếu còn)
+                if (remainingChildren > 0 && maxChildren > 0) {
+                    const childrenToAllocate = Math.min(remainingChildren, maxChildren);
+                    allocatedChildren += childrenToAllocate;
+                    remainingChildren -= childrenToAllocate;
+                }
+            }
+            
+            return {
+                roomType,
+                quantity,
+                allocatedAdults,
+                allocatedChildren
+            };
+        });
+    };
+
     // Tính toán gợi ý chia phòng thông minh
+    // Lưu ý: Thuật toán sử dụng công thức 1 trẻ = 2 người lớn (không hiển thị)
     const calculateRoomSuggestions = useCallback((): RoomAllocationSuggestion[] => {
-        if (totalGuests < 1 || roomTypes.length === 0) return [];
+        // Tính toán capacity thực tế từ totalGuests và searchChildren (từ search bar) - ưu tiên
+        // Hoặc từ numAdults và numChildren (từ Guest Picker) - fallback
+        // Sử dụng công thức: adults + (children * 2) - 1 trẻ = 2 người lớn
+        let actualRequiredCapacity: number;
+        let totalAdultsNeeded: number;
+        let totalChildrenNeeded: number;
+        
+        // Ưu tiên sử dụng từ search bar nếu có
+        if (totalGuests && totalGuests > 0) {
+            // Sử dụng từ search bar: totalGuests là số người lớn, searchChildren là số trẻ em
+            totalAdultsNeeded = totalGuests;
+            totalChildrenNeeded = searchChildren || 0;
+            actualRequiredCapacity = totalGuests + ((searchChildren || 0) * 2);
+        } else if (numAdults > 0 || numChildren > 0) {
+            // Fallback: sử dụng từ Guest Picker
+            totalAdultsNeeded = numAdults;
+            totalChildrenNeeded = numChildren;
+            actualRequiredCapacity = numAdults + (numChildren * 2);
+        } else {
+            actualRequiredCapacity = 0;
+            totalAdultsNeeded = 0;
+            totalChildrenNeeded = 0;
+        }
+        
+        // Debug log
+        console.log('Calculate Room Suggestions:', {
+            totalAdultsNeeded,
+            totalChildrenNeeded,
+            actualRequiredCapacity,
+            totalGuests,
+            searchChildren,
+            numAdults,
+            numChildren
+        });
+            
+        if (actualRequiredCapacity < 1 || roomTypes.length === 0) return [];
 
         // Chỉ lấy các loại phòng còn trống
         const availableRoomTypes = roomTypes.filter(rt => (rt.available_count || 0) > 0);
@@ -289,8 +419,9 @@ const RoomList: React.FC = () => {
         const MAX_GUESTS_PER_ROOM = 6; // Tối đa 6 người/phòng
 
         // Hàm tính sức chứa hiệu dụng của phòng (có giới hạn)
+        // Tính toán: 1 trẻ = 2 người lớn (chỉ trong thuật toán, không hiển thị)
         const getEffectiveCapacity = (rt: RoomTypeWithDetails) => {
-            const actualCapacity = rt.max_adults || 2;
+            const actualCapacity = (rt.max_adults || 2) + ((rt.max_children || 0) * 2);
             return Math.min(actualCapacity, MAX_GUESTS_PER_ROOM);
         };
 
@@ -299,18 +430,18 @@ const RoomList: React.FC = () => {
         // Ưu tiên: 1 phòng vừa đủ > nhiều phòng kết hợp vừa đủ > ít dư nhất
         // ========================================
         const optimalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
-        let remainingGuests = totalGuests;
+        let remainingGuests = actualRequiredCapacity;
 
         // Bước 1: Tìm 1 phòng có sức chứa hiệu dụng = đúng số khách (exact match)
         // Chỉ áp dụng nếu số khách >= MIN và <= MAX
         let exactMatch: RoomTypeWithDetails | undefined = undefined;
-        if (totalGuests >= MIN_GUESTS_PER_ROOM && totalGuests <= MAX_GUESTS_PER_ROOM) {
-            exactMatch = availableRoomTypes.find(rt => getEffectiveCapacity(rt) === totalGuests);
+        if (actualRequiredCapacity >= MIN_GUESTS_PER_ROOM && actualRequiredCapacity <= MAX_GUESTS_PER_ROOM) {
+            exactMatch = availableRoomTypes.find(rt => getEffectiveCapacity(rt) === actualRequiredCapacity);
             
             // Bước 2: Nếu không có exact match, tìm phòng có sức chứa >= số khách và gần nhất
             if (!exactMatch) {
                 const roomsWithEnoughCapacity = availableRoomTypes
-                    .filter(rt => getEffectiveCapacity(rt) >= totalGuests)
+                    .filter(rt => getEffectiveCapacity(rt) >= actualRequiredCapacity)
                     .sort((a, b) => getEffectiveCapacity(a) - getEffectiveCapacity(b));
                 
                 if (roomsWithEnoughCapacity.length > 0) {
@@ -345,14 +476,19 @@ const RoomList: React.FC = () => {
                     currentCapacity: number, 
                     currentRooms: number
                 ) => {
+                    // Ràng buộc: số phòng không được lớn hơn số người lớn
+                    if (currentRooms > totalAdultsNeeded) {
+                        return;
+                    }
+                    
                     // Đã đủ hoặc vượt số khách
-                    if (currentCapacity >= totalGuests) {
-                        const waste = currentCapacity - totalGuests;
+                    if (currentCapacity >= actualRequiredCapacity) {
+                        const waste = currentCapacity - actualRequiredCapacity;
                         
                         // Ưu tiên: exact match > ít dư > ít phòng
                         if (!bestResult || 
-                            waste < (bestResult.totalCapacity - totalGuests) ||
-                            (waste === (bestResult.totalCapacity - totalGuests) && currentRooms < bestResult.totalRooms)) {
+                            waste < (bestResult.totalCapacity - actualRequiredCapacity) ||
+                            (waste === (bestResult.totalCapacity - actualRequiredCapacity) && currentRooms < bestResult.totalRooms)) {
                             bestResult = {
                                 combo: JSON.parse(JSON.stringify(currentCombo)),
                                 totalRooms: currentRooms,
@@ -365,10 +501,13 @@ const RoomList: React.FC = () => {
                     }
                     
                     // Pruning: nếu đã có kết quả exact match, không cần tìm tiếp
-                    if (bestResult && bestResult.totalCapacity === totalGuests) return;
+                    if (bestResult && bestResult.totalCapacity === actualRequiredCapacity) return;
                     
                     // Pruning: nếu số phòng hiện tại >= best, không cần tìm tiếp
-                    if (bestResult && currentRooms >= bestResult.totalRooms && currentCapacity < totalGuests) return;
+                    if (bestResult && currentRooms >= bestResult.totalRooms && currentCapacity < actualRequiredCapacity) return;
+                    
+                    // Pruning: nếu số phòng hiện tại đã đạt giới hạn (totalAdultsNeeded), không cần tìm tiếp
+                    if (currentRooms >= totalAdultsNeeded && currentCapacity < actualRequiredCapacity) return;
                     
                     // Thử thêm phòng từ index trở đi
                     for (let i = index; i < sortedRooms.length; i++) {
@@ -383,9 +522,13 @@ const RoomList: React.FC = () => {
                         if (remainingAvailable <= 0) continue;
                         
                         // Tính số phòng cần thêm (tối đa)
-                        const guestsNeeded = totalGuests - currentCapacity;
+                        const guestsNeeded = actualRequiredCapacity - currentCapacity;
                         const maxNeeded = Math.ceil(guestsNeeded / capacity);
-                        const toAdd = Math.min(maxNeeded, remainingAvailable);
+                        // Ràng buộc: không được vượt quá số người lớn
+                        const maxRoomsAllowed = totalAdultsNeeded - currentRooms;
+                        const toAdd = Math.min(maxNeeded, remainingAvailable, maxRoomsAllowed);
+                        
+                        if (toAdd <= 0) continue;
                         
                         // Thử thêm từ 1 đến toAdd phòng
                         for (let qty = 1; qty <= toAdd; qty++) {
@@ -410,7 +553,7 @@ const RoomList: React.FC = () => {
                             }
                             
                             // Nếu đã tìm được exact match, dừng
-                            if (bestResult && bestResult.totalCapacity === totalGuests) return;
+                            if (bestResult && bestResult.totalCapacity === actualRequiredCapacity) return;
                         }
                     }
                 };
@@ -423,9 +566,18 @@ const RoomList: React.FC = () => {
             
             if (bestCombo && bestCombo.combo.length > 0) {
                 optimalRooms.push(...bestCombo.combo);
-                remainingGuests = totalGuests - bestCombo.totalCapacity;
-            } else {
-                // Fallback: greedy algorithm với sức chứa hiệu dụng
+                remainingGuests = actualRequiredCapacity - bestCombo.totalCapacity;
+            }
+            
+            // Nếu vẫn còn remainingGuests, tiếp tục tìm thêm phòng bằng greedy algorithm
+            if (remainingGuests > 0) {
+                // Tính số phòng đã dùng của từng loại
+                const usedRooms = new Map<number, number>();
+                optimalRooms.forEach(({ roomType, quantity }) => {
+                    usedRooms.set(roomType.id, (usedRooms.get(roomType.id) || 0) + quantity);
+                });
+                
+                // Greedy algorithm với sức chứa hiệu dụng
                 const sortedByCapacity = [...availableRoomTypes].sort((a, b) =>
                     getEffectiveCapacity(b) - getEffectiveCapacity(a)
                 );
@@ -433,33 +585,89 @@ const RoomList: React.FC = () => {
                 for (const rt of sortedByCapacity) {
                     if (remainingGuests <= 0) break;
                     const capacity = getEffectiveCapacity(rt);
-                    const available = rt.available_count || 0;
+                    const totalAvailable = rt.available_count || 0;
+                    const used = usedRooms.get(rt.id) || 0;
+                    const available = totalAvailable - used;
+                    
+                    if (available <= 0) continue;
+                    
+                    // Tính số phòng hiện tại đã dùng
+                    const currentTotalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
+                    // Ràng buộc: không được vượt quá số người lớn
+                    const maxRoomsAllowed = totalAdultsNeeded - currentTotalRooms;
+                    if (maxRoomsAllowed <= 0) break;
+                    
                     const needed = Math.ceil(remainingGuests / capacity);
-                    const quantity = Math.min(needed, available);
+                    const quantity = Math.min(needed, available, maxRoomsAllowed);
 
                     if (quantity > 0) {
-                        optimalRooms.push({ roomType: rt, quantity });
+                        // Kiểm tra xem loại phòng này đã có trong optimalRooms chưa
+                        const existingIndex = optimalRooms.findIndex(r => r.roomType.id === rt.id);
+                        if (existingIndex >= 0) {
+                            optimalRooms[existingIndex].quantity += quantity;
+                        } else {
+                            optimalRooms.push({ roomType: rt, quantity });
+                        }
                         remainingGuests -= quantity * capacity;
+                        usedRooms.set(rt.id, (usedRooms.get(rt.id) || 0) + quantity);
                     }
                 }
             }
         }
 
-        if (remainingGuests <= 0 && optimalRooms.length > 0) {
-            const totalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
+        // Hiển thị gợi ý nếu đã tìm được ít nhất một số phòng
+        // Nếu remainingGuests > 0, có nghĩa là không đủ phòng trống, nhưng vẫn hiển thị gợi ý
+        if (optimalRooms.length > 0) {
+            let totalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            
+            // Ràng buộc: số phòng không được lớn hơn số người lớn
+            if (totalRooms > totalAdultsNeeded) {
+                // Điều chỉnh số phòng để không vượt quá số người lớn
+                // Giảm số phòng từ loại phòng có sức chứa nhỏ nhất
+                const sortedByCapacity = [...optimalRooms].sort((a, b) => 
+                    getEffectiveCapacity(a.roomType) - getEffectiveCapacity(b.roomType)
+                );
+                
+                let roomsToRemove = totalRooms - totalAdultsNeeded;
+                for (const room of sortedByCapacity) {
+                    if (roomsToRemove <= 0) break;
+                    const toRemove = Math.min(roomsToRemove, room.quantity);
+                    room.quantity -= toRemove;
+                    roomsToRemove -= toRemove;
+                }
+                
+                // Loại bỏ các phòng có quantity = 0
+                const filteredRooms = optimalRooms.filter(r => r.quantity > 0);
+                optimalRooms.length = 0;
+                optimalRooms.push(...filteredRooms);
+                
+                totalRooms = optimalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            }
+            
             const totalPrice = optimalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             // Sử dụng sức chứa hiệu dụng để tính tổng
             const totalCapacity = optimalRooms.reduce((sum, r) => sum + getEffectiveCapacity(r.roomType) * r.quantity, 0);
+            
+            // Phân bổ số người lớn và trẻ em vào từng loại phòng
+            const allocatedRooms = allocateGuestsToRooms(optimalRooms, totalAdultsNeeded, totalChildrenNeeded);
+            
+            // Cập nhật mô tả nếu không đủ phòng
+            let description = 'Vừa đủ số khách, ít phòng nhất';
+            if (remainingGuests > 0) {
+                description = `Không đủ phòng trống (thiếu ~${Math.ceil(remainingGuests / MAX_GUESTS_PER_ROOM)} phòng). Gợi ý tối ưu với phòng hiện có.`;
+            }
 
             suggestions.push({
                 type: 'optimal',
                 label: '🎯 Tối ưu',
-                description: 'Vừa đủ số khách, ít phòng nhất',
-                rooms: optimalRooms,
+                description,
+                rooms: allocatedRooms,
                 totalRooms,
                 totalPrice,
                 totalCapacity,
-                wastedCapacity: totalCapacity - totalGuests,
+                wastedCapacity: totalCapacity - actualRequiredCapacity,
+                totalAdults: totalAdultsNeeded,
+                totalChildren: totalChildrenNeeded,
             });
         }
 
@@ -467,7 +675,7 @@ const RoomList: React.FC = () => {
         // GỢI Ý 2: TIẾT KIỆM (giá thấp nhất theo đầu người)
         // ========================================
         const economicalRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
-        remainingGuests = totalGuests;
+        remainingGuests = actualRequiredCapacity;
 
         // Sắp xếp theo giá/người tăng dần (dùng sức chứa hiệu dụng)
         const sortedByPricePerPerson = [...availableRoomTypes].sort((a, b) => {
@@ -480,8 +688,15 @@ const RoomList: React.FC = () => {
             if (remainingGuests <= 0) break;
             const capacity = getEffectiveCapacity(rt); // Sức chứa hiệu dụng
             const available = rt.available_count || 0;
+            
+            // Tính số phòng hiện tại đã dùng
+            const currentTotalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            // Ràng buộc: không được vượt quá số người lớn
+            const maxRoomsAllowed = totalAdultsNeeded - currentTotalRooms;
+            if (maxRoomsAllowed <= 0) break;
+            
             const needed = Math.ceil(remainingGuests / capacity);
-            const quantity = Math.min(needed, available);
+            const quantity = Math.min(needed, available, maxRoomsAllowed);
 
             if (quantity > 0) {
                 economicalRooms.push({ roomType: rt, quantity });
@@ -490,7 +705,29 @@ const RoomList: React.FC = () => {
         }
 
         if (remainingGuests <= 0 && economicalRooms.length > 0) {
-            const totalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            let totalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            
+            // Ràng buộc: số phòng không được lớn hơn số người lớn
+            if (totalRooms > totalAdultsNeeded) {
+                const sortedByCapacity = [...economicalRooms].sort((a, b) => 
+                    getEffectiveCapacity(a.roomType) - getEffectiveCapacity(b.roomType)
+                );
+                
+                let roomsToRemove = totalRooms - totalAdultsNeeded;
+                for (const room of sortedByCapacity) {
+                    if (roomsToRemove <= 0) break;
+                    const toRemove = Math.min(roomsToRemove, room.quantity);
+                    room.quantity -= toRemove;
+                    roomsToRemove -= toRemove;
+                }
+                
+                const filteredRooms = economicalRooms.filter(r => r.quantity > 0);
+                economicalRooms.length = 0;
+                economicalRooms.push(...filteredRooms);
+                
+                totalRooms = economicalRooms.reduce((sum, r) => sum + r.quantity, 0);
+            }
+            
             const totalPrice = economicalRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             const totalCapacity = economicalRooms.reduce((sum, r) => sum + getEffectiveCapacity(r.roomType) * r.quantity, 0);
 
@@ -499,15 +736,20 @@ const RoomList: React.FC = () => {
                 JSON.stringify(optimalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
 
             if (isDifferent) {
+                // Phân bổ số người lớn và trẻ em vào từng loại phòng
+                const allocatedRooms = allocateGuestsToRooms(economicalRooms, totalAdultsNeeded, totalChildrenNeeded);
+                
                 suggestions.push({
                     type: 'economical',
                     label: '💰 Tiết kiệm',
                     description: 'Chi phí thấp nhất theo đầu người',
-                    rooms: economicalRooms,
+                    rooms: allocatedRooms,
                     totalRooms,
                     totalPrice,
                     totalCapacity,
-                    wastedCapacity: totalCapacity - totalGuests,
+                    wastedCapacity: totalCapacity - actualRequiredCapacity,
+                    totalAdults: totalAdultsNeeded,
+                    totalChildren: totalChildrenNeeded,
                 });
             }
         }
@@ -516,7 +758,7 @@ const RoomList: React.FC = () => {
         // GỢI Ý 3: THOẢI MÁI (tối thiểu MIN_GUESTS_PER_ROOM người/phòng)
         // ========================================
         const comfortableRooms: { roomType: RoomTypeWithDetails; quantity: number }[] = [];
-        remainingGuests = totalGuests;
+        remainingGuests = actualRequiredCapacity;
 
         // Sắp xếp theo sức chứa tăng dần (ưu tiên phòng nhỏ trước)
         const sortedBySmallest = [...availableRoomTypes].sort((a, b) =>
@@ -527,10 +769,17 @@ const RoomList: React.FC = () => {
         for (const rt of sortedBySmallest) {
             if (remainingGuests <= 0) break;
             const available = rt.available_count || 0;
+            
+            // Tính số phòng hiện tại đã dùng
+            const currentTotalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
+            // Ràng buộc: không được vượt quá số người lớn
+            const maxRoomsAllowed = totalAdultsNeeded - currentTotalRooms;
+            if (maxRoomsAllowed <= 0) break;
+            
             // Mỗi phòng xếp MIN_GUESTS_PER_ROOM người (tối thiểu 2 người/phòng)
             const guestsPerRoom = MIN_GUESTS_PER_ROOM;
             const neededRooms = Math.ceil(remainingGuests / guestsPerRoom);
-            const quantity = Math.min(neededRooms, available);
+            const quantity = Math.min(neededRooms, available, maxRoomsAllowed);
 
             if (quantity > 0) {
                 comfortableRooms.push({ roomType: rt, quantity });
@@ -539,7 +788,29 @@ const RoomList: React.FC = () => {
         }
 
         if (remainingGuests <= 0 && comfortableRooms.length > 0) {
-            const totalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
+            let totalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
+            
+            // Ràng buộc: số phòng không được lớn hơn số người lớn
+            if (totalRooms > totalAdultsNeeded) {
+                const sortedByCapacity = [...comfortableRooms].sort((a, b) => 
+                    getEffectiveCapacity(a.roomType) - getEffectiveCapacity(b.roomType)
+                );
+                
+                let roomsToRemove = totalRooms - totalAdultsNeeded;
+                for (const room of sortedByCapacity) {
+                    if (roomsToRemove <= 0) break;
+                    const toRemove = Math.min(roomsToRemove, room.quantity);
+                    room.quantity -= toRemove;
+                    roomsToRemove -= toRemove;
+                }
+                
+                const filteredRooms = comfortableRooms.filter(r => r.quantity > 0);
+                comfortableRooms.length = 0;
+                comfortableRooms.push(...filteredRooms);
+                
+                totalRooms = comfortableRooms.reduce((sum, r) => sum + r.quantity, 0);
+            }
+            
             const totalPrice = comfortableRooms.reduce((sum, r) => sum + (r.roomType.price_per_night || 0) * r.quantity, 0);
             // Tính sức chứa thực tế dựa trên số người xếp (MIN_GUESTS_PER_ROOM/phòng)
             const totalCapacity = totalRooms * MIN_GUESTS_PER_ROOM;
@@ -550,21 +821,26 @@ const RoomList: React.FC = () => {
             const economicalKey = JSON.stringify(economicalRooms.map(r => ({ id: r.roomType.id, qty: r.quantity })));
 
             if (comfortKey !== optimalKey && comfortKey !== economicalKey) {
+                // Phân bổ số người lớn và trẻ em vào từng loại phòng
+                const allocatedRooms = allocateGuestsToRooms(comfortableRooms, totalAdultsNeeded, totalChildrenNeeded);
+                
                 suggestions.push({
                     type: 'comfortable',
                     label: '🛋️ Thoải mái',
                     description: `Tối thiểu ${MIN_GUESTS_PER_ROOM} người/phòng, rộng rãi hơn`,
-                    rooms: comfortableRooms,
+                    rooms: allocatedRooms,
                     totalRooms,
                     totalPrice,
                     totalCapacity,
-                    wastedCapacity: totalCapacity - totalGuests,
+                    wastedCapacity: totalCapacity - actualRequiredCapacity,
+                    totalAdults: totalAdultsNeeded,
+                    totalChildren: totalChildrenNeeded,
                 });
             }
         }
 
         return suggestions;
-    }, [totalGuests, roomTypes]);
+    }, [totalGuests, searchChildren, numAdults, numChildren, roomTypes]);
 
     // Áp dụng gợi ý chia phòng vào cart
     const applyRoomSuggestion = (suggestion: RoomAllocationSuggestion) => {
@@ -704,15 +980,13 @@ const RoomList: React.FC = () => {
                 }
 
                 // Guests filter (client-side)
-                if (maxAdults > 1) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.max_adults || 0) >= maxAdults
-                    );
-                }
-                if (maxChildren > 0) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.max_children || 0) >= maxChildren
-                    );
+                // Tính toán capacity: 1 trẻ = 2 người lớn (chỉ trong thuật toán, không hiển thị)
+                const requiredCapacity = maxAdults + (maxChildren * 2);
+                if (requiredCapacity > 0) {
+                    filteredRoomTypes = filteredRoomTypes.filter(rt => {
+                        const roomCapacity = (rt.max_adults || 0) + ((rt.max_children || 0) * 2);
+                        return roomCapacity >= requiredCapacity;
+                    });
                 }
 
                 // Amenities filters (client-side - complex logic)
@@ -1223,14 +1497,14 @@ const RoomList: React.FC = () => {
                                             className="date-range-picker"
                                         />
                                     </div>
-                                    {/* Input tổng số khách liên kết với chia phòng thông minh */}
+                                    {/* Input số người lớn */}
                                     <Space.Compact>
                                         <InputNumber
                                             min={0}
                                             max={100}
                                             value={totalGuests}
-                                            style={{ width: 140 }}
-                                            placeholder="Số khách"
+                                            style={{ width: 120 }}
+                                            placeholder="Người lớn"
                                             onChange={(value) => {
                                                 // Cho phép để trống: khi user xóa hết -> value === null
                                                 if (value === null || value === undefined) {
@@ -1245,15 +1519,53 @@ const RoomList: React.FC = () => {
                                                 setDesiredGuests(guests);
                                             }}
                                         />
-                                        <Button type="default" disabled style={{ pointerEvents: 'none' }}>người</Button>
+                                        <Button type="default" disabled style={{ pointerEvents: 'none' }}>người lớn</Button>
+                                    </Space.Compact>
+                                    {/* Input số trẻ em */}
+                                    <Space.Compact>
+                                        <InputNumber
+                                            min={0}
+                                            max={totalGuests && totalGuests > 0 ? totalGuests * 2 : 20}
+                                            value={searchChildren}
+                                            style={{ width: 120 }}
+                                            placeholder="Trẻ em"
+                                            onChange={(value) => {
+                                                const children = Number(value) || 0;
+                                                const guests = totalGuests || 0;
+                                                // Validate: số trẻ em không được lớn hơn gấp 2 lần số người lớn
+                                                if (guests > 0 && children > guests * 2) {
+                                                    // Không cập nhật giá trị, giữ nguyên giá trị cũ
+                                                    return;
+                                                }
+                                                setSearchChildren(children);
+                                            }}
+                                        />
+                                        <Button type="default" disabled style={{ pointerEvents: 'none' }}>trẻ em</Button>
                                     </Space.Compact>
                                     {/* Nút tìm / chia phòng thông minh */}
                                     <Button
                                         type="default"
+                                        disabled={
+                                            !totalGuests || 
+                                            totalGuests <= 0 || 
+                                            (searchChildren > 0 && searchChildren > (totalGuests || 0) * 2) ||
+                                            !dateRange || 
+                                            !dateRange[0] || 
+                                            !dateRange[1]
+                                        }
                                         onClick={() => {
                                             const guests = totalGuests || 0;
-                                            setDesiredGuests(guests);
-                                            if (guests < 2) {
+                                            const children = searchChildren || 0;
+                                            
+                                            // Validate: số trẻ em không được lớn hơn gấp 2 lần số người lớn
+                                            if (guests > 0 && children > guests * 2) {
+                                                return; // Cản thao tác, không hiển thị thông báo
+                                            }
+                                            
+                                            // Tính tổng capacity: người lớn + (trẻ em * 2)
+                                            const totalCapacity = guests + (children * 2);
+                                            setDesiredGuests(totalCapacity);
+                                            if (totalCapacity < 2) {
                                                 message.warning('Vui lòng nhập số khách (ít nhất 2) để gợi ý chia phòng phù hợp.');
                                                 return;
                                             }
@@ -2134,10 +2446,13 @@ const RoomList: React.FC = () => {
                 title={
                     <Space>
                         <span>🎯</span>
-                        <span>Gợi ý chia phòng cho {totalGuests} khách</span>
+                        <span>
+                            Gợi ý chia phòng cho {totalGuests || 0} người lớn
+                            {searchChildren > 0 && `, ${searchChildren} trẻ em`}
+                        </span>
                     </Space>
                 }
-                open={showRoomSuggestions && totalGuests >= 2}
+                open={showRoomSuggestions && ((totalGuests || 0) + (searchChildren || 0) * 2 >= 2)}
                 onCancel={() => setShowRoomSuggestions(false)}
                 footer={null}
                 width={900}
@@ -2154,7 +2469,8 @@ const RoomList: React.FC = () => {
                         <Empty
                             description={
                                 <span>
-                                    Không đủ phòng trống cho {totalGuests} khách trong khoảng thời gian đã chọn.
+                                    Không đủ phòng trống cho {totalGuests || 0} người lớn
+                                    {searchChildren > 0 && `, ${searchChildren} trẻ em`} trong khoảng thời gian đã chọn.
                                     <br />
                                     Vui lòng thử chọn ngày khác hoặc giảm số lượng khách.
                                 </span>
@@ -2225,13 +2541,24 @@ const RoomList: React.FC = () => {
                                                         <Text strong style={{ fontSize: 13 }}>
                                                             {room.roomType.name}
                                                         </Text>
-                                                        <Space split={<Divider type="vertical" />}>
-                                                            <Text type="secondary" style={{ fontSize: 11 }}>
-                                                                <UserOutlined /> {room.roomType.max_adults || 2} người/phòng
-                                                            </Text>
-                                                            <Text style={{ fontSize: 11, color: '#1890ff' }}>
-                                                                x{room.quantity} phòng
-                                                            </Text>
+                                                        <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                                                            <Space split={<Divider type="vertical" />}>
+                                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                                    <UserOutlined /> {room.roomType.max_adults || 2} người lớn
+                                                                    {room.roomType.max_children && room.roomType.max_children > 0 && (
+                                                                        <>, {room.roomType.max_children} trẻ em</>
+                                                                    )}/phòng
+                                                                </Text>
+                                                                <Text style={{ fontSize: 11, color: '#1890ff' }}>
+                                                                    x{room.quantity} phòng
+                                                                </Text>
+                                                            </Space>
+                                                            {(room.allocatedAdults > 0 || room.allocatedChildren > 0) && (
+                                                                <Text type="secondary" style={{ fontSize: 10 }}>
+                                                                    Phân bổ: {room.allocatedAdults} người lớn
+                                                                    {room.allocatedChildren > 0 && <>, {room.allocatedChildren} trẻ em</>}
+                                                                </Text>
+                                                            )}
                                                         </Space>
                                                         <Text style={{ color: '#f5222d', fontSize: 12 }}>
                                                             {formatVND((room.roomType.price_per_night || 0) * room.quantity)}/đêm
@@ -2252,7 +2579,10 @@ const RoomList: React.FC = () => {
                                             <Col span={6}>
                                                 <Text type="secondary">Sức chứa:</Text>
                                                 <br />
-                                                <Text strong style={{ fontSize: 16 }}>{suggestion.totalCapacity} người</Text>
+                                                <Text strong style={{ fontSize: 16 }}>
+                                                    {suggestion.totalAdults} người lớn
+                                                    {suggestion.totalChildren > 0 && <>, {suggestion.totalChildren} trẻ em</>}
+                                                </Text>
                                                 {suggestion.wastedCapacity > 0 && (
                                                     <Text type="secondary" style={{ fontSize: 11 }}>
                                                         {' '}(+{suggestion.wastedCapacity} dư)

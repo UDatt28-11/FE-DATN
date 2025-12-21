@@ -62,8 +62,17 @@ const Home: React.FC = () => {
       params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
     }
     
-    // Số người trực tiếp từ form
-    const totalGuests = values.guests || 2;
+    // Tính toán số người: nếu có adults và children, sử dụng chúng
+    // Công thức: adults + (children * 2) - 1 trẻ = 2 người lớn (chỉ trong thuật toán)
+    const numAdults = values.adults || values.guests || 2;
+    const numChildren = values.children || 0;
+    const totalGuests = numAdults + (numChildren * 2);
+    
+    // Gửi cả adults và children để RoomList có thể sử dụng
+    params.set('adults', numAdults.toString());
+    if (numChildren > 0) {
+        params.set('children', numChildren.toString());
+    }
     params.set('total_guests', totalGuests.toString());
     
     // Navigate đến trang rooms với query params

@@ -59,6 +59,15 @@ export interface Invoice {
   updated_at: string;
 }
 
+export interface DamageImage {
+  id: number;
+  invoice_item_id: number;
+  image_url: string;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface InvoiceItem {
   id: number;
   invoice_id: number;
@@ -76,6 +85,9 @@ export interface InvoiceItem {
   booking_detail_id?: number;
   room_id?: number;
   service_id?: number;
+
+  // Relationships
+  damage_images?: DamageImage[];
 
   // Timestamps
   created_at: string;
