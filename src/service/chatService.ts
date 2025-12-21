@@ -16,13 +16,16 @@ import type {
 const chatService = {
   /**
    * GET /api/chat/conversation
-   * Lấy hoặc tạo conversation với AI
+   * Lấy hoặc tạo conversation với Admin hoặc AI
    */
-  async getConversation(sessionId?: string): Promise<GetConversationResponse> {
+  async getConversation(sessionId?: string, type?: 'admin' | 'ai'): Promise<GetConversationResponse> {
     try {
       const params: any = {};
       if (sessionId) {
         params.session_id = sessionId;
+      }
+      if (type) {
+        params.type = type;
       }
 
       const { data } = await api.get('/chat/conversation', { params });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FloatButton } from 'antd';
-import { MessageOutlined, CloseOutlined } from '@ant-design/icons';
+import { MessageOutlined } from '@ant-design/icons';
 import { useChat } from '../../context/ChatContext';
 import ChatWindow from './ChatWindow';
 import './Chatbox.css';
@@ -56,7 +56,7 @@ const Chatbox: React.FC = () => {
         />
       )}
 
-      {/* Chat Window */}
+      {/* Chat Window - Mode selection will be shown inside if needed */}
       {isOpen && <ChatWindow />}
     </>
   );

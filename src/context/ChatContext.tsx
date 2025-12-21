@@ -12,11 +12,13 @@ interface ChatContextValue {
   conversation: ChatConversation | null;
   sessionId: string | null;
   context: ChatContextType | null;
+  chatMode: 'admin' | 'ai' | null; // null = chưa chọn
 
   // Actions
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
+  initializeConversationWithMode: (mode: 'admin' | 'ai') => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   loadMessages: () => Promise<void>;
   clearHistory: () => Promise<void>;
@@ -43,6 +45,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     return null;
   });
   const [context, setContextState] = useState<ChatContextType | null>(null);
+  const [chatMode, setChatMode] = useState<'admin' | 'ai' | null>(null);
 
   // Initialize session ID for guest users
   useEffect(() => {
@@ -86,31 +89,29 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [conversation, sessionId]);
 
-  const initializeConversation = useCallback(async () => {
-    if (!isOpen || conversation) return; // Don't initialize if already has conversation or chat is closed
+  const initializeConversationWithMode = useCallback(async (mode: 'admin' | 'ai') => {
+    if (conversation) return; // Don't initialize if already has conversation
     
     try {
       setIsLoading(true);
+      setChatMode(mode);
       const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
-      const response = await chatService.getConversation(currentSessionId);
+      const response = await chatService.getConversation(currentSessionId, mode);
       setConversation(response.data);
       if (response.session_id) {
         setSessionId(response.session_id);
         localStorage.setItem('chat_session_id', response.session_id);
+      }
+      // Auto open chat when mode is selected
+      if (!isOpen) {
+        setIsOpen(true);
       }
     } catch (error) {
       console.error('Error initializing conversation:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [isOpen, conversation, sessionId]);
-
-  // Initialize conversation when chat opens
-  useEffect(() => {
-    if (isOpen && !conversation) {
-      initializeConversation();
-    }
-  }, [isOpen, conversation, initializeConversation]);
+  }, [conversation, sessionId, isOpen]);
 
   // Load messages when conversation is available
   useEffect(() => {
@@ -119,16 +120,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [conversation, isOpen, loadMessages]);
 
-  // Poll for new messages if user is logged in (to get admin replies)
+  // Poll for new messages (for admin mode to get admin replies)
   useEffect(() => {
-    if (!isLoggedIn || !conversation || !isOpen) return;
+    if (!conversation || !isOpen || chatMode !== 'admin') return;
 
     const pollInterval = setInterval(() => {
       loadMessages();
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [isLoggedIn, conversation, isOpen, loadMessages]);
+  }, [conversation, isOpen, chatMode, loadMessages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -168,12 +169,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           context || undefined
         );
 
-        // Replace temp message with real message - keep all existing messages
+        // Replace temp message with real message and add AI response if available
         setMessages((prev) => {
           // Remove only the temp message, keep all other messages
           const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
           const newMessages = [response.data.user_message];
-          // No AI message anymore - admin will reply manually
+          
+          // Add AI message if available (for AI mode)
+          if (response.data.ai_message) {
+            newMessages.push(response.data.ai_message);
+          }
+          
           // Merge with existing messages, avoiding duplicates
           const existingIds = new Set(filtered.map(m => m.id));
           const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
@@ -210,6 +216,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const closeChat = useCallback(() => {
     setIsOpen(false);
+    // Reset chat mode when closing (user will need to choose again next time)
+    setChatMode(null);
   }, []);
 
   const toggleChat = useCallback(() => {
@@ -228,9 +236,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       conversation,
       sessionId,
       context,
+      chatMode,
       openChat,
       closeChat,
       toggleChat,
+      initializeConversationWithMode,
       sendMessage,
       loadMessages,
       clearHistory,
@@ -243,9 +253,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       conversation,
       sessionId,
       context,
+      chatMode,
       openChat,
       closeChat,
       toggleChat,
+      initializeConversationWithMode,
       sendMessage,
       loadMessages,
       clearHistory,

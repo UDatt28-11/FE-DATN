@@ -4,10 +4,11 @@ import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import MessageItem from './MessageItem';
 import WelcomeScreen from './WelcomeScreen';
+import ModeSelection from './ModeSelection';
 import './Chatbox.css';
 
 const MessageList: React.FC = () => {
-  const { messages, isLoading, conversation } = useChat();
+  const { messages, isLoading, conversation, chatMode } = useChat();
   const { isLoggedIn } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -20,6 +21,11 @@ const MessageList: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Show mode selection if no conversation and no mode selected
+  if (!conversation && !chatMode) {
+    return <ModeSelection />;
+  }
 
   if (!conversation) {
     return (

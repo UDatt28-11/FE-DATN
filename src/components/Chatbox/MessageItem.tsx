@@ -21,6 +21,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   
   // Determine sender name - Show user's name and avatar for logged-in users
   const getSenderName = () => {
+    // AI messages always show "BookStay"
+    if (isAI) {
+      return 'BookStay';
+    }
     // Admin messages can show admin name
     if (isAdmin) {
       return message.sender?.full_name || 'Admin';
@@ -39,10 +43,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   // Determine avatar and color
   const getAvatarConfig = () => {
+    // AI messages
+    if (isAI) {
+      return {
+        icon: <HomeOutlined />,
+        backgroundColor: '#666',
+        className: 'message-ai',
+        src: null,
+      };
+    }
+    // Admin messages
     if (isAdmin) {
       return {
         icon: <CustomerServiceOutlined />,
-        backgroundColor: '#1890ff',
+        backgroundColor: '#666',
         className: 'message-admin',
         src: message.sender?.avatar_url,
       };
