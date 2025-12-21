@@ -41,6 +41,7 @@ import AddPromotion from "../pages/Admin/quanlimagiamgia/addPromotion";
 import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
+import AdminMessages from "../pages/Admin/quanlibinhluan/AdminMessages";
 // Invoice pages đã được gộp vào quản lý đặt phòng
 // import ListInvoice from "../pages/Admin/quanlihoadon/listInvoice";
 // import ViewInvoice from "../pages/Admin/quanlihoadon/viewInvoice";
@@ -159,6 +160,9 @@ export const adminRoutes: RouteObject[] = [
 
       // Quản lý bình luận (Admin + Staff)
       { path: "message", element: <ListMessage /> },
+      
+      // Quản lý tin nhắn (Admin + Staff) - Bao gồm AI Chat
+      { path: "messages", element: <AdminMessages /> },
 
       // Quản lý hóa đơn đã được gộp vào quản lý đặt phòng
       // Xem hóa đơn trong booking/view/:id

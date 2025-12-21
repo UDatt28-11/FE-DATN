@@ -3,6 +3,8 @@ import { ConfigProvider, App as AntdApp } from "antd";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "./context/AuthContext";
 import { BookingCartProvider } from "./context/BookingCartContext";
+import { ChatProvider } from "./context/ChatContext";
+import Chatbox from "./components/Chatbox";
 import router from "./router"; // Import router đã cấu hình sẵn
 import { useEffect } from "react";
 import AOS from "aos";
@@ -22,21 +24,24 @@ function App() {
     <HelmetProvider>
       <AuthProvider>
         <BookingCartProvider>
-        <ConfigProvider
-          theme={{
-            token: {
-              colorPrimary: "#cb8670",
-              colorLink: "#cb8670",
-              colorLinkHover: "#a96d5a",
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            },
-          }}
-        >
-          <AntdApp>
-            <RouterProvider router={router} />
-          </AntdApp>
-        </ConfigProvider>
+          <ChatProvider>
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorPrimary: "#cb8670",
+                  colorLink: "#cb8670",
+                  colorLinkHover: "#a96d5a",
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                },
+              }}
+            >
+              <AntdApp>
+                <RouterProvider router={router} />
+                <Chatbox />
+              </AntdApp>
+            </ConfigProvider>
+          </ChatProvider>
         </BookingCartProvider>
       </AuthProvider>
     </HelmetProvider>
