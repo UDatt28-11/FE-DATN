@@ -230,13 +230,9 @@ const AdminLayout: React.FC = () => {
   const handleSearch = (value: string) => {
     if (!value.trim()) return;
 
-    console.log("Search keyword:", value);
-
-    // Ví dụ: điều hướng sang trang tìm kiếm
-    // navigate(`/admin/search?keyword=${encodeURIComponent(value)}`);
-
-    // Hoặc sau này gọi API search
+    navigate(`/admin/search?keyword=${encodeURIComponent(value)}`);
   };
+
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>

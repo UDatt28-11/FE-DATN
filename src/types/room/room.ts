@@ -52,6 +52,8 @@ export type Room = {
   property_id: number;
   room_type_id: number;
   description?: string;
+  floor_number?: number;
+  floor_category?: string;
   max_adults: number;
   max_children: number;
   price_per_night: number;
@@ -64,10 +66,14 @@ export type Room = {
   updated_at?: string;
   // Relationships
   property?: Property;
-  roomType?: RoomType;
+  roomType?: RoomType & { images?: any[] };
   amenities?: Amenity[];
   images?: RoomImage[];
   reviews?: Review[];
+  verifier?: {
+    id: number;
+    full_name: string;
+  };
   // Calculated fields from API
   rating?: number;
   reviews_count?: number;
