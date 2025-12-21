@@ -39,7 +39,7 @@ const EditPromotion: React.FC = () => {
         try {
             const data = await promotionService.getById(id);
             setDiscountType(data.discount_type);
-            
+
             form.setFieldsValue({
                 code: data.code,
                 description: data.description,
@@ -67,7 +67,7 @@ const EditPromotion: React.FC = () => {
         setLoading(true);
         try {
             console.log("Form values:", values);
-            
+
             if (!values.date_range || values.date_range.length < 2) {
                 toast.error("Vui lòng chọn khoảng thời gian!");
                 setLoading(false);

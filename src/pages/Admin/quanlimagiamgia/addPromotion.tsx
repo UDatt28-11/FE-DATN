@@ -29,7 +29,7 @@ const AddPromotion: React.FC = () => {
         setLoading(true);
         try {
             console.log("Form values:", values);
-            
+
             if (!values.date_range || values.date_range.length < 2) {
                 toast.error("Vui lòng chọn khoảng thời gian!");
                 setLoading(false);
@@ -89,7 +89,7 @@ const AddPromotion: React.FC = () => {
                         label="Mã khuyến mãi"
                         name="code"
                         rules={[
-{ required: true, message: "Vui lòng nhập mã!" },
+                            { required: true, message: "Vui lòng nhập mã!" },
                         ]}
                     >
                         <Input placeholder="VD: SUMMER2025" maxLength={50} />
@@ -152,7 +152,7 @@ const AddPromotion: React.FC = () => {
                         <RangePicker
                             showTime
                             format="DD/MM/YYYY HH:mm"
-style={{ width: "100%" }}
+                            style={{ width: "100%" }}
                             placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
                         />
                     </Form.Item>
