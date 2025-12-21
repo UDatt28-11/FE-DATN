@@ -18,6 +18,7 @@ interface ChatContextValue {
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
+  resetToModeSelection: () => void;
   initializeConversationWithMode: (mode: 'admin' | 'ai') => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   loadMessages: () => Promise<void>;
@@ -48,6 +49,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [chatMode, setChatMode] = useState<'admin' | 'ai' | null>(null);
   const [loadingMessagesForConversationId, setLoadingMessagesForConversationId] = useState<number | null>(null);
   const loadedConversationIdRef = React.useRef<number | null>(null);
+  // Store conversation IDs separately for each mode to avoid confusion
+  const adminConversationIdRef = React.useRef<number | null>(null);
+  const aiConversationIdRef = React.useRef<number | null>(null);
 
   // Initialize session ID for guest users
   useEffect(() => {
@@ -112,14 +116,30 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, [conversation, _loadMessages]);
 
   const initializeConversationWithMode = useCallback(async (mode: 'admin' | 'ai') => {
-    // Check if we already have a conversation for this mode
-    // Don't re-initialize if conversation already exists and matches the mode
-    if (conversation) {
-      // Check if conversation type matches the requested mode
+    const expectedType = mode === 'admin' ? 'user_to_user' : 'user_to_ai';
+    
+    console.log('[ChatContext] initializeConversationWithMode:', { 
+      mode, 
+      expectedType, 
+      currentConversation: conversation?.id, 
+      currentConversationType: conversation?.type,
+      currentChatMode: chatMode,
+      storedAdminId: adminConversationIdRef.current,
+      storedAIId: aiConversationIdRef.current
+    });
+    
+    // Get stored conversation ID for this mode
+    const storedConversationId = mode === 'admin' 
+      ? adminConversationIdRef.current 
+      : aiConversationIdRef.current;
+    
+    // If we have a stored conversation ID for this mode and it matches current conversation
+    // AND current conversation type matches, reuse it
+    if (storedConversationId && conversation && conversation.id === storedConversationId) {
       const conversationType = conversation.type;
-      const expectedType = mode === 'admin' ? 'user_to_user' : 'user_to_ai';
-      if (conversationType === expectedType) {
-        // Already have the correct conversation, just load messages if needed
+      if (conversationType === expectedType && chatMode === mode) {
+        console.log('[ChatContext] Reusing stored conversation for mode:', mode, 'id:', storedConversationId);
+        // Just load messages if needed
         if (loadedConversationIdRef.current !== conversation.id || messages.length === 0) {
           await _loadMessages(conversation.id);
         }
@@ -127,54 +147,91 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
     }
     
+    // If current conversation exists but doesn't match the requested mode, clear it
+    if (conversation) {
+      const conversationType = conversation.type;
+      if (conversationType !== expectedType || chatMode !== mode) {
+        console.log('[ChatContext] Current conversation doesn\'t match mode, clearing state');
+        setConversation(null);
+        setMessages([]);
+        loadedConversationIdRef.current = null;
+      }
+    }
+    
     try {
       setIsLoading(true);
+      // Always set chatMode to the requested mode
       setChatMode(mode);
       const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
+      console.log('[ChatContext] Fetching conversation with mode:', mode, 'sessionId:', currentSessionId);
       const response = await chatService.getConversation(currentSessionId, mode);
       
       const newConversation = response.data;
+      console.log('[ChatContext] Received conversation:', { 
+        id: newConversation?.id, 
+        type: newConversation?.type, 
+        expectedType 
+      });
       
-      // Reset loaded conversation ref if switching to a different conversation
-      if (conversation && conversation.id !== newConversation?.id) {
-        loadedConversationIdRef.current = null;
+      // Verify the conversation type matches what we requested
+      if (newConversation && newConversation.type !== expectedType) {
+        console.warn(`[ChatContext] Conversation type mismatch: expected ${expectedType}, got ${newConversation.type}`);
+        throw new Error(`Conversation type mismatch: expected ${expectedType}, got ${newConversation.type}`);
       }
       
-      setConversation(newConversation);
+      // Only set conversation if type matches
+      if (newConversation && newConversation.type === expectedType) {
+        setConversation(newConversation);
+        // Store conversation ID for this mode
+        if (mode === 'admin') {
+          adminConversationIdRef.current = newConversation.id;
+        } else {
+          aiConversationIdRef.current = newConversation.id;
+        }
+      } else {
+        throw new Error('Invalid conversation type received');
+      }
       
       if (response.session_id) {
         setSessionId(response.session_id);
         localStorage.setItem('chat_session_id', response.session_id);
       }
       
-      // Load messages immediately after getting conversation (avoid double fetch)
-      // Only load if we haven't loaded for this conversation yet
-      if (newConversation && loadedConversationIdRef.current !== newConversation.id) {
-        await _loadMessages(newConversation.id, response.session_id || currentSessionId);
-      }
+      // Always load messages for the new conversation
+      console.log('[ChatContext] Loading messages for conversation:', newConversation.id);
+      await _loadMessages(newConversation.id, response.session_id || currentSessionId);
       
       // Auto open chat when mode is selected
       if (!isOpen) {
         setIsOpen(true);
       }
     } catch (error) {
-      console.error('Error initializing conversation:', error);
+      console.error('[ChatContext] Error initializing conversation:', error);
+      // Reset state on error
+      setChatMode(null);
+      setConversation(null);
     } finally {
       setIsLoading(false);
     }
-  }, [conversation, sessionId, isOpen, messages.length, _loadMessages]);
+  }, [conversation, sessionId, isOpen, messages.length, _loadMessages, chatMode]);
 
-  // Poll for new messages (for admin mode to get admin replies)
+  // Auto-polling for messages when chatbox is open and user is not interacting
+  // This ensures users always see new replies, especially for admin chat
   useEffect(() => {
-    if (!conversation || !isOpen || chatMode !== 'admin') return;
+    if (!conversation || !isOpen) return;
 
     const currentSessionId = sessionId || localStorage.getItem('chat_session_id') || undefined;
-    const pollInterval = setInterval(() => {
-      // Force reload when polling to get new admin messages
+    
+    // Poll more frequently for admin mode (to get admin replies)
+    // Poll less frequently for AI mode (AI responds immediately, no need for frequent polling)
+    const pollInterval = chatMode === 'admin' ? 3000 : 10000; // 3s for admin, 10s for AI
+    
+    const interval = setInterval(() => {
+      // Force reload when polling to get new messages
       _loadMessages(conversation.id, currentSessionId, true);
-    }, 5000); // Poll every 5 seconds
+    }, pollInterval);
 
-    return () => clearInterval(pollInterval);
+    return () => clearInterval(interval);
   }, [conversation?.id, isOpen, chatMode, sessionId, _loadMessages]);
 
   const sendMessage = useCallback(
@@ -268,6 +325,22 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setChatMode(null);
     // Reset loaded conversation reference
     loadedConversationIdRef.current = null;
+    // Clear messages when closing
+    setMessages([]);
+    setConversation(null);
+  }, []);
+
+  const resetToModeSelection = useCallback(() => {
+    // Reset conversation and mode to show mode selection screen
+    console.log('[ChatContext] resetToModeSelection - clearing all state');
+    setConversation(null);
+    setChatMode(null);
+    setMessages([]);
+    // Reset loaded conversation reference
+    loadedConversationIdRef.current = null;
+    // Don't reset adminConversationIdRef and aiConversationIdRef - keep them for reuse
+    // This allows switching between modes without losing conversation references
+    // Keep chatbox open to show mode selection
   }, []);
 
   const toggleChat = useCallback(() => {
@@ -290,6 +363,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       openChat,
       closeChat,
       toggleChat,
+      resetToModeSelection,
       initializeConversationWithMode,
       sendMessage,
       loadMessages,
@@ -307,6 +381,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       openChat,
       closeChat,
       toggleChat,
+      resetToModeSelection,
       initializeConversationWithMode,
       sendMessage,
       loadMessages,

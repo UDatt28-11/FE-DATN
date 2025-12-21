@@ -16,7 +16,7 @@ import "./Chatbox.css";
 const { Title } = Typography;
 
 const ChatWindow: React.FC = () => {
-  const { isOpen, closeChat, clearHistory, conversation, isLoading, messages } =
+  const { isOpen, closeChat, clearHistory, conversation, isLoading, messages, resetToModeSelection } =
     useChat();
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +46,7 @@ const ChatWindow: React.FC = () => {
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
-            onClick={closeChat}
+            onClick={resetToModeSelection}
             className="chat-header-back"
             title="Quay lại"
           />
