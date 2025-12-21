@@ -134,7 +134,7 @@ const AdminLayout: React.FC = () => {
   // Xác định selected key dựa trên pathname hiện tại
   const selectedKeys = useMemo(() => {
     const currentPath = location.pathname;
-    
+
     // Tìm menu item có path khớp với pathname hiện tại
     const matchedItem = menuItems.find((item) => {
       // Kiểm tra exact match
@@ -148,7 +148,7 @@ const AdminLayout: React.FC = () => {
       }
       return false;
     });
-    
+
     return matchedItem ? [matchedItem.key] : [];
   }, [location.pathname]);
 
@@ -184,7 +184,7 @@ const AdminLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fa" }}>
-      {/* Sidebar - Modern Design */}
+      {/* Sidebar - BookStay Tone */}
       <Sider
         collapsible
         collapsed={collapsed}
@@ -197,7 +197,7 @@ const AdminLayout: React.FC = () => {
           left: 0,
           top: 0,
           bottom: 0,
-          background: "linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%)",
+          background: "#3c2f2f",
           boxShadow: "4px 0 24px rgba(0, 0, 0, 0.12)",
         }}
       >
@@ -209,7 +209,7 @@ const AdminLayout: React.FC = () => {
             alignItems: "center",
             justifyContent: collapsed ? "center" : "flex-start",
             padding: collapsed ? "0" : "0 24px",
-            background: "rgba(255, 255, 255, 0.1)",
+            background: "rgba(255, 255, 255, 0.05)",
             backdropFilter: "blur(10px)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
           }}
@@ -219,11 +219,11 @@ const AdminLayout: React.FC = () => {
               width: 40,
               height: 40,
               borderRadius: 12,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
+              boxShadow: "0 4px 12px rgba(217, 119, 6, 0.4)",
             }}
           >
             <HomeOutlined style={{ fontSize: 20, color: "#fff" }} />
@@ -239,10 +239,10 @@ const AdminLayout: React.FC = () => {
                   fontSize: 18,
                 }}
               >
-                HomestayHub
+                BookStay Admin
               </Title>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
-                Admin Dashboard
+                Quản trị hệ thống
               </Text>
             </div>
           )}
@@ -272,11 +272,11 @@ const AdminLayout: React.FC = () => {
           background: "#f5f7fa",
         }}
       >
-        {/* Header - Modern Glass Effect */}
+        {/* Header - BookStay Style */}
         <Header
           style={{
-            padding: "16px 32px",
-            background: "rgba(255, 255, 255, 0.9)",
+            padding: "0 32px",
+            background: "rgba(60, 47, 47, 0.9)",
             backdropFilter: "blur(20px)",
             display: "flex",
             alignItems: "center",
@@ -299,14 +299,14 @@ const AdminLayout: React.FC = () => {
                 width: 48,
                 height: 48,
                 borderRadius: 12,
-                color: "#1e3a8a",
+                color: "#f59e0b",
               }}
             />
-            <div style={{ lineHeight: 1.5 }}>
-              <Title level={4} style={{ margin: 0, marginBottom: 4, color: "#1e3a8a" }}>
-                Trang quản trị
+            <div>
+              <Title level={4} style={{ margin: 0, color: "#f59e0b" }}>
+                Chào mừng trở lại! 👋
               </Title>
-              <Text type="secondary" style={{ fontSize: 13, display: "block" }}>
+              <Text type="secondary" style={{ fontSize: 13, color: "#e5e7eb" }}>
                 {new Date().toLocaleDateString("vi-VN", {
                   weekday: "long",
                   year: "numeric",
@@ -318,19 +318,17 @@ const AdminLayout: React.FC = () => {
           </Space>
 
           <Space size="middle">
-            {/* Search Button */}
             <Button
               type="text"
               style={{
                 borderRadius: 12,
                 height: 40,
-                color: "#64748b",
+                color: "#f59e0b",
               }}
             >
               🔍 Tìm kiếm...
             </Button>
 
-            {/* Notifications */}
             <Badge count={12} offset={[-8, 8]}>
               <Button
                 type="text"
@@ -340,14 +338,13 @@ const AdminLayout: React.FC = () => {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  color: "#64748b",
+                  color: "#f59e0b",
                 }}
               />
             </Badge>
 
             <Divider type="vertical" style={{ height: 32, margin: "0 8px" }} />
 
-            {/* User Profile */}
             <Dropdown
               menu={{
                 items: userMenuItems,
@@ -361,15 +358,15 @@ const AdminLayout: React.FC = () => {
                   size={40}
                   src="https://randomuser.me/api/portraits/men/1.jpg"
                   style={{
-                    border: "2px solid #e0e7ff",
+                    border: "2px solid #f59e0b",
                   }}
                 />
                 <div style={{ lineHeight: 1.3, textAlign: "left" }}>
-                  <Text strong style={{ color: "#1e293b", fontSize: 14 }}>
+                  <Text strong style={{ color: "#fff", fontSize: 14 }}>
                     Nguyễn Văn A
                   </Text>
                   <br />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Text type="secondary" style={{ fontSize: 12, color: "#e5e7eb" }}>
                     Super Admin
                   </Text>
                 </div>
@@ -397,14 +394,15 @@ const AdminLayout: React.FC = () => {
           style={{
             textAlign: "center",
             padding: "16px 0",
-            color: "#94a3b8",
+            color: "#a3a3a3",
             fontSize: 13,
           }}
         >
-          © 2024 HomestayHub. Made with ❤️ in Vietnam
+          © 2024 BookStay. Made with ❤️ in Vietnam
         </div>
       </Layout>
     </Layout>
+
   );
 };
 

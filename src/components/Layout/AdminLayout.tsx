@@ -11,6 +11,7 @@ import {
   Button,
   Divider,
   message,
+  Input,
 } from "antd";
 import type { MenuProps } from "antd";
 import { useAuth } from "../../context/AuthContext";
@@ -36,6 +37,7 @@ import {
   CustomerServiceOutlined,
   LoginOutlined,
   GiftOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -207,15 +209,21 @@ const AdminLayout: React.FC = () => {
       }
     }
   };
+  const handleSearch = (value: string) => {
+    if (!value.trim()) return;
+
+    navigate(`/admin/search?keyword=${encodeURIComponent(value)}`);
+  };
+
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fa" }}>
-      {/* Sidebar - Modern Design */}
+    <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+      {/* Sidebar - BookStay Tone */}
       <Sider
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
-        width={280}
+        width={260}
         style={{
           overflow: "auto",
           height: "100vh",
@@ -223,7 +231,7 @@ const AdminLayout: React.FC = () => {
           left: 0,
           top: 0,
           bottom: 0,
-          background: "linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%)",
+          background: "#3b2f2f", // Nâu đất
           boxShadow: "4px 0 24px rgba(0, 0, 0, 0.12)",
         }}
       >
@@ -234,22 +242,21 @@ const AdminLayout: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: collapsed ? "center" : "flex-start",
-            padding: collapsed ? "0" : "0 24px",
-            background: "rgba(255, 255, 255, 0.1)",
-            backdropFilter: "blur(10px)",
+            padding: collapsed ? "0" : "0 20px",
+            background: "rgba(255, 255, 255, 0.05)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
           <div
             style={{
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               borderRadius: 12,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: "linear-gradient(135deg, #eab308 0%, #f59e0b 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
+              boxShadow: "0 4px 12px rgba(234, 179, 8, 0.4)",
             }}
           >
             <HomeOutlined style={{ fontSize: 20, color: "#fff" }} />
@@ -265,10 +272,10 @@ const AdminLayout: React.FC = () => {
                   fontSize: 18,
                 }}
               >
-                HomestayHub
+                BookStay Admin
               </Title>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
-                Admin Dashboard
+                Quản trị hệ thống
               </Text>
             </div>
           )}
@@ -293,17 +300,16 @@ const AdminLayout: React.FC = () => {
       {/* Main Layout */}
       <Layout
         style={{
-          marginLeft: collapsed ? 80 : 280,
+          marginLeft: collapsed ? 80 : 260,
           transition: "all 0.2s",
-          background: "#f5f7fa",
+          background: "#f9fafb",
         }}
       >
-        {/* Header - Modern Glass Effect */}
+        {/* Header */}
         <Header
           style={{
-            padding: "16px 32px",
-            background: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(20px)",
+            padding: "0 28px",
+            background: "#fff8f0", // Trắng kem
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -315,24 +321,24 @@ const AdminLayout: React.FC = () => {
             minHeight: 64,
           }}
         >
-          <Space size="large">
+          <Space size="large" align="center">
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{
                 fontSize: 18,
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 borderRadius: 12,
-                color: "#1e3a8a",
+                color: "#eab308", // Cam vàng
               }}
             />
-            <div style={{ lineHeight: 1.5 }}>
-              <Title level={4} style={{ margin: 0, marginBottom: 4, color: "#1e3a8a" }}>
-                Trang quản trị
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingTop: 4 }}>
+              <Title level={4} style={{ margin: 0, color: "#1f2937" }}>
+                Chào mừng bạn đến với BookStay
               </Title>
-              <Text type="secondary" style={{ fontSize: 13, display: "block" }}>
+              <Text style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
                 {new Date().toLocaleDateString("vi-VN", {
                   weekday: "long",
                   year: "numeric",
@@ -343,20 +349,26 @@ const AdminLayout: React.FC = () => {
             </div>
           </Space>
 
+
           <Space size="middle">
-            {/* Search Button */}
-            <Button
-              type="text"
+            <Input
+              placeholder="Tìm kiếm..."
+              prefix={<SearchOutlined style={{ color: "#eab308" }} />}
               style={{
                 borderRadius: 12,
                 height: 40,
-                color: "#64748b",
+                width: 200,
+                color: "#1f2937",
+                backgroundColor: "#f9fafb",
+                border: "1px solid #e5e7eb",
               }}
-            >
-              🔍 Tìm kiếm...
-            </Button>
+              allowClear
+              onPressEnter={(e) =>
+                handleSearch((e.target as HTMLInputElement).value)
+              }
+            />
 
-            {/* Notifications */}
+
             <Badge count={12} offset={[-8, 8]}>
               <Button
                 type="text"
@@ -366,14 +378,13 @@ const AdminLayout: React.FC = () => {
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  color: "#64748b",
+                  color: "#eab308",
                 }}
               />
             </Badge>
 
             <Divider type="vertical" style={{ height: 32, margin: "0 8px" }} />
 
-            {/* User Profile */}
             <Dropdown
               menu={{
                 items: userMenuItems,
@@ -385,28 +396,24 @@ const AdminLayout: React.FC = () => {
               <Space style={{ cursor: "pointer", padding: "4px 12px" }}>
                 <Avatar
                   size={40}
-                  src={user?.avatar_url || undefined}
-                  icon={!user?.avatar_url ? <UserOutlined /> : undefined}
+                  src="https://randomuser.me/api/portraits/men/1.jpg"
                   style={{
-                    border: "2px solid #e0e7ff",
+                    border: "2px solid #eab308",
                   }}
                 />
                 <div style={{ lineHeight: 1.3, textAlign: "left" }}>
-                  <Text strong style={{ color: "#1e293b", fontSize: 14 }}>
-                    {user?.full_name || "Admin"}
+                  <Text strong style={{ color: "#1f2937", fontSize: 14 }}>
+                    Nguyễn Văn A
                   </Text>
                   <br />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {user?.role === "admin"
-                      ? "Quản trị viên"
-                      : user?.role === "staff"
-                      ? "Nhân viên"
-                      : "Người dùng"}
+                  <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                    Super Admin
                   </Text>
                 </div>
               </Space>
             </Dropdown>
           </Space>
+
         </Header>
 
         {/* Content Area */}
@@ -415,7 +422,7 @@ const AdminLayout: React.FC = () => {
             margin: "24px",
             padding: 32,
             minHeight: 280,
-            background: "#fff",
+            background: "#ffffff",
             borderRadius: 16,
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
           }}
@@ -428,14 +435,15 @@ const AdminLayout: React.FC = () => {
           style={{
             textAlign: "center",
             padding: "16px 0",
-            color: "#94a3b8",
+            color: "#6b7280",
             fontSize: 13,
           }}
         >
-          © 2025 HomestayHub. Made with ❤️ in Vietnam
+          © 2024 BookStay. Made with ❤️ in Vietnam
         </div>
       </Layout>
     </Layout>
+
   );
 };
 

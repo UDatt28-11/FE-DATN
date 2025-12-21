@@ -28,6 +28,14 @@ const AddPromotion: React.FC = () => {
     const handleSubmit = async (values: any) => {
         setLoading(true);
         try {
+            console.log("Form values:", values);
+
+            if (!values.date_range || values.date_range.length < 2) {
+                toast.error("Vui lòng chọn khoảng thời gian!");
+                setLoading(false);
+                return;
+            }
+
             const promotionData: Partial<Promotion> = {
                 property_id: 1,
                 code: values.code.toUpperCase(),
@@ -38,17 +46,19 @@ const AddPromotion: React.FC = () => {
                 min_purchase_amount: values.min_purchase_amount,
                 max_usage_limit: values.max_usage_limit,
                 max_usage_per_user: values.max_usage_per_user,
-                start_date: values.date_range[0].format("YYYY-MM-DD HH:mm:ss"),
-                end_date: values.date_range[1].format("YYYY-MM-DD HH:mm:ss"),
+                start_date: values.date_range[0].format("YYYY-MM-DD"),
+                end_date: values.date_range[1].format("YYYY-MM-DD"),
                 is_active: values.is_active,
-                applicable_to: values.applicable_to || null,
+                applicable_to: values.applicable_to || "all",
             };
 
+            console.log("Promotion data:", promotionData);
             await promotionService.create(promotionData);
             toast.success("Thêm mã giảm giá thành công!");
             navigate("/admin/promotion");
         } catch (error: any) {
             console.error("Lỗi khi thêm mã giảm giá:", error);
+            console.error("Response data:", error.response?.data);
             toast.error(error.response?.data?.message || "Không thể thêm mã giảm giá!");
         } finally {
             setLoading(false);
@@ -72,13 +82,14 @@ const AddPromotion: React.FC = () => {
                         discount_type: "percentage",
                         is_active: 1,
                         max_usage_per_user: 1,
+                        applicable_to: "all",
                     }}
                 >
                     <Form.Item
                         label="Mã khuyến mãi"
                         name="code"
                         rules={[
-{ required: true, message: "Vui lòng nhập mã!" },
+                            { required: true, message: "Vui lòng nhập mã!" },
                         ]}
                     >
                         <Input placeholder="VD: SUMMER2025" maxLength={50} />
@@ -141,7 +152,7 @@ const AddPromotion: React.FC = () => {
                         <RangePicker
                             showTime
                             format="DD/MM/YYYY HH:mm"
-style={{ width: "100%" }}
+                            style={{ width: "100%" }}
                             placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
                         />
                     </Form.Item>
@@ -162,8 +173,12 @@ style={{ width: "100%" }}
                         <InputNumber min={1} style={{ width: "100%" }} />
                     </Form.Item>
 
-                    <Form.Item label="Áp dụng cho" name="applicable_to">
-                        <Input placeholder="VD: specific_rooms, all" />
+                    <Form.Item label="Áp dụng cho" name="applicable_to" rules={[{ required: true, message: "Vui lòng chọn phạm vi áp dụng!" }]}>
+                        <Radio.Group>
+                            <Radio value="all">Tất cả phòng</Radio>
+                            <Radio value="specific_rooms">Phòng cụ thể</Radio>
+                            <Radio value="specific_room_types">Loại phòng cụ thể</Radio>
+                        </Radio.Group>
                     </Form.Item>
 
                     <Form.Item label="Trạng thái" name="is_active" rules={[{ required: true }]}>
