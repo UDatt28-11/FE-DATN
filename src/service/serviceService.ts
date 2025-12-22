@@ -143,7 +143,7 @@ const serviceService = {
    * Cập nhật trạng thái dịch vụ
    */
   async updateStatus(id: number, status: 'active' | 'disabled'): Promise<ServiceResponse> {
-    const response = await api.patch(`${API_URL}/admin/services/${id}/status`, { status });
+    const response = await api.patch(`/admin/services/${id}/status`, { status });
     return response.data;
   },
 };
