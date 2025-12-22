@@ -10,7 +10,7 @@ import {
   Button,
   Divider,
   Space,
-  Image,
+  Image as AntImage,
   Avatar,
   List,
   message,
@@ -134,8 +134,12 @@ const RoomTypeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
-  const { dateRange: cartDateRange, setDateRange: setCartDateRange } =
-    useBookingCart();
+  const { 
+    dateRange: cartDateRange, 
+    setDateRange: setCartDateRange,
+    addRoomTypeToCart,
+    setCartVisible
+  } = useBookingCart();
 
   // State cho dữ liệu
   const [roomType, setRoomType] = useState<RoomTypeWithDetails | null>(null);
@@ -332,7 +336,7 @@ const RoomTypeDetailPage: React.FC = () => {
       ? roomType.price_per_night * numNights * quantity
       : 0;
 
-  // Xử lý đặt phòng - chuyển thẳng đến trang booking/info
+  // Xử lý đặt phòng - thêm vào cart và chuyển đến trang booking/info
   const handleBookNow = () => {
     if (!isLoggedIn) {
       message.warning("Vui lòng đăng nhập để đặt phòng!");
@@ -370,31 +374,24 @@ const RoomTypeDetailPage: React.FC = () => {
     const checkInDate = cartDateRange[0].format("DD/MM/YYYY");
     const checkOutDate = cartDateRange[1].format("DD/MM/YYYY");
     const pricePerNight = roomType.price_per_night || 0;
-    const totalPrice = pricePerNight * numNights * quantity;
+    const maxAdults = roomType.max_adults || 2;
+    const maxChildren = roomType.max_children || 0;
 
-    // Tạo danh sách phòng theo số lượng đã chọn
-    const rooms = Array.from({ length: quantity }, (_, index) => ({
-      roomTypeId: roomType.id.toString(),
-      roomId: roomType.id.toString(), // Fallback cho compatibility
-      roomName: roomType.name,
-      price: pricePerNight,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      adults: roomType.max_adults || 2,
-      children: roomType.max_children || 0,
-      nights: numNights,
-      totalPrice: pricePerNight * numNights,
-    }));
+    // Thêm vào cart trước (không hiển thị thông báo)
+    addRoomTypeToCart(
+      roomType,
+      quantity,
+      checkInDate,
+      checkOutDate,
+      numNights,
+      pricePerNight,
+      maxAdults,
+      maxChildren,
+      false // Không hiển thị thông báo
+    );
 
-    // Chuyển đến trang booking/info với thông tin phòng
-    navigate("/booking/info", {
-      state: {
-        rooms: rooms,
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        totalPrice: totalPrice,
-      },
-    });
+    // Sau đó chuyển đến trang booking/info
+    navigate("/booking/info");
   };
 
   if (loading) {
@@ -562,7 +559,7 @@ const RoomTypeDetailPage: React.FC = () => {
                   }}
                 >
                   <StarFilled />
-                  <span>{(averageRating / 2).toFixed(1)}/5</span>
+                  <span>{averageRating.toFixed(1)}/5</span>
                 </div>
               )}
               <Text type="secondary">{reviewsTotal} đánh giá</Text>
@@ -588,11 +585,11 @@ const RoomTypeDetailPage: React.FC = () => {
               boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
             }}
           >
-            <Image.PreviewGroup>
+            <AntImage.PreviewGroup>
               <Row gutter={[8, 8]}>
                 {galleryImages.slice(0, 5).map((img, idx) => (
                   <Col span={idx === 0 ? 12 : 6} key={idx}>
-                    <Image
+                    <AntImage
                       src={img}
                       alt={`${roomType.name} ${idx + 1}`}
                       style={{
@@ -612,7 +609,7 @@ const RoomTypeDetailPage: React.FC = () => {
                   </Col>
                 ))}
               </Row>
-            </Image.PreviewGroup>
+            </AntImage.PreviewGroup>
           </div>
 
           {/* Sticky Navigation Tabs */}
@@ -1554,7 +1551,7 @@ const RoomTypeDetailPage: React.FC = () => {
                                         fontWeight: 600,
                                       }}
                                     >
-                                      {(review.rating / 2).toFixed(1)}/5
+                                      {review.rating.toFixed(1)}/5
                                     </div>
                                   </div>
                                   <Text

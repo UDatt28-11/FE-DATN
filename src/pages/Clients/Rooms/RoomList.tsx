@@ -11,7 +11,7 @@ import {
     Select,
     Slider,
     Space,
-    Image,
+    Image as AntImage,
     Divider,
     Empty,
     Spin,
@@ -2076,7 +2076,7 @@ const RoomList: React.FC = () => {
                                     >
                                         <Row gutter={16} style={{ width: '100%' }}>
                                             <Col flex="80px">
-                                                <Image
+                                                <AntImage
                                                     src={roomTypeImage}
                                                     alt={item.roomType.name}
                                                     width={80}
@@ -2483,12 +2483,12 @@ const RoomList: React.FC = () => {
                         <Space direction="vertical" size="large" style={{ width: '100%' }}>
                             {/* Ảnh loại phòng */}
                             {(selectedRoomTypeDetail.images && selectedRoomTypeDetail.images.length > 0) || selectedRoomTypeDetail.image_url ? (
-                                <Image.PreviewGroup>
+                                <AntImage.PreviewGroup>
                                     <Row gutter={[8, 8]}>
                                         {selectedRoomTypeDetail.images && selectedRoomTypeDetail.images.length > 0 ? (
                                             selectedRoomTypeDetail.images.slice(0, 4).map((img, idx) => (
                                                 <Col span={idx === 0 ? 24 : 8} key={idx}>
-                                                    <Image
+                                                    <AntImage
                                                         src={img.image_url}
                                                         alt={`${selectedRoomTypeDetail.name} ${idx + 1}`}
                                                         style={{
@@ -2502,7 +2502,7 @@ const RoomList: React.FC = () => {
                                             ))
                                         ) : (
                                             <Col span={24}>
-                                                <Image
+                                                <AntImage
                                                     src={selectedRoomTypeDetail.image_url || '/img/bg-img/1.jpg'}
                                                     alt={selectedRoomTypeDetail.name}
                                                     style={{
@@ -2515,7 +2515,7 @@ const RoomList: React.FC = () => {
                                             </Col>
                                         )}
                                     </Row>
-                                </Image.PreviewGroup>
+                                </AntImage.PreviewGroup>
                             ) : null}
 
                             <Divider />

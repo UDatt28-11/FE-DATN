@@ -7,7 +7,7 @@ import {
     Space,
     Spin,
     message,
-    Image,
+    Image as AntImage,
     Tag,
     Divider,
     Row,
@@ -89,7 +89,7 @@ const ViewRoom: React.FC = () => {
                         <>
                             <div>
                                 <h3>Hình ảnh phòng</h3>
-                                <Image.PreviewGroup>
+                                <AntImage.PreviewGroup>
                                     <Row gutter={[16, 16]}>
                                         {room.roomType.images.map((image: any, index: number) => (
                                             <Col key={index} xs={24} sm={12} md={8}>
@@ -106,7 +106,7 @@ const ViewRoom: React.FC = () => {
                                             </Col>
                                         ))}
                                     </Row>
-                                </Image.PreviewGroup>
+                                </AntImage.PreviewGroup>
                             </div>
                             <Divider />
                         </>

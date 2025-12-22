@@ -46,7 +46,8 @@ interface BookingCartContextType {
     nights: number,
     pricePerNight: number,
     maxAdults: number,
-    maxChildren: number
+    maxChildren: number,
+    showMessage?: boolean
   ) => void;
   updateRoomTypeQuantity: (roomTypeId: number, quantity: number) => void;
   removeRoomTypeFromCart: (roomTypeId: number) => void;
@@ -285,7 +286,8 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({
       nights: number,
       pricePerNight: number,
       maxAdults: number,
-      maxChildren: number
+      maxChildren: number,
+      showMessage: boolean = true
     ) => {
       setSelectedRoomTypes((prev) => {
         // Kiểm tra xem loại phòng đã có trong cart chưa
@@ -302,10 +304,12 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({
             quantity: newQuantity,
             totalPrice: newQuantity * pricePerNight * nights,
           };
-          const capacity = newQuantity * (maxAdults + maxChildren);
-          message.success(
-            `Đã cập nhật số lượng "${roomType.name}" trong booking cart! (Sức chứa loại phòng này: tối đa ${capacity} khách)`
-          );
+          if (showMessage) {
+            const capacity = newQuantity * (maxAdults + maxChildren);
+            message.success(
+              `Đã cập nhật số lượng "${roomType.name}" trong booking cart! (Sức chứa loại phòng này: tối đa ${capacity} khách)`
+            );
+          }
           return updated;
         }
 
@@ -321,10 +325,12 @@ export const BookingCartProvider: React.FC<{ children: ReactNode }> = ({
           maxChildren,
         };
 
-        const capacity = quantity * (maxAdults + maxChildren);
-        message.success(
-          `Đã thêm ${quantity} "${roomType.name}" vào booking cart! (Sức chứa tối đa ${capacity} khách)`
-        );
+        if (showMessage) {
+          const capacity = quantity * (maxAdults + maxChildren);
+          message.success(
+            `Đã thêm ${quantity} "${roomType.name}" vào booking cart! (Sức chứa tối đa ${capacity} khách)`
+          );
+        }
         return [...prev, newSelectedRoomType];
       });
     },
