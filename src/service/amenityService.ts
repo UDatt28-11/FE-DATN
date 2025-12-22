@@ -97,6 +97,14 @@ const amenityService = {
     const response = await axios.post(`${API_URL}/admin/amenities/${id}/restore`);
     return response.data;
   },
+
+  /**
+   * Toggle trạng thái tiện ích (active/inactive)
+   */
+  async toggleStatus(id: number): Promise<AmenityResponse> {
+    const response = await axios.patch(`${API_URL}/admin/amenities/${id}/toggle-status`);
+    return response.data;
+  },
 };
 
 export default amenityService;
