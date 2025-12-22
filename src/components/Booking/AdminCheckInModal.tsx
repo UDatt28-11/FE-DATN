@@ -344,6 +344,11 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                     files_count: files.length,
                     files: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
                 });
+                
+                // Validate: Phải có ít nhất 1 ảnh
+                if (files.length === 0) {
+                    throw new Error(`Khách ${index + 1}: Vui lòng upload ít nhất 1 ảnh giấy tờ`);
+                }
 
                 // Combine day, month, year into date_of_birth
                 let dateOfBirth: string | undefined;
@@ -413,13 +418,41 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 formData.append(`guests[${index}][identity_number]`, guest.identity_number);
                 formData.append(`guests[${index}][booking_detail_id]`, guest.booking_detail_id.toString());
                 
-                // Thêm nhiều ảnh
-                if (guest.identity_images && Array.isArray(guest.identity_images)) {
-                    guest.identity_images.forEach((file: File, imgIndex: number) => {
-                        formData.append(`guests[${index}][identity_images][${imgIndex}]`, file);
+                // Thêm nhiều ảnh - dùng format [] để Laravel nhận được array
+                if (guest.identity_images && Array.isArray(guest.identity_images) && guest.identity_images.length > 0) {
+                    console.log('AdminCheckInModal - Appending identity_images', {
+                        guest_index: index,
+                        files_count: guest.identity_images.length,
                     });
-                } else if (guest.identity_image) {
+                    guest.identity_images.forEach((file: File, fileIndex: number) => {
+                        if (file instanceof File) {
+                            formData.append(`guests[${index}][identity_images][]`, file);
+                            console.log('AdminCheckInModal - Appended file', {
+                                guest_index: index,
+                                file_index: fileIndex,
+                                file_name: file.name,
+                                file_size: file.size,
+                            });
+                        } else {
+                            console.warn('AdminCheckInModal - File is not a File instance', {
+                                guest_index: index,
+                                file_index: fileIndex,
+                                file_type: typeof file,
+                            });
+                        }
+                    });
+                } else if (guest.identity_image && guest.identity_image instanceof File) {
+                    console.log('AdminCheckInModal - Appending single identity_image', {
+                        guest_index: index,
+                        file_name: guest.identity_image.name,
+                    });
                     formData.append(`guests[${index}][identity_image]`, guest.identity_image);
+                } else {
+                    console.warn('AdminCheckInModal - No identity images for guest', {
+                        guest_index: index,
+                        has_identity_images: !!guest.identity_images,
+                        has_identity_image: !!guest.identity_image,
+                    });
                 }
             });
             

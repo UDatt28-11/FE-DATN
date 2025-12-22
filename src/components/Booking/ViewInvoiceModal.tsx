@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  Descriptions,
-  Table,
-  Tag,
-  Space,
-  Typography,
-  Spin,
-  Button,
-  Divider,
-  Row,
-  Col,
-  Image as AntImage,
-} from "antd";
+    Modal,
+    Descriptions,
+    Table,
+    Tag,
+    Space,
+    Typography,
+    Spin,
+    Button,
+    Divider,
+    Row,
+    Col,
+    Image as AntImage,
+} from 'antd';
+
 import {
   FileTextOutlined,
   PrinterOutlined,
@@ -559,108 +560,253 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                 if (checkedInGuestInfo?.full_name) {
                   return checkedInGuestInfo.full_name;
                 }
-                // Ưu tiên 2: Lấy từ bookingOrder.guest (giống viewbooking.tsx)
-                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
-                if (bookingOrder?.guest?.full_name) {
-                  return bookingOrder.guest.full_name;
-                }
-                // Ưu tiên 3: Lấy từ bookingOrder.customer_name
-                if (bookingOrder?.customer_name) {
-                  return bookingOrder.customer_name;
-                }
-                // Ưu tiên 4: Lấy từ invoice.customer_name
-                if (invoice.customer_name) {
-                  return invoice.customer_name;
-                }
-                return "N/A";
-              })()}
-            </Descriptions.Item>
-            <Descriptions.Item label="Email">
-              {(() => {
-                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
-                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
-                console.log('ViewInvoiceModal: Display Email - checkedInGuestInfo:', checkedInGuestInfo);
-                if (checkedInGuestInfo?.email) {
-                  console.log('ViewInvoiceModal: Using email from checkedInGuest:', checkedInGuestInfo.email);
-                  return checkedInGuestInfo.email;
-                }
-                // Ưu tiên 2: bookingOrder.guest.email
-                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
-                if (bookingOrder?.guest?.email) {
-                  console.log('ViewInvoiceModal: Using email from bookingOrder.guest:', bookingOrder.guest.email);
-                  return bookingOrder.guest.email;
-                }
-                // Ưu tiên 3: bookingOrder.customer_email
-                if (bookingOrder?.customer_email) {
-                  console.log('ViewInvoiceModal: Using email from bookingOrder.customer_email:', bookingOrder.customer_email);
-                  return bookingOrder.customer_email;
-                }
-                // Ưu tiên 4: invoice.customer_email
-                if (invoice.customer_email) {
-                  console.log('ViewInvoiceModal: Using email from invoice.customer_email:', invoice.customer_email);
-                  return invoice.customer_email;
-                }
-                console.log('ViewInvoiceModal: No email found, returning N/A');
-                return "N/A";
-              })()}
-            </Descriptions.Item>
-            <Descriptions.Item label="Số điện thoại">
-              {(() => {
-                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
-                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
-                console.log('ViewInvoiceModal: Display Phone - checkedInGuestInfo:', checkedInGuestInfo);
-                if (checkedInGuestInfo?.phone_number) {
-                  console.log('ViewInvoiceModal: Using phone from checkedInGuest:', checkedInGuestInfo.phone_number);
-                  return checkedInGuestInfo.phone_number;
-                }
-                // Ưu tiên 2: bookingOrder.guest.phone_number
-                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
-                if (bookingOrder?.guest?.phone_number) {
-                  console.log('ViewInvoiceModal: Using phone from bookingOrder.guest:', bookingOrder.guest.phone_number);
-                  return bookingOrder.guest.phone_number;
-                }
-                // Ưu tiên 3: bookingOrder.customer_phone
-                if (bookingOrder?.customer_phone) {
-                  console.log('ViewInvoiceModal: Using phone from bookingOrder.customer_phone:', bookingOrder.customer_phone);
-                  return bookingOrder.customer_phone;
-                }
-                // Ưu tiên 4: invoice.customer_phone
-                if (invoice.customer_phone) {
-                  console.log('ViewInvoiceModal: Using phone from invoice.customer_phone:', invoice.customer_phone);
-                  return invoice.customer_phone;
-                }
-                console.log('ViewInvoiceModal: No phone found, returning N/A');
-                return "N/A";
-              })()}
-            </Descriptions.Item>
-          </Descriptions>
 
-          {/* Thông tin hóa đơn */}
-          <Descriptions
-            bordered
-            column={2}
-            size="small"
-            style={{ marginBottom: 24 }}
-          >
-            <Descriptions.Item label="Ngày phát hành">
-              {formatDate(invoice.issue_date)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Hạn thanh toán">
-              {formatDate(invoice.due_date)}
-            </Descriptions.Item>
-            {invoice.booking_order && (
-              <>
-                <Descriptions.Item label="Mã đặt phòng">
-                  <Text strong>
-                    #
-                    {invoice.booking_order.order_code ||
-                      invoice.booking_order.code}
-                  </Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Phương thức thanh toán">
-                  {getDisplayPaymentMethod(invoice)}
-                </Descriptions.Item>
-              </>
+                return (
+                    <Space size="small" wrap>
+                        {images.map((img: any, index: number) => {
+                            const url = typeof img === 'string' ? img : img.image_url;
+                            if (!url) return null;
+                            return (
+                                <AntImage
+                                    key={index}
+                                    src={url}
+                                    width={40}
+                                    height={40}
+                                    style={{ objectFit: 'cover', borderRadius: 4 }}
+                                    preview={{ src: url }}
+                                />
+                            );
+                        })}
+                    </Space>
+                );
+            },
+        },
+    ];
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    return (
+        <Modal
+            title={
+                <Space>
+                    <FileTextOutlined />
+                    <span>Chi tiết hóa đơn</span>
+                </Space>
+            }
+            open={isOpen}
+            onCancel={onCancel}
+            footer={[
+                <Button key="close" onClick={onCancel}>
+                    Đóng
+                </Button>,
+                <Button
+                    key="print"
+                    type="primary"
+                    icon={<PrinterOutlined />}
+                    onClick={handlePrint}
+                    style={{
+                        backgroundColor: '#cb8670',
+                        borderColor: '#cb8670',
+                    }}
+                >
+                    In hóa đơn
+                </Button>,
+            ]}
+            width={900}
+        >
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Spin size="large" />
+                </div>
+            ) : invoice ? (
+                <div style={{ padding: '20px 0' }}>
+                    {/* Header */}
+                    <Row justify="space-between" align="top" style={{ marginBottom: 24 }}>
+                        <Col>
+                            <Title level={3} style={{ margin: 0, color: '#cb8670' }}>
+                                HÓA ĐƠN
+                            </Title>
+                            <Text type="secondary">Số hóa đơn: {invoice.invoice_number || `#${invoice.id}`}</Text>
+                        </Col>
+                        <Col>
+                            {(() => {
+                                const statusKey = getDisplayStatus(invoice);
+                                const cfg = getStatusConfig(statusKey);
+                                return (
+                                    <Tag
+                                        icon={cfg.icon}
+                                        color={cfg.color}
+                                        style={{ fontSize: 14, padding: '4px 12px' }}
+                                    >
+                                        {cfg.text}
+                                    </Tag>
+                                );
+                            })()}
+                        </Col>
+                    </Row>
+
+                    <Divider />
+
+                    {/* Thông tin khách hàng */}
+                    <Descriptions title="Thông tin khách hàng" bordered column={2} size="small" style={{ marginBottom: 24 }}>
+                        <Descriptions.Item label="Tên khách hàng">
+                            {invoice.booking_order?.guest?.full_name || 
+                             invoice.booking_order?.customer_name || 
+                             invoice.customer_name || 
+                             'N/A'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Email">
+                            {invoice.booking_order?.guest?.email || 
+                             invoice.booking_order?.customer_email || 
+                             invoice.customer_email || 
+                             'N/A'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Số điện thoại">
+                            {invoice.booking_order?.guest?.phone_number || 
+                             invoice.booking_order?.customer_phone || 
+                             invoice.customer_phone || 
+                             'N/A'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Địa chỉ">
+                            {invoice.booking_order?.guest?.address || 
+                             invoice.customer_address || 
+                             'N/A'}
+                        </Descriptions.Item>
+                    </Descriptions>
+
+                    {/* Thông tin hóa đơn */}
+                    <Descriptions bordered column={2} size="small" style={{ marginBottom: 24 }}>
+                        <Descriptions.Item label="Ngày phát hành">
+                            {formatDate(invoice.issue_date)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Hạn thanh toán">
+                            {formatDate(invoice.due_date)}
+                        </Descriptions.Item>
+                        {invoice.booking_order && (
+                            <>
+                                <Descriptions.Item label="Mã đặt phòng">
+                                    <Text strong>#{invoice.booking_order.order_code || invoice.booking_order.code}</Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Phương thức thanh toán">
+                                    {getDisplayPaymentMethod(invoice)}
+                                </Descriptions.Item>
+                            </>
+                        )}
+                    </Descriptions>
+
+                    {/* Chi tiết hóa đơn */}
+                    <div style={{ marginBottom: 24 }}>
+                        <Title level={5}>Chi tiết hóa đơn</Title>
+                        <Table
+                            columns={itemColumns}
+                            dataSource={
+                                invoice.items || 
+                                (invoice as any).invoice_items || 
+                                (invoice as any).invoiceItems || 
+                                []
+                            }
+                            rowKey="id"
+                            pagination={false}
+                            size="small"
+                            bordered
+                        />
+                    </div>
+
+                    {/* Tổng tiền */}
+                    <Row justify="end" style={{ marginBottom: 24 }}>
+                        <Col span={12}>
+                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Row justify="space-between">
+                                    <Col>
+                                        <Text>Tạm tính:</Text>
+                                    </Col>
+                                    <Col>
+                                        <Text>{formatVND(invoice.subtotal || invoice.total_amount)}</Text>
+                                    </Col>
+                                </Row>
+                                {invoice.discount_amount > 0 && (
+                                    <Row justify="space-between">
+                                        <Col>
+                                            <Text type="secondary">Giảm giá:</Text>
+                                        </Col>
+                                        <Col>
+                                            <Text type="secondary">-{formatVND(invoice.discount_amount)}</Text>
+                                        </Col>
+                                    </Row>
+                                )}
+                                {invoice.tax_amount > 0 && (
+                                    <Row justify="space-between">
+                                        <Col>
+                                            <Text type="secondary">Thuế ({invoice.tax_rate}%):</Text>
+                                        </Col>
+                                        <Col>
+                                            <Text type="secondary">{formatVND(invoice.tax_amount)}</Text>
+                                        </Col>
+                                    </Row>
+                                )}
+                                <Divider style={{ margin: '8px 0' }} />
+                                <Row justify="space-between">
+                                    <Col>
+                                        <Text strong style={{ fontSize: 16 }}>
+                                            Tổng cộng:
+                                        </Text>
+                                    </Col>
+                                    <Col>
+                                        <Text strong style={{ fontSize: 18, color: '#cb8670' }}>
+                                            {formatVND(invoice.total_amount)}
+                                        </Text>
+                                    </Col>
+                                </Row>
+                                {invoice.paid_amount > 0 && (
+                                    <Row justify="space-between">
+                                        <Col>
+                                            <Text type="secondary">Đã thanh toán:</Text>
+                                        </Col>
+                                        <Col>
+                                            <Text type="success">{formatVND(invoice.paid_amount)}</Text>
+                                        </Col>
+                                    </Row>
+                                )}
+                                {invoice.balance > 0 && (
+                                    <Row justify="space-between">
+                                        <Col>
+                                            <Text strong>Còn lại:</Text>
+                                        </Col>
+                                        <Col>
+                                            <Text strong style={{ color: '#ff4d4f' }}>
+                                                {formatVND(invoice.balance)}
+                                            </Text>
+                                        </Col>
+                                    </Row>
+                                )}
+                            </Space>
+                        </Col>
+                    </Row>
+
+                    {/* Ghi chú */}
+                    {invoice.notes && (
+                        <div style={{ marginTop: 24 }}>
+                            <Text type="secondary">Ghi chú: </Text>
+                            <Text>{invoice.notes}</Text>
+                        </div>
+                    )}
+
+                    {/* Điều khoản */}
+                    {invoice.terms_conditions && (
+                        <div style={{ marginTop: 16 }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                {invoice.terms_conditions}
+                            </Text>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Text type="secondary">Không tìm thấy thông tin hóa đơn</Text>
+                </div>
+
             )}
           </Descriptions>
 

@@ -267,12 +267,13 @@ const MyBookingsPage: React.FC = () => {
                 // ĐANG DÙNG: đang check-in
                 statusFilter = ['checked_in', 'partially_checked_in'];
             } else if (activeTab === 'pending_payment') {
-                // CHỜ THANH TOÁN - Đã checkout nhưng chưa thanh toán đầy đủ
-                statusFilter = ['checked_out', 'partially_checked_out'];
+                // CHỜ THANH TOÁN - CHỈ fetch checked_out, partially_checked_out, và completed (nếu còn hóa đơn chưa thanh toán)
+                // checked_out và partially_checked_out LUÔN ở tab này và LUÔN có nút thanh toán
+                statusFilter = ['checked_out', 'partially_checked_out', 'completed'];
             } else if (activeTab === 'paid') {
-                // ĐÃ THANH TOÁN - Fetch tất cả rồi filter theo payment_status ở frontend
-                // Vì booking đã thanh toán có thể có status: confirmed, checked_out, completed, v.v.
-                statusFilter = undefined;
+                // ĐÃ THANH TOÁN - CHỈ fetch completed (đã hoàn thành và đã thanh toán đầy đủ)
+                // KHÔNG fetch checked_out và partially_checked_out vì chúng LUÔN ở tab "Chờ thanh toán"
+                statusFilter = ['completed'];
             } else if (activeTab === 'cancelled') {
                 statusFilter = ['cancelled'];
             } else if (activeTab === 'all') {
@@ -450,14 +451,28 @@ const MyBookingsPage: React.FC = () => {
         return Array.isArray(invoicesData) ? invoicesData : Object.values(invoicesData);
     };
 
-    // Helper: kiểm tra booking còn hóa đơn có thể thanh toán (giống logic nút "Thanh toán")
-    const hasUnpaidInvoices = (booking: BookingOrder): boolean => {
+    /**
+     * Helper: Kiểm tra booking còn hóa đơn chưa thanh toán
+     * 
+     * Trả về true nếu:
+     * - Có ít nhất 1 invoice với status: 'pending', 'partially_paid', hoặc 'sent'
+     * - Đối với split invoices: chỉ tính nếu phòng đã checkout
+     * 
+     * Trả về false nếu:
+     * - Không có invoice nào
+     * - Tất cả invoices đã thanh toán đầy đủ (status: 'paid')
+     */
+    const hasUnpaidInvoices = React.useCallback((booking: BookingOrder): boolean => {
         const invoicesArray = getInvoicesArray(booking);
-        if (!invoicesArray.length) return false;
+        if (!invoicesArray.length) {
+            console.log('hasUnpaidInvoices: No invoices found for booking', booking.id);
+            return false;
+        }
 
         // Phân loại invoices: split invoices và invoice gốc
         const splitInvoices = invoicesArray.filter((inv: any) => inv.split_from || inv.splitFrom);
         const originalInvoices = invoicesArray.filter((inv: any) => !inv.split_from && !inv.splitFrom);
+
 
         // Nếu có split invoices và đơn có nhiều phòng
         if (splitInvoices.length > 0 && booking.details && booking.details.length > 1) {
@@ -483,60 +498,174 @@ const MyBookingsPage: React.FC = () => {
                     status === 'partially_paid' ||
                     status === 'sent';
 
-                return isDetailCheckedOut && isPayableStatus;
+                const result = isDetailCheckedOut && isPayableStatus;
+                
+                if (result) {
+                    console.log('hasUnpaidInvoices: Found unpaid split invoice', {
+                        invoice_id: inv.id,
+                        invoice_status: status,
+                        detail_status: detailStatus,
+                    });
+                }
+
+                return result;
             });
 
             // Nếu có split invoice chưa thanh toán, trả về true
-            if (hasUnpaidSplitInvoice) return true;
+            if (hasUnpaidSplitInvoice) {
+                console.log('hasUnpaidInvoices: Has unpaid split invoice - returning true');
+                return true;
+            }
+
 
             // Nếu không có split invoice chưa thanh toán, kiểm tra invoice gốc (nếu có)
             // Invoice gốc có thể còn pending nếu chưa được split hoàn toàn
             if (originalInvoices.length > 0) {
-                return originalInvoices.some((inv: any) => {
+                const hasUnpaidOriginal = originalInvoices.some((inv: any) => {
                     const status = inv.payment_status || inv.status || inv.invoice_status;
-                    return (
+                    const isPayable = (
+
                         status === 'pending' ||
                         status === 'partially_paid' ||
                         status === 'sent'
                     );
+                    
+                    if (isPayable) {
+                        console.log('hasUnpaidInvoices: Found unpaid original invoice', {
+                            invoice_id: inv.id,
+                            invoice_status: status,
+                        });
+                    }
+                    
+                    return isPayable;
                 });
+                
+                if (hasUnpaidOriginal) {
+                    console.log('hasUnpaidInvoices: Has unpaid original invoice - returning true');
+                    return true;
+                }
             }
+
+            console.log('hasUnpaidInvoices: No unpaid invoices found - returning false');
 
             return false;
         }
 
         // Đơn 1 phòng (không tách) hoặc chưa tách: bất kỳ invoice nào còn ở trạng thái chờ thanh toán
-        return invoicesArray.some((inv: any) => {
+        const hasUnpaid = invoicesArray.some((inv: any) => {
             const status = inv.payment_status || inv.status || inv.invoice_status;
-            return (
+            const isPayable = (
                 status === 'pending' ||
                 status === 'partially_paid' ||
                 status === 'sent'
             );
+            
+            if (isPayable) {
+                console.log('hasUnpaidInvoices: Found unpaid invoice (single room)', {
+                    invoice_id: inv.id,
+                    invoice_status: status,
+                });
+            }
+            
+            return isPayable;
         });
-    };
+        
+        console.log('hasUnpaidInvoices: Single room check - returning', hasUnpaid);
+        return hasUnpaid;
+    }, []);
 
-    // Filter bookings dựa trên trạng thái và hóa đơn (ưu tiên dùng thông tin invoice)
+    /**
+     * LOGIC PHÂN LOẠI BOOKING CHO TỪNG TAB:
+     * 
+     * 1. "ĐÃ ĐẶT" (booked):
+     *    - Status: 'pending' hoặc 'confirmed'
+     *    - Đã thanh toán cọc (payment_status: 'partial' hoặc 'paid', hoặc paid_amount > 0)
+     *    - Chưa check-in (chưa có status 'checked_in' hoặc 'checked_out')
+     *    - Không bị hủy
+     * 
+     * 2. "ĐANG SỬ DỤNG" (in_use):
+     *    - Status: 'checked_in' hoặc 'partially_checked_in'
+     *    - Đang ở trong phòng
+     * 
+     * 3. "CHỜ THANH TOÁN" (pending_payment):
+     *    - Status: 'checked_out', 'partially_checked_out' (LUÔN ở đây, LUÔN có nút thanh toán)
+     *    - Status: 'completed' (chỉ ở đây nếu còn hóa đơn chưa thanh toán)
+     *    - Không bị hủy
+     *    → Hiển thị nút "Thanh toán"
+     * 
+     * 4. "ĐÃ THANH TOÁN" (paid):
+     *    - Status: 'completed' (CHỈ status này)
+     *    - Không còn hóa đơn nào chưa thanh toán (hasUnpaidInvoices === false)
+     *    - Không bị hủy
+     *    → Hiển thị nút "Đánh giá"
+     *    - KHÔNG bao gồm 'checked_out' và 'partially_checked_out' (chúng LUÔN ở tab "Chờ thanh toán")
+     * 
+     * 5. "ĐÃ HỦY" (cancelled):
+     *    - Status: 'cancelled'
+     */
     const filteredBookings = React.useMemo(() => {
         if (activeTab === 'booked') {
-            // ĐÃ ĐẶT: đơn đã thanh toán cọc/đủ nhưng chưa check-in (pending/confirmed), không bị hủy
+            // ĐÃ ĐẶT: CHỈ đơn chưa check-in (pending/confirmed), không bị hủy
+
             return bookings.filter((booking) => {
                 // Loại trừ booking đã hủy
                 if (booking.status === 'cancelled') return false;
                 
+
                 const isPendingOrConfirmed = booking.status === 'pending' || booking.status === 'confirmed';
+                if (!isPendingOrConfirmed) {
+                    // Log để debug nếu có booking không đúng status
+                    console.warn('Booking filtered out from "booked" tab - wrong status:', {
+                        booking_id: booking.id,
+                        status: booking.status,
+                        expected: ['pending', 'confirmed'],
+                    });
+                    return false;
+                }
+                
                 // Đã thanh toán cọc (có thể partial hoặc paid) - không cần kiểm tra invoice vì đây là booking mới chưa checkout
                 // Kiểm tra payment_status hoặc paid_amount > 0 để đảm bảo đã có thanh toán
                 const hasPaidDeposit = (booking.payment_status === 'partial' || booking.payment_status === 'paid') || 
                                       (booking.paid_amount && booking.paid_amount > 0);
-                return isPendingOrConfirmed && hasPaidDeposit;
+                return hasPaidDeposit;
             });
         } else if (activeTab === 'pending_payment') {
-            // CHỜ THANH TOÁN: đã checkout (toàn phần hoặc một phần) và vẫn còn ít nhất 1 hóa đơn chưa thanh toán hết, không bị hủy
+            // CHỜ THANH TOÁN: 
+            // - checked_out và partially_checked_out LUÔN ở đây (không cần kiểm tra invoice)
+            // - completed chỉ ở đây nếu còn hóa đơn chưa thanh toán
+
             return bookings.filter((booking) => {
                 // Loại trừ booking đã hủy
                 if (booking.status === 'cancelled') return false;
                 
+                // checked_out và partially_checked_out LUÔN ở tab này (LUÔN có nút thanh toán)
+                if (booking.status === 'checked_out' || booking.status === 'partially_checked_out') {
+                    return true;
+                }
+                
+                // completed chỉ ở đây nếu còn hóa đơn chưa thanh toán
+                if (booking.status === 'completed') {
+                    const hasUnpaid = hasUnpaidInvoices(booking);
+                    if (!hasUnpaid) {
+                        console.warn('Booking filtered out from "pending_payment" tab - completed but no unpaid invoices:', {
+                            booking_id: booking.id,
+                            status: booking.status,
+                        });
+                    }
+                    return hasUnpaid;
+                }
+                
+                // Loại trừ tất cả status khác
+                console.warn('Booking filtered out from "pending_payment" tab - wrong status:', {
+                    booking_id: booking.id,
+                    status: booking.status,
+                    expected: ['checked_out', 'partially_checked_out', 'completed'],
+                });
+                return false;
+            });
+        } else if (activeTab === 'paid') {
+            // ĐÃ THANH TOÁN: CHỈ completed và không còn hóa đơn nào chưa thanh toán, không bị hủy
+            // KHÔNG bao gồm checked_out và partially_checked_out (chúng LUÔN ở tab "Chờ thanh toán")
                 const isCheckedOut =
                     booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed';
                 const hasUnpaid = hasUnpaidInvoices(booking);
@@ -548,16 +677,25 @@ const MyBookingsPage: React.FC = () => {
                 // Loại trừ booking đã hủy
                 if (booking.status === 'cancelled') return false;
                 
-                // Chỉ hiển thị booking đã checkout (không phải booking chưa check-in)
-                const isCheckedOut = 
-                    booking.status === 'checked_out' || 
-                    booking.status === 'partially_checked_out' || 
-                    booking.status === 'completed';
+                // CHỈ chấp nhận completed
+                if (booking.status !== 'completed') {
+                    console.warn('Booking filtered out from "paid" tab - wrong status:', {
+                        booking_id: booking.id,
+                        status: booking.status,
+                        expected: ['completed'],
+                    });
+                    return false;
+                }
                 
-                if (!isCheckedOut) return false;
-                
-                // Không còn hóa đơn nào chưa thanh toán
+                // PHẢI không còn hóa đơn nào chưa thanh toán
                 const hasUnpaid = hasUnpaidInvoices(booking);
+                if (hasUnpaid) {
+                    console.warn('Booking filtered out from "paid" tab - completed but still has unpaid invoices:', {
+                        booking_id: booking.id,
+                        status: booking.status,
+                    });
+                }
+
                 return !hasUnpaid;
             });
         } else if (activeTab === 'cancelled') {
@@ -565,7 +703,7 @@ const MyBookingsPage: React.FC = () => {
             return bookings.filter((booking) => booking.status === 'cancelled');
         }
         return bookings; // Các tab khác giữ nguyên
-    }, [bookings, activeTab]);
+    }, [bookings, activeTab, hasUnpaidInvoices]);
 
     // Tính số tiền còn phải thanh toán
     const calculateRemainingAmount = (booking: BookingOrder): number => {
@@ -733,9 +871,15 @@ const MyBookingsPage: React.FC = () => {
                                     >
                                         Xem chi tiết
                                     </Button>
-                                    {/* Nút "Thanh toán" chỉ hiển thị khi đã checkout và còn invoice chưa thanh toán */}
-                                    {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') &&
-                                        hasUnpaidInvoices(booking) && (
+                                    {/* 
+                                        NÚT "THANH TOÁN":
+                                        - checked_out và partially_checked_out: LUÔN hiển thị nút (không cần kiểm tra invoice)
+                                        - completed: chỉ hiển thị nếu còn hóa đơn chưa thanh toán
+                                        - Booking này sẽ xuất hiện trong tab "Chờ thanh toán"
+                                    */}
+                                    {((booking.status === 'checked_out' || booking.status === 'partially_checked_out') ||
+                                        (booking.status === 'completed' && hasUnpaidInvoices(booking))) && (
+
                                             <Button
                                                 type="primary"
                                                 icon={<DollarOutlined />}
@@ -832,13 +976,15 @@ const MyBookingsPage: React.FC = () => {
                                                 Thanh toán
                                             </Button>
                                         )}
-                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị khi:
-                                        - Booking đã checkout (tránh trường hợp mới check-in đã được đánh giá)
-                                        - Không còn invoice nào chưa thanh toán (đã thanh toán đầy đủ)
-                                        - Không bị hủy */}
-                                    {(booking.status === 'checked_out' 
-                                        || booking.status === 'partially_checked_out' 
-                                        || booking.status === 'completed')
+                                    {/* 
+                                        NÚT "ĐÁNH GIÁ" / "XEM ĐÁNH GIÁ":
+                                        - CHỈ hiển thị khi booking có status 'completed'
+                                        - VÀ không còn hóa đơn nào chưa thanh toán (hasUnpaidInvoices === false)
+                                        - VÀ không bị hủy
+                                        - Booking này sẽ xuất hiện trong tab "Đã thanh toán"
+                                    */}
+                                    {booking.status === 'completed'
+
                                         && !hasUnpaidInvoices(booking)
                                         && booking.status !== 'cancelled'
                                         && booking.details 
@@ -1013,10 +1159,19 @@ const MyBookingsPage: React.FC = () => {
                                     // Loại trừ booking đã hủy
                                     if (b.status === 'cancelled') return false;
                                     
-                                    const isCheckedOut =
-                                        b.status === 'checked_out' || b.status === 'partially_checked_out' || b.status === 'completed';
-                                    const hasUnpaid = hasUnpaidInvoices(b as any);
-                                    return isCheckedOut && hasUnpaid;
+                                    // checked_out và partially_checked_out LUÔN ở tab này (không cần kiểm tra invoice)
+                                    if (b.status === 'checked_out' || b.status === 'partially_checked_out') {
+                                        return true;
+                                    }
+                                    
+                                    // completed chỉ ở đây nếu còn hóa đơn chưa thanh toán
+                                    if (b.status === 'completed') {
+                                        const hasUnpaid = hasUnpaidInvoices(b as any);
+                                        return hasUnpaid;
+                                    }
+                                    
+                                    return false;
+
                                 }).length})`,
                             },
                             {
@@ -1025,13 +1180,11 @@ const MyBookingsPage: React.FC = () => {
                                     // Loại trừ booking đã hủy
                                     if (b.status === 'cancelled') return false;
                                     
-                                    // Chỉ tính booking đã checkout
-                                    const isCheckedOut = 
-                                        b.status === 'checked_out' || 
-                                        b.status === 'partially_checked_out' || 
-                                        b.status === 'completed';
-                                    
-                                    if (!isCheckedOut) return false;
+                                    // CHỈ completed và không còn hóa đơn nào chưa thanh toán
+                                    if (b.status !== 'completed') {
+                                        return false;
+                                    }
+
                                     
                                     // Không còn hóa đơn nào chưa thanh toán
                                     const hasUnpaid = hasUnpaidInvoices(b as any);
