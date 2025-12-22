@@ -664,14 +664,6 @@ const MyBookingsPage: React.FC = () => {
                 return false;
             });
         } else if (activeTab === 'paid') {
-            // ĐÃ THANH TOÁN: CHỈ completed và không còn hóa đơn nào chưa thanh toán, không bị hủy
-            // KHÔNG bao gồm checked_out và partially_checked_out (chúng LUÔN ở tab "Chờ thanh toán")
-                const isCheckedOut =
-                    booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed';
-                const hasUnpaid = hasUnpaidInvoices(booking);
-                return isCheckedOut && hasUnpaid;
-            });
-        } else if (activeTab === 'paid') {
             // ĐÃ THANH TOÁN: đã checkout và không còn hóa đơn nào chưa thanh toán, không bị hủy
             return bookings.filter((booking) => {
                 // Loại trừ booking đã hủy
