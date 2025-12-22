@@ -5,7 +5,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 interface GetServicesParams {
   property_id?: number;
-  room_type_id?: number;
   search?: string;
   page?: number;
   per_page?: number;
@@ -34,10 +33,10 @@ const serviceService = {
    * GET /admin/services hoặc /services
    * Lấy danh sách tất cả dịch vụ
    */
-  async getAll(params?: { property_id?: number; room_type_id?: number }): Promise<Service[]> {
+  async getAll(params?: { property_id?: number }): Promise<Service[]> {
     try {
-      // Ưu tiên gọi public route (không cần authentication)
-      const res = await api.get("/services", { 
+      // Thử gọi admin route trước (nếu user là admin)
+      const res = await api.get("/admin/services", { 
         params: {
           ...params,
           per_page: 100, // Lấy tất cả services (tối đa 100)
@@ -70,10 +69,10 @@ const serviceService = {
       return [];
     } catch (error: any) {
       console.error('Error fetching services:', error);
-      // Nếu public route fail, thử admin route (nếu user là admin)
-      if (error.response?.status === 404 || error.response?.status === 500) {
+      // Nếu admin route fail, thử public route
+      if (error.response?.status === 403 || error.response?.status === 401) {
         try {
-          const res = await api.get("/admin/services", { 
+          const res = await api.get("/services", { 
             params: {
               ...params,
               per_page: 100,
@@ -84,9 +83,9 @@ const serviceService = {
             return data;
           }
           return [];
-        } catch (adminError: any) {
-          console.error('Error fetching services from admin route:', adminError);
-          throw adminError;
+        } catch (publicError: any) {
+          console.error('Error fetching services from public route:', publicError);
+          throw publicError;
         }
       }
       throw error;
@@ -137,6 +136,7 @@ const serviceService = {
     const response = await api.delete(`${API_URL}/admin/services/${id}`);
     return response.data;
   },
+
 
   /**
    * PATCH /admin/services/{id}/status

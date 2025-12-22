@@ -18,8 +18,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   ShoppingOutlined,
-  EyeInvisibleOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import axios from "../../../service/axiosConfig";
@@ -78,8 +76,7 @@ const ListService: React.FC = () => {
         property_id: propertyId,
       });
       if (response.success) {
-        const servicesData = Array.isArray(response.data) ? response.data : [];
-        setServices(servicesData);
+        setServices(Array.isArray(response.data) ? response.data : []);
         if (response.meta?.pagination) {
           setPagination({
             current: response.meta.pagination.current_page,
@@ -89,7 +86,6 @@ const ListService: React.FC = () => {
         }
       }
     } catch (error: any) {
-      console.error('Error loading services:', error);
       toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tải danh sách dịch vụ");
     } finally {
       setLoading(false);
@@ -100,67 +96,25 @@ const ListService: React.FC = () => {
     loadServices(1, searchText, propertyFilter);
   }, [searchText, propertyFilter, pageSize]);
 
-  // Ẩn service (chuyển trạng thái thành disabled)
-  const handleHideService = async (service: Service) => {
+  // Xóa service
+  const handleDeleteService = async (service: Service) => {
     Modal.confirm({
-      title: "Ẩn dịch vụ",
-      content: `Bạn có chắc muốn ẩn dịch vụ "${service.name}"? Dịch vụ sẽ không hiển thị cho khách hàng.`,
-      okText: "Ẩn",
+      title: "Xóa dịch vụ",
+      content: `Bạn có chắc muốn xóa dịch vụ "${service.name}"?`,
+      okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
       async onOk() {
         try {
-          const response = await serviceService.updateStatus(service.id, 'disabled');
+          const response = await serviceService.deleteService(service.id);
           if (response.success) {
-            toast.success(`Đã ẩn dịch vụ "${service.name}"`);
-            // Cập nhật trực tiếp trong state
-            setServices(prevServices => 
-              prevServices.map(s => 
-                s.id === service.id ? { ...s, status: 'disabled' as const } : s
-              )
-            );
-            // Reload để đảm bảo data đồng bộ với server
+            toast.success(`Đã xóa dịch vụ "${service.name}"`);
             loadServices(pagination.current, searchText, propertyFilter);
           } else {
-            toast.error(response.message || "Có lỗi xảy ra khi ẩn dịch vụ");
+            toast.error(response.message || "Có lỗi xảy ra khi xóa");
           }
         } catch (error: any) {
-          console.error('Error hiding service:', error);
-          const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi ẩn dịch vụ";
-          toast.error(errorMessage);
-        }
-      },
-    });
-  };
-
-  // Bỏ ẩn service (chuyển trạng thái thành active)
-  const handleUnhideService = async (service: Service) => {
-    Modal.confirm({
-      title: "Bỏ ẩn dịch vụ",
-      content: `Bạn có chắc muốn bỏ ẩn dịch vụ "${service.name}"? Dịch vụ sẽ hiển thị lại cho khách hàng.`,
-      okText: "Bỏ ẩn",
-      okType: "primary",
-      cancelText: "Hủy",
-      async onOk() {
-        try {
-          const response = await serviceService.updateStatus(service.id, 'active');
-          if (response.success) {
-            toast.success(`Đã bỏ ẩn dịch vụ "${service.name}"`);
-            // Cập nhật trực tiếp trong state
-            setServices(prevServices => 
-              prevServices.map(s => 
-                s.id === service.id ? { ...s, status: 'active' as const } : s
-              )
-            );
-            // Reload để đảm bảo data đồng bộ với server
-            loadServices(pagination.current, searchText, propertyFilter);
-          } else {
-            toast.error(response.message || "Có lỗi xảy ra khi bỏ ẩn dịch vụ");
-          }
-        } catch (error: any) {
-          console.error('Error unhiding service:', error);
-          const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi bỏ ẩn dịch vụ";
-          toast.error(errorMessage);
+          toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
         }
       },
     });
@@ -207,19 +161,6 @@ const ListService: React.FC = () => {
       render: (unit: string) => <Tag>{unit}</Tag>,
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status?: string) => {
-        const isActive = status === 'active' || !status; // Mặc định là active nếu không có status
-        return (
-          <Tag color={isActive ? 'green' : 'red'}>
-            {isActive ? 'Active' : 'Disabled'}
-          </Tag>
-        );
-      },
-    },
-    {
       title: "Ngày tạo",
       dataIndex: "created_at",
       key: "created_at",
@@ -229,39 +170,26 @@ const ListService: React.FC = () => {
       title: "Thao tác",
       key: "actions",
       width: 150,
-      render: (_, record) => {
-        const isActive = record.status === 'active' || !record.status;
-        return (
-          <Space>
-            <Tooltip title="Chỉnh sửa">
-              <Button
-                onClick={() => {
-                  setSelectedService(record);
-                  setEditModalVisible(true);
-                }}
-                icon={<EditOutlined />}
-              />
-            </Tooltip>
-            {isActive ? (
-              <Tooltip title="Ẩn">
-                <Button
-                  danger
-                  onClick={() => handleHideService(record)}
-                  icon={<EyeInvisibleOutlined />}
-                />
-              </Tooltip>
-            ) : (
-              <Tooltip title="Bỏ ẩn">
-                <Button
-                  type="primary"
-                  onClick={() => handleUnhideService(record)}
-                  icon={<EyeOutlined />}
-                />
-              </Tooltip>
-            )}
-          </Space>
-        );
-      },
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Button
+              onClick={() => {
+                setSelectedService(record);
+                setEditModalVisible(true);
+              }}
+              icon={<EditOutlined />}
+            />
+          </Tooltip>
+          <Tooltip title="Xóa">
+            <Button
+              danger
+              onClick={() => handleDeleteService(record)}
+              icon={<DeleteOutlined />}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
   ];
 
