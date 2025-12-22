@@ -38,7 +38,6 @@ import AddUser from "../pages/Admin/quanlinguoidung/AddUser";
 import EditUser from "../pages/Admin/quanlinguoidung/EditUser";
 import BlockedUsers from "../pages/Admin/quanlinguoidung/BlockedUsers";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
-import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
 // Invoice pages đã được gộp vào quản lý đặt phòng
 // import ListInvoice from "../pages/Admin/quanlihoadon/listInvoice";
 // import ViewInvoice from "../pages/Admin/quanlihoadon/viewInvoice";
@@ -151,9 +150,6 @@ export const adminRoutes: RouteObject[] = [
       // Quản lý mã giảm giá (Admin + Staff)
       // Quản lý đánh giá (Admin + Staff)
       { path: "review", element: <ListReview /> },
-
-      // Quản lý bình luận (Admin + Staff)
-      { path: "message", element: <ListMessage /> },
 
       // Quản lý hóa đơn đã được gộp vào quản lý đặt phòng
       // Xem hóa đơn trong booking/view/:id
