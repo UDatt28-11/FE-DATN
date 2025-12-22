@@ -37,9 +37,6 @@ import ListUser from "../pages/Admin/quanlinguoidung/ListUser";
 import AddUser from "../pages/Admin/quanlinguoidung/AddUser";
 import EditUser from "../pages/Admin/quanlinguoidung/EditUser";
 import BlockedUsers from "../pages/Admin/quanlinguoidung/BlockedUsers";
-import ListPromotion from "../pages/Admin/quanlimagiamgia/listPromotion";
-import AddPromotion from "../pages/Admin/quanlimagiamgia/addPromotion";
-import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
 // Invoice pages đã được gộp vào quản lý đặt phòng
@@ -54,8 +51,6 @@ import ViewSupply from "../pages/Admin/quanlivattu/viewsupply";
 import SupplyLogs from "../pages/Admin/quanlivattu/supplyLogs";
 import ListCheckInRequests from "../pages/Admin/quanlidatphong/listCheckInRequests";
 import ListCheckoutRequests from "../pages/Admin/quanlidatphong/listCheckoutRequests";
-import ListServiceRequests from "../pages/Admin/quanlidatphong/listServiceRequests";
-import ListAmenityRequests from "../pages/Admin/quanlidatphong/listAmenityRequests";
 import ListService from "../pages/Admin/quanlidichvu/ListService";
 
 // Quản lý voucher
@@ -152,10 +147,6 @@ export const adminRoutes: RouteObject[] = [
       },
 
       // Quản lý mã giảm giá (Admin + Staff)
-      { path: "promotion", element: <ListPromotion /> },
-      { path: "promotion/add", element: <AddPromotion /> },
-      { path: "promotion/edit/:id", element: <EditPromotion /> },
-
       // Quản lý đánh giá (Admin + Staff)
       { path: "review", element: <ListReview /> },
 

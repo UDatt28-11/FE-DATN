@@ -5,29 +5,33 @@ import {
   Space,
   Input,
   Button,
-  Switch,
-  message,
-  Modal,
   Tooltip,
   Image,
   Tag,
   Spin,
+  DatePicker,
+  Modal,
+  Tabs,
   Select,
 } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
+  HomeOutlined,
+  CalendarOutlined,
   EditOutlined,
   DeleteOutlined,
-  HomeOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import type { Dayjs } from "dayjs";
 
 import type { Room } from "../../../types/room/room";
 import roomService from "../../../service/roomService";
+import roomtypeService from "../../../service/roomtypeService";
+import type { RoomType } from "../../../types/roomtype/roomtype";
 
 import AddRoom from "./addroom";
 import EditRoom from "./editroom";
@@ -35,6 +39,7 @@ import EditRoom from "./editroom";
 const ListRoom: React.FC = () => {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]); // Lưu tất cả phòng khi filter theo tab
   const [loading, setLoading] = useState<boolean>(false);
   const [searchText, setSearchText] = useState("");
   const [pageSize, setPageSize] = useState<number>(15);
@@ -43,39 +48,116 @@ const ListRoom: React.FC = () => {
     total: 0,
     pageSize: 15,
   });
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [verificationFilter, setVerificationFilter] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<string>("all"); // "available", "occupied", "all"
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [roomTypeFilter, setRoomTypeFilter] = useState<number | undefined>(undefined);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Load rooms
-  const loadRooms = async (page = 1, search = "", status?: string, verification?: string, perPage?: number) => {
+  // Load danh sách loại phòng
+  const loadRoomTypes = async () => {
+    try {
+      const response = await roomtypeService.getRoomTypes({
+        per_page: 100,
+        status: 'active',
+      });
+      if (response.success && response.data) {
+        setRoomTypes(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (error) {
+      console.error("Error loading room types:", error);
+    }
+  };
+
+  // Load tất cả phòng (load nhiều lần, mỗi lần 100)
+  const loadAllRooms = async (search = "", checkDate?: Dayjs | null, roomTypeId?: number) => {
     setLoading(true);
     try {
-      const response = await roomService.getRooms({
+      const allRoomsData: Room[] = [];
+      let currentPage = 1;
+      let hasMore = true;
+      const perPage = 100; // Backend chỉ cho phép tối đa 100
+
+      while (hasMore) {
+        const params: any = {
+          page: currentPage,
+          per_page: perPage,
+          search: search || undefined,
+          room_type_id: roomTypeId,
+        };
+        
+        // Nếu có chọn ngày, thêm check_in parameter
+        if (checkDate) {
+          const dateStr = checkDate.format('YYYY-MM-DD');
+          params.check_in = dateStr;
+          params.check_out = dateStr;
+        }
+        
+        const response = await roomService.getRooms(params);
+        
+        if (response && response.success) {
+          const roomsData = Array.isArray(response.data) ? response.data : [];
+          allRoomsData.push(...roomsData);
+          
+          // Kiểm tra xem còn trang nào không
+          if (response.meta?.pagination) {
+            const totalPages = response.meta.pagination.last_page;
+            hasMore = currentPage < totalPages;
+            currentPage++;
+          } else {
+            // Nếu không có pagination info, dừng nếu không có dữ liệu
+            hasMore = roomsData.length === perPage;
+            currentPage++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      setAllRooms(allRoomsData);
+    } catch (error: any) {
+      console.error('Error loading all rooms:', error);
+      const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi tải danh sách phòng";
+      toast.error(errorMessage);
+      setAllRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load rooms
+  const loadRooms = async (page = 1, search = "", perPage?: number, checkDate?: Dayjs | null, loadAll = false, roomTypeId?: number) => {
+    if (loadAll) {
+      // Load tất cả phòng bằng cách gọi nhiều lần
+      await loadAllRooms(search, checkDate, roomTypeId);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const params: any = {
         page,
         per_page: perPage || pageSize,
         search: search || undefined,
-        status: status as any,
-        verification_status: verification as any,
-      });
-      // Kiểm tra nếu response là HTML (ngrok warning page)
-      if (typeof response === 'string' && response.includes('<!DOCTYPE html>')) {
-        console.error('Ngrok warning page detected in response');
-        toast.error('Lỗi kết nối: Ngrok đang chặn request. Vui lòng kiểm tra cấu hình.');
-        setRooms([]);
-        return;
+        room_type_id: roomTypeId,
+      };
+      
+      // Nếu có chọn ngày, thêm check_in parameter (dùng cùng ngày cho check_in và check_out)
+      if (checkDate) {
+        const dateStr = checkDate.format('YYYY-MM-DD');
+        params.check_in = dateStr;
+        params.check_out = dateStr;
       }
+      
+      const response = await roomService.getRooms(params);
 
       console.log('Rooms API Response:', response);
       if (response && response.success) {
         const roomsData = Array.isArray(response.data) ? response.data : [];
-        // Debug: Log first room to check structure
-        if (roomsData.length > 0) {
-          console.log('First room data:', roomsData[0]);
-          console.log('First room roomType:', roomsData[0]?.roomType);
-        }
+        
+        // Dùng pagination từ backend
         setRooms(roomsData);
         if (response.meta?.pagination) {
           setPagination({
@@ -92,7 +174,7 @@ const ListRoom: React.FC = () => {
         }
       } else {
         console.error('API returned success=false or invalid response:', response);
-        toast.error(response?.message || "Không thể tải danh sách phòng");
+        toast.error("Không thể tải danh sách phòng");
         setRooms([]);
       }
     } catch (error: any) {
@@ -105,11 +187,24 @@ const ListRoom: React.FC = () => {
     }
   };
 
+  // Load room types khi component mount
   useEffect(() => {
-    loadRooms(1, searchText, statusFilter, verificationFilter, pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText, statusFilter, verificationFilter, pageSize]);
+    loadRoomTypes();
+  }, []);
 
+  // Load rooms khi thay đổi search, pageSize, selectedDate, activeTab, hoặc roomTypeFilter
+  useEffect(() => {
+    // Nếu filter theo tab (không phải "all"), load tất cả phòng để filter ở frontend
+    if (activeTab !== "all") {
+      loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
+    } else {
+      // Nếu tab "all", dùng pagination từ backend
+      loadRooms(1, searchText, pageSize, selectedDate, false, roomTypeFilter);
+    }
+    // Reset về page 1 khi thay đổi filter
+    setPagination(prev => ({ ...prev, current: 1 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, pageSize, selectedDate, activeTab, roomTypeFilter]);
 
   // Xóa room
   const handleDeleteRoom = async (room: Room) => {
@@ -124,7 +219,12 @@ const ListRoom: React.FC = () => {
           const response = await roomService.deleteRoom(room.id);
           if (response.success) {
             toast.success(`Đã xóa phòng "${room.name}"`);
-            loadRooms(pagination.current, searchText, statusFilter, verificationFilter, pageSize);
+            // Reload dựa trên tab hiện tại
+            if (activeTab !== "all") {
+              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
+            } else {
+              loadRooms(pagination.current, searchText, pageSize, selectedDate, false, roomTypeFilter);
+            }
           } else {
             toast.error(response.message || "Có lỗi xảy ra khi xóa");
           }
@@ -135,18 +235,48 @@ const ListRoom: React.FC = () => {
     });
   };
 
-  // Cập nhật trạng thái
-  const handleStatusChange = async (room: Room, checked: boolean) => {
-    try {
-      const newStatus = checked ? 'available' : 'maintenance';
-      const response = await roomService.updateStatus(room.id, newStatus);
-      if (response.success) {
-        toast.success(`Đã cập nhật trạng thái phòng`);
-        loadRooms(pagination.current, searchText, statusFilter, verificationFilter, pageSize);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật");
+  // Lấy trạng thái phòng dựa trên booking detail
+  const getRoomAvailabilityStatus = (room: Room): { status: 'available' | 'occupied' | 'maintenance'; bookingInfo?: any } => {
+    // Nếu phòng đang maintenance, trả về luôn
+    if (room.status === 'maintenance') {
+      return { status: 'maintenance' };
     }
+    
+    // Nếu có selectedDate, kiểm tra booking detail để xác định trạng thái thực tế
+    if (selectedDate && (room as any).booking_details) {
+      const bookingDetails = (room as any).booking_details || [];
+      const dateStr = selectedDate.format('YYYY-MM-DD');
+      
+      // Tìm booking detail có ngày check_in <= selectedDate <= check_out và status = checked_in hoặc confirmed
+      const activeBooking = bookingDetails.find((bd: any) => {
+        const checkIn = bd.check_in_date;
+        const checkOut = bd.check_out_date;
+        const status = bd.status;
+        
+        return checkIn && checkOut && 
+               checkIn <= dateStr && 
+               dateStr <= checkOut && 
+               (status === 'checked_in' || status === 'confirmed');
+      });
+      
+      if (activeBooking) {
+        return { 
+          status: 'occupied',
+          bookingInfo: activeBooking
+        };
+      }
+      
+      // Nếu không có booking active trong ngày đã chọn, phòng trống
+      return { status: 'available' };
+    }
+    
+    // Nếu không có selectedDate, dùng trạng thái từ room.status
+    if (room.status === 'occupied') {
+      return { status: 'occupied' };
+    }
+    
+    // Mặc định là available
+    return { status: 'available' };
   };
 
   // Cấu hình phân trang
@@ -159,10 +289,16 @@ const ListRoom: React.FC = () => {
     onShowSizeChange: (_, size) => {
       setPageSize(size);
       setPagination({ ...pagination, pageSize: size, current: 1 });
-      loadRooms(1, searchText, statusFilter, verificationFilter, size);
+      // useEffect sẽ tự động gọi loadRooms
     },
     onChange: (page) => {
-      loadRooms(page, searchText, statusFilter, verificationFilter, pageSize);
+      if (activeTab === "all") {
+        // Tab "all" cần gọi API với page mới
+        loadRooms(page, searchText, pageSize, selectedDate, false, roomTypeFilter);
+      } else {
+        // Tab filter chỉ cần cập nhật state, không cần gọi API
+        setPagination(prev => ({ ...prev, current: page }));
+      }
     },
     showTotal: (total) => `Tổng ${total} phòng`,
   };
@@ -201,14 +337,6 @@ const ListRoom: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: "Property",
-      dataIndex: "property",
-      key: "property",
-      width: 120,
-      ellipsis: true,
-      render: (property: Room["property"]) => property?.name || "-",
-    },
-    {
       title: "Loại phòng",
       dataIndex: "roomType",
       key: "roomType",
@@ -221,64 +349,32 @@ const ListRoom: React.FC = () => {
       },
     },
     {
-      title: "Giá/đêm",
-      dataIndex: "price_per_night",
-      key: "price_per_night",
-      width: 110,
-      render: (price: number) => (
-        <span style={{ whiteSpace: 'nowrap' }}>
-          {price?.toLocaleString('vi-VN') || "0"} ₫
-        </span>
-      ),
-    },
-    {
-      title: "Sức chứa",
-      key: "capacity",
-      width: 120,
-      render: (_, record) => (
-        <span style={{ fontSize: '12px' }}>
-          {record.max_adults} người lớn<br />
-          {record.max_children} trẻ em
-        </span>
-      ),
-    },
-    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 130,
-      render: (status: string, record: Room) => {
+      width: 180,
+      render: (_: string, record: Room) => {
+        // Lấy trạng thái thực tế dựa trên booking detail nếu có chọn ngày
+        const availability = getRoomAvailabilityStatus(record);
+        const actualStatus = availability.status;
+        
         const statusMap: Record<string, { color: string; text: string }> = {
-          available: { color: "success", text: "Có sẵn" },
+          available: { color: "success", text: "Trống" },
           maintenance: { color: "warning", text: "Bảo trì" },
-          occupied: { color: "error", text: "Đã thuê" },
+          occupied: { color: "error", text: "Đang sử dụng" },
         };
-        const statusInfo = statusMap[status] || { color: "default", text: status };
+        const statusInfo = statusMap[actualStatus] || { color: "default", text: actualStatus };
+        
         return (
-          <Space direction="vertical" size={4}>
-            <Tag color={statusInfo.color} style={{ margin: 0 }}>{statusInfo.text}</Tag>
-            <Switch
-              checked={status === "available"}
-              onChange={(checked) => handleStatusChange(record, checked)}
-              size="small"
-            />
-          </Space>
+          <Tag color={statusInfo.color} style={{ margin: 0 }}>
+            {statusInfo.text}
+            {availability.bookingInfo && (
+              <Tooltip title={`Booking ID: ${availability.bookingInfo.booking_order_id || 'N/A'}`}>
+                <span style={{ marginLeft: 4 }}>📋</span>
+              </Tooltip>
+            )}
+          </Tag>
         );
-      },
-    },
-    {
-      title: "Xác minh",
-      dataIndex: "verification_status",
-      key: "verification_status",
-      width: 100,
-      render: (status?: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          verified: { color: "success", text: "Đã xác minh" },
-          pending: { color: "warning", text: "Chờ xác minh" },
-          rejected: { color: "error", text: "Từ chối" },
-        };
-        const statusInfo = status ? statusMap[status] : { color: "default", text: "N/A" };
-        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
       },
     },
     {
@@ -339,6 +435,16 @@ const ListRoom: React.FC = () => {
       }
       extra={
         <Space>
+          <DatePicker
+            placeholder="Lọc theo ngày"
+            value={selectedDate}
+            onChange={(date) => setSelectedDate(date)}
+            format="DD/MM/YYYY"
+            allowClear
+            style={{ width: 180 }}
+            prefixCls="ant-picker"
+            suffixIcon={<CalendarOutlined />}
+          />
           <Input
             placeholder="Tìm kiếm..."
             prefix={<SearchOutlined />}
@@ -348,26 +454,23 @@ const ListRoom: React.FC = () => {
             style={{ width: 250 }}
           />
           <Select
-            placeholder="Trạng thái"
+            placeholder="Lọc theo loại phòng"
             allowClear
-            style={{ width: 150 }}
-            value={statusFilter}
-            onChange={setStatusFilter}
+            style={{ width: 200 }}
+            value={roomTypeFilter}
+            onChange={setRoomTypeFilter}
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) => {
+              const label = String(option?.label ?? '');
+              return label.toLowerCase().includes(input.toLowerCase());
+            }}
           >
-            <Select.Option value="available">Có sẵn</Select.Option>
-            <Select.Option value="maintenance">Bảo trì</Select.Option>
-            <Select.Option value="occupied">Đã thuê</Select.Option>
-          </Select>
-          <Select
-            placeholder="Xác minh"
-            allowClear
-            style={{ width: 150 }}
-            value={verificationFilter}
-            onChange={setVerificationFilter}
-          >
-            <Select.Option value="verified">Đã xác minh</Select.Option>
-            <Select.Option value="pending">Chờ xác minh</Select.Option>
-            <Select.Option value="rejected">Từ chối</Select.Option>
+            {roomTypes.map((roomType) => (
+              <Select.Option key={roomType.id} value={roomType.id} label={roomType.name}>
+                {roomType.name}
+              </Select.Option>
+            ))}
           </Select>
           <Button
             type="primary"
@@ -382,11 +485,83 @@ const ListRoom: React.FC = () => {
         </Space>
       }
     >
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: "available",
+            label: "Trống",
+          },
+          {
+            key: "occupied",
+            label: "Đang sử dụng",
+          },
+          {
+            key: "all",
+            label: "Tất cả",
+          },
+        ]}
+        style={{ marginBottom: 16 }}
+      />
       <Spin spinning={loading}>
         <Table
           columns={columns}
-          dataSource={rooms}
-          pagination={tablePagination}
+          dataSource={(() => {
+            // Nếu filter theo tab, dùng allRooms và filter + phân trang ở frontend
+            if (activeTab !== "all") {
+              const filteredRooms = allRooms.filter((room) => {
+                const availability = getRoomAvailabilityStatus(room);
+                const actualStatus = availability.status;
+                
+                if (activeTab === "available") {
+                  return actualStatus === "available";
+                }
+                if (activeTab === "occupied") {
+                  return actualStatus === "occupied";
+                }
+                
+                return true;
+              });
+              
+              // Phân trang ở frontend
+              const startIndex = (pagination.current - 1) * pagination.pageSize;
+              const endIndex = startIndex + pagination.pageSize;
+              return filteredRooms.slice(startIndex, endIndex);
+            }
+            
+            // Nếu tab "all", dùng rooms từ backend (đã được phân trang)
+            return rooms;
+          })()}
+          pagination={(() => {
+            if (activeTab !== "all") {
+              // Tính tổng số phòng sau khi filter
+              const filteredCount = allRooms.filter((room) => {
+                const availability = getRoomAvailabilityStatus(room);
+                const actualStatus = availability.status;
+                
+                if (activeTab === "available") {
+                  return actualStatus === "available";
+                }
+                if (activeTab === "occupied") {
+                  return actualStatus === "occupied";
+                }
+                
+                return true;
+              }).length;
+              
+              return {
+                ...tablePagination,
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: filteredCount,
+                showTotal: (total) => `Tổng ${total} phòng`,
+              };
+            }
+            
+            // Tab "all" dùng pagination từ backend
+            return tablePagination;
+          })()}
           rowKey="id"
           size="small"
         />
@@ -398,7 +573,12 @@ const ListRoom: React.FC = () => {
           visible={isModalVisible}
           onClose={() => {
             setIsModalVisible(false);
-            loadRooms(pagination.current, searchText, statusFilter, verificationFilter, pageSize);
+            // Reload dựa trên tab hiện tại
+            if (activeTab !== "all") {
+              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
+            } else {
+              loadRooms(1, searchText, pageSize, selectedDate, false, roomTypeFilter);
+            }
           }}
         />
       )}
@@ -408,7 +588,13 @@ const ListRoom: React.FC = () => {
           room={selectedRoom}
           onClose={() => {
             setIsModalVisible(false);
-            loadRooms(pagination.current, searchText, statusFilter, verificationFilter, pageSize);
+            setSelectedRoom(null);
+            // Reload dựa trên tab hiện tại
+            if (activeTab !== "all") {
+              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
+            } else {
+              loadRooms(1, searchText, pageSize, selectedDate, false, roomTypeFilter);
+            }
           }}
         />
       )}

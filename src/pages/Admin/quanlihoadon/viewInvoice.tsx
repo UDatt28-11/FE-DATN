@@ -300,7 +300,20 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "unit_price",
       key: "unit_price",
       align: "right",
-      render: (price) => `${(price || 0).toLocaleString("vi-VN")}₫`,
+      render: (price: number, record: InvoiceItem) => {
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Typography.Text
+            style={{
+              textDecoration: isPaid ? "line-through" : "none",
+              color: isPaid ? "#8c8c8c" : "inherit",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {(price || 0).toLocaleString("vi-VN")}₫
+          </Typography.Text>
+        );
+      },
     },
     {
       title: "Thuế",
@@ -314,11 +327,27 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "total",
       key: "total",
       align: "right",
-      render: (total, record) => (
-        <Text strong style={{ color: "#52c41a" }}>
-          {(total || record.total_line || 0).toLocaleString("vi-VN")}₫
-        </Text>
-      ),
+      render: (total: number, record: InvoiceItem) => {
+        const amount = total || record.total_line || 0;
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Typography.Text
+            strong
+            style={{
+              color: isPaid ? "#8c8c8c" : "#52c41a",
+              textDecoration: isPaid ? "line-through" : "none",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {amount.toLocaleString("vi-VN")}₫
+            {isPaid && (
+              <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
+                (Đã thanh toán)
+              </span>
+            )}
+          </Typography.Text>
+        );
+      },
     },
     {
       title: "Thao tác",
