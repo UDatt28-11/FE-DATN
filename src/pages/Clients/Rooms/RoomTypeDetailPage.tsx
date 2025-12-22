@@ -787,7 +787,7 @@ const RoomTypeDetailPage: React.FC = () => {
                             lineHeight: 1,
                           }}
                         >
-                          {averageRating.toFixed(1)}
+                          {(averageRating * 2).toFixed(1)}
                         </div>
                         <div
                           style={{ fontSize: 14, color: "#666", marginTop: 8 }}
@@ -796,7 +796,7 @@ const RoomTypeDetailPage: React.FC = () => {
                         </div>
                         <Rate
                           disabled
-                          value={averageRating / 2}
+                          value={averageRating}
                           allowHalf
                           style={{ fontSize: 16, marginTop: 8 }}
                         />
