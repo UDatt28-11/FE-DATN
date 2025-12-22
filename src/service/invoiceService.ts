@@ -343,6 +343,23 @@ const invoiceService = {
   },
 
   /**
+   * POST /admin/invoices/{id}/add-damage
+   * Thêm thiệt hại vật tư vào hóa đơn với ảnh (Admin only)
+   */
+  async addDamageWithImages(
+    id: number | string,
+    formData: FormData
+  ): Promise<Invoice> {
+    const res = await api.post(`/admin/invoices/${id}/add-damage`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 60 seconds for image uploads
+    });
+    return res.data.data?.invoice || res.data.data || res.data;
+  },
+
+  /**
    * DELETE /admin/invoices/{id}/items/{itemId}
    * Xóa item khỏi hóa đơn (Admin only)
    */

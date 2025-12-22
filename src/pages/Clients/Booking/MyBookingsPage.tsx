@@ -18,6 +18,7 @@ import {
     Spin,
     App,
     Popconfirm,
+    List,
 } from 'antd';
 import {
     CalendarOutlined,
@@ -210,6 +211,10 @@ const MyBookingsPage: React.FC = () => {
     const [paymentTotalAmount, setPaymentTotalAmount] = useState<number>(0);
     const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
     const [viewInvoiceId, setViewInvoiceId] = useState<number | null>(null);
+    const [bookingInvoices, setBookingInvoices] = useState<any[]>([]);
+    const [selectInvoiceModalVisible, setSelectInvoiceModalVisible] = useState(false);
+    const [invoicesForSelection, setInvoicesForSelection] = useState<any[]>([]);
+    const [invoiceSelectionMode, setInvoiceSelectionMode] = useState<'view' | 'pay'>('view');
     const [reviewModalVisible, setReviewModalVisible] = useState(false);
     const [reviewBookingDetail, setReviewBookingDetail] = useState<BookingDetail | null>(null);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -397,16 +402,28 @@ const MyBookingsPage: React.FC = () => {
 
     const handleViewInvoice = async (booking: BookingOrder) => {
         try {
-            // Lấy invoice của booking
-            const invoices = await getUserInvoices();
-            const bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === booking.id);
-            
-            if (bookingInvoice) {
-                setViewInvoiceId(bookingInvoice.id);
-                setInvoiceModalVisible(true);
-            } else {
+            // Lấy tất cả hóa đơn của user và lọc theo booking_order_id
+            const invoicesRes = await getUserInvoices();
+            const invoicesForBooking = (invoicesRes.data || []).filter(
+                (inv: any) => inv.booking_order_id === booking.id
+            );
+
+            if (!invoicesForBooking.length) {
                 message.info('Chưa có hóa đơn cho đơn đặt phòng này.');
+                return;
             }
+
+            if (invoicesForBooking.length === 1) {
+                // Chỉ có 1 hóa đơn -> mở trực tiếp
+                setViewInvoiceId(invoicesForBooking[0].id);
+                setInvoiceModalVisible(true);
+                return;
+            }
+
+            // Có nhiều hơn 1 hóa đơn (ví dụ sau khi tách hóa đơn theo phòng)
+            // Hiển thị modal chọn hóa đơn
+            setInvoicesForSelection(invoicesForBooking);
+            setSelectInvoiceModalVisible(true);
         } catch (error: any) {
             console.error('Error fetching invoice:', error);
             message.error('Không thể tải thông tin hóa đơn.');
@@ -424,27 +441,84 @@ const MyBookingsPage: React.FC = () => {
         message.success('Thanh toán thành công!');
     };
 
-    // Filter bookings dựa trên activeTab và payment_status
+    // Helper: chuẩn hóa invoices thành mảng
+    const getInvoicesArray = (booking: BookingOrder): any[] => {
+        const invoicesData: any = (booking as any).invoices;
+        if (!invoicesData) return [];
+        return Array.isArray(invoicesData) ? invoicesData : Object.values(invoicesData);
+    };
+
+    // Helper: kiểm tra booking còn hóa đơn có thể thanh toán (giống logic nút "Thanh toán")
+    const hasUnpaidInvoices = (booking: BookingOrder): boolean => {
+        const invoicesArray = getInvoicesArray(booking);
+        if (!invoicesArray.length) return false;
+
+        const hasSplitChild = invoicesArray.some((inv: any) => inv.split_from || inv.splitFrom);
+
+        if (hasSplitChild && booking.details && booking.details.length > 1) {
+            // Đơn có hóa đơn tách phòng: chỉ tính các hóa đơn phòng đủ điều kiện thanh toán
+            return invoicesArray.some((inv: any) => {
+                const status = inv.payment_status || inv.status || inv.invoice_status;
+                const splitFrom = inv.split_from || inv.splitFrom;
+                const isSplitChild = !!splitFrom;
+
+                let detailStatus: string | undefined;
+                if (splitFrom) {
+                    const bd = splitFrom.booking_detail || splitFrom.bookingDetail;
+                    if (bd) {
+                        detailStatus = bd.status;
+                    }
+                }
+                const isDetailCheckedOut =
+                    detailStatus === 'checked_out' ||
+                    detailStatus === 'partially_checked_out' ||
+                    detailStatus === 'completed';
+
+                const isPayableStatus =
+                    status === 'pending' ||
+                    status === 'partially_paid' ||
+                    status === 'sent';
+
+                return isSplitChild && isDetailCheckedOut && isPayableStatus;
+            });
+        }
+
+        // Đơn 1 phòng (không tách) hoặc chưa tách: bất kỳ invoice nào còn ở trạng thái chờ thanh toán
+        return invoicesArray.some((inv: any) => {
+            const status = inv.payment_status || inv.status || inv.invoice_status;
+            return (
+                status === 'pending' ||
+                status === 'partially_paid' ||
+                status === 'sent'
+            );
+        });
+    };
+
+    // Filter bookings dựa trên trạng thái và hóa đơn (ưu tiên dùng thông tin invoice)
     const filteredBookings = React.useMemo(() => {
         if (activeTab === 'booked') {
-            // Tab "Đã đặt" chỉ hiển thị booking đã thanh toán thành công (payment_status === 'paid')
-            // và có status là pending hoặc confirmed (chưa check-in)
-            return bookings.filter(booking => {
+            // ĐÃ ĐẶT: đơn đã thanh toán cọc/đủ nhưng chưa check-in (pending/confirmed)
+            return bookings.filter((booking) => {
                 const isPendingOrConfirmed = booking.status === 'pending' || booking.status === 'confirmed';
-                const isPaid = booking.payment_status === 'paid';
-                return isPendingOrConfirmed && isPaid;
+                // Đã thanh toán cọc (có thể partial hoặc paid) - không cần kiểm tra invoice vì đây là booking mới chưa checkout
+                // Kiểm tra payment_status hoặc paid_amount > 0 để đảm bảo đã có thanh toán
+                const hasPaidDeposit = (booking.payment_status === 'partial' || booking.payment_status === 'paid') || 
+                                      (booking.paid_amount && booking.paid_amount > 0);
+                return isPendingOrConfirmed && hasPaidDeposit;
             });
         } else if (activeTab === 'pending_payment') {
-            // Chỉ hiển thị bookings đã checkout nhưng chưa thanh toán đầy đủ
-            return bookings.filter(booking => {
-                const isCheckedOut = booking.status === 'checked_out' || booking.status === 'partially_checked_out';
-                const isNotFullyPaid = booking.payment_status !== 'paid';
-                return isCheckedOut && isNotFullyPaid;
+            // CHỜ THANH TOÁN: đã checkout (toàn phần hoặc một phần) và vẫn còn ít nhất 1 hóa đơn chưa thanh toán hết
+            return bookings.filter((booking) => {
+                const isCheckedOut =
+                    booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed';
+                const hasUnpaid = hasUnpaidInvoices(booking);
+                return isCheckedOut && hasUnpaid;
             });
         } else if (activeTab === 'paid') {
-            // Chỉ hiển thị bookings đã thanh toán đầy đủ
-            return bookings.filter(booking => {
-                return booking.payment_status === 'paid' || booking.status === 'completed';
+            // ĐÃ THANH TOÁN: không còn hóa đơn nào chưa thanh toán
+            return bookings.filter((booking) => {
+                const hasUnpaid = hasUnpaidInvoices(booking);
+                return !hasUnpaid && (booking.payment_status === 'paid' || booking.status === 'completed');
             });
         }
         return bookings; // Các tab khác giữ nguyên
@@ -550,30 +624,7 @@ const MyBookingsPage: React.FC = () => {
                                 <Button
                                     icon={<FileTextOutlined />}
                                     style={{ whiteSpace: 'nowrap' }}
-                                    onClick={async () => {
-                                        try {
-                                            // Ưu tiên sử dụng invoice từ booking (đã được eager load)
-                                            let bookingInvoice = booking.invoices && booking.invoices.length > 0 
-                                                ? booking.invoices[0] 
-                                                : null;
-                                            
-                                            // Nếu không có trong booking, fetch từ API
-                                            if (!bookingInvoice) {
-                                                const invoices = await getUserInvoices();
-                                                bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === booking.id);
-                                            }
-                                            
-                                            if (bookingInvoice) {
-                                                setViewInvoiceId(bookingInvoice.id);
-                                                setInvoiceModalVisible(true);
-                                            } else {
-                                                message.info('Chưa có hóa đơn cho đơn đặt phòng này.');
-                                            }
-                                        } catch (error: any) {
-                                            console.error('Error fetching invoice:', error);
-                                            message.error('Không thể tải thông tin hóa đơn.');
-                                        }
-                                    }}
+                                    onClick={() => handleViewInvoice(booking)}
                                 >
                                     Xem hóa đơn
                                 </Button>
@@ -639,79 +690,104 @@ const MyBookingsPage: React.FC = () => {
                                     >
                                         Xem chi tiết
                                     </Button>
-                                    {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') && (
-                                        <>
-                                            {/* Chỉ hiển thị nút "Thanh toán" nếu chưa thanh toán đầy đủ và chưa completed */}
-                                            {booking.payment_status !== 'paid' && booking.status !== 'completed' && (
-                                                <Button
-                                                    type="primary"
-                                                    icon={<DollarOutlined />}
-                                                    onClick={async () => {
-                                                        try {
-                                                            console.log('Payment button clicked for booking:', booking.id);
-                                                            console.log('Booking invoices:', booking.invoices);
-                                                            
-                                                            // Ưu tiên sử dụng invoice từ booking (đã được eager load)
-                                                            let bookingInvoice = booking.invoices && booking.invoices.length > 0 
-                                                                ? booking.invoices[0] 
-                                                                : null;
-                                                            
-                                                            console.log('Invoice from booking:', bookingInvoice);
-                                                            
-                                                            // Nếu không có trong booking, fetch từ API
-                                                            if (!bookingInvoice) {
-                                                                console.log('Fetching invoices from API...');
-                                                                const invoices = await getUserInvoices();
-                                                                console.log('All invoices from API:', invoices);
-                                                                bookingInvoice = invoices.data?.find((inv: any) => inv.booking_order_id === booking.id);
-                                                                console.log('Found invoice:', bookingInvoice);
-                                                            }
-                                                            
-                                                            if (!bookingInvoice) {
-                                                                console.warn('No invoice found for booking:', booking.id);
-                                                                message.warning('Chưa có hóa đơn cho đơn đặt phòng này. Vui lòng liên hệ admin.');
-                                                                return;
-                                                            }
-                                                            
-                                                            // Cho phép thanh toán nếu invoice status là 'pending', 'sent', hoặc chưa được thanh toán đầy đủ
-                                                            const invoiceStatus = bookingInvoice.status || bookingInvoice.invoice_status;
-                                                            console.log('Invoice status:', invoiceStatus);
-                                                            const canPay = invoiceStatus === 'pending' || 
-                                                                           invoiceStatus === 'sent' ||
-                                                                           (invoiceStatus !== 'paid' && invoiceStatus !== 'cancelled');
-                                                            
-                                                            console.log('Can pay:', canPay);
-                                                            
-                                                            if (canPay) {
-                                                                console.log('Opening payment modal with invoice ID:', bookingInvoice.id);
-                                                                setPaymentInvoiceId(bookingInvoice.id);
-                                                                setPaymentTotalAmount(bookingInvoice.total_amount || booking.total_amount || 0);
-                                                                setPaymentModalVisible(true);
-                                                                console.log('Payment modal should be visible now');
-                                                            } else {
-                                                                if (invoiceStatus === 'paid') {
-                                                                    message.info('Hóa đơn này đã được thanh toán.');
-                                                                } else if (invoiceStatus === 'cancelled') {
-                                                                    message.warning('Hóa đơn này đã bị hủy.');
-                                                                } else {
-                                                                    message.info(`Hóa đơn đang ở trạng thái: ${invoiceStatus}. Vui lòng liên hệ admin.`);
-                                                                }
-                                                            }
-                                                        } catch (error: any) {
-                                                            console.error('Error processing payment:', error);
-                                                            message.error('Không thể xử lý thanh toán. Vui lòng thử lại.');
+                                    {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') &&
+                                        booking.payment_status !== 'paid' && (
+                                            <Button
+                                                type="primary"
+                                                icon={<DollarOutlined />}
+                                                onClick={async () => {
+                                                    try {
+                                                        // Lấy tất cả hóa đơn của user và lọc theo booking_order_id
+                                                        const invoicesRes = await getUserInvoices();
+                                                        const invoicesForBooking = (invoicesRes.data || []).filter(
+                                                            (inv: any) => inv.booking_order_id === booking.id
+                                                        );
+
+                                                        if (!invoicesForBooking.length) {
+                                                            message.warning('Chưa có hóa đơn cho đơn đặt phòng này. Vui lòng liên hệ admin.');
+                                                            return;
                                                         }
-                                                    }}
-                                                    style={{
-                                                        backgroundColor: '#52c41a',
-                                                        borderColor: '#52c41a',
-                                                    }}
-                                                >
-                                                    Thanh toán
-                                                </Button>
-                                            )}
-                                        </>
-                                    )}
+
+                                                        // Kiểm tra xem booking có hóa đơn tách theo phòng hay không
+                                                        const hasSplitChild = invoicesForBooking.some((inv: any) => inv.split_from || inv.splitFrom);
+
+                                                        let payableInvoices: any[] = [];
+
+                                                        if (hasSplitChild && booking.details && booking.details.length > 1) {
+                                                            // Đơn nhiều phòng đã tách hóa đơn:
+                                                            // Chỉ cho phép thanh toán các hóa đơn PHÒNG (có split_from),
+                                                            // đã duyệt checkout (booking_detail.status đã checkout) và đang ở trạng thái chờ thanh toán.
+                                                            payableInvoices = invoicesForBooking.filter((inv: any) => {
+                                                                const status = inv.payment_status || inv.status || inv.invoice_status;
+                                                                const splitFrom = inv.split_from || inv.splitFrom;
+                                                                const isSplitChild = !!splitFrom;
+
+                                                                // Lấy trạng thái của booking_detail gắn với hóa đơn tách
+                                                                let detailStatus: string | undefined;
+                                                                if (splitFrom) {
+                                                                    const bd = splitFrom.booking_detail || splitFrom.bookingDetail;
+                                                                    if (bd) {
+                                                                        detailStatus = bd.status;
+                                                                    }
+                                                                }
+                                                                const isDetailCheckedOut =
+                                                                    detailStatus === 'checked_out' ||
+                                                                    detailStatus === 'partially_checked_out' ||
+                                                                    detailStatus === 'completed';
+
+                                                                const isPayableStatus =
+                                                                    status === 'pending' ||
+                                                                    status === 'partially_paid' ||
+                                                                    status === 'sent';
+
+                                                                // Chỉ cho phép thanh toán khi:
+                                                                // - Là hóa đơn phòng (tách từ booking_detail)
+                                                                // - Phòng đó đã checkout (detail.status)
+                                                                // - Invoice đang chờ thanh toán
+                                                                return isSplitChild && isDetailCheckedOut && isPayableStatus;
+                                                            });
+                                                        } else {
+                                                            // Đơn 1 phòng (không tách) hoặc chưa tách: cho phép thanh toán hóa đơn thường
+                                                            payableInvoices = invoicesForBooking.filter((inv: any) => {
+                                                                const status = inv.payment_status || inv.status || inv.invoice_status;
+                                                                return (
+                                                                    status === 'pending' ||
+                                                                    status === 'partially_paid' ||
+                                                                    status === 'sent'
+                                                                );
+                                                            });
+                                                        }
+
+                                                        if (!payableInvoices.length) {
+                                                            message.info('Không có hóa đơn nào đã duyệt checkout và cần thanh toán cho đơn này.');
+                                                            return;
+                                                        }
+
+                                                        if (payableInvoices.length === 1) {
+                                                            const inv = payableInvoices[0];
+                                                            setPaymentInvoiceId(inv.id);
+                                                            setPaymentTotalAmount(inv.total_amount || booking.total_amount || 0);
+                                                            setPaymentModalVisible(true);
+                                                            return;
+                                                        }
+
+                                                        // Có nhiều hóa đơn phòng (đã tách) → cho user chọn hóa đơn để thanh toán
+                                                        setInvoicesForSelection(payableInvoices);
+                                                        setInvoiceSelectionMode('pay');
+                                                        setSelectInvoiceModalVisible(true);
+                                                    } catch (error: any) {
+                                                        console.error('Error processing payment:', error);
+                                                        message.error('Không thể xử lý thanh toán. Vui lòng thử lại.');
+                                                    }
+                                                }}
+                                                style={{
+                                                    backgroundColor: '#52c41a',
+                                                    borderColor: '#52c41a',
+                                                }}
+                                            >
+                                                Thanh toán
+                                            </Button>
+                                        )}
                                     {/* Nút đánh giá/xem đánh giá chỉ hiển thị ở tab "Đã thanh toán" 
                                         VÀ booking đã checkout (tránh trường hợp mới check-in đã được đánh giá) */}
                                     {activeTab === 'paid' 
@@ -865,14 +941,18 @@ const MyBookingsPage: React.FC = () => {
                             {
                                 key: 'pending_payment',
                                 label: `Chờ thanh toán (${allBookings.filter(b => {
-                                    const isCheckedOut = b.status === 'checked_out' || b.status === 'partially_checked_out';
-                                    const isNotFullyPaid = b.payment_status !== 'paid';
-                                    return isCheckedOut && isNotFullyPaid;
+                                    const isCheckedOut =
+                                        b.status === 'checked_out' || b.status === 'partially_checked_out' || b.status === 'completed';
+                                    const hasUnpaid = hasUnpaidInvoices(b as any);
+                                    return isCheckedOut && hasUnpaid;
                                 }).length})`,
                             },
                             {
                                 key: 'paid',
-                                label: `Đã thanh toán (${allBookings.filter(b => b.payment_status === 'paid' || b.status === 'completed').length})`,
+                                label: `Đã thanh toán (${allBookings.filter(b => {
+                                    const hasUnpaid = hasUnpaidInvoices(b as any);
+                                    return !hasUnpaid && (b.payment_status === 'paid' || b.status === 'completed');
+                                }).length})`,
                             },
                             {
                                 key: 'cancelled',
@@ -1258,6 +1338,115 @@ const MyBookingsPage: React.FC = () => {
                     fetchAllBookingsForCount();
                 }}
             />
+
+            {/* Modal chọn hóa đơn (dùng cho cả Xem hóa đơn & Thanh toán) */}
+            <Modal
+                title={invoiceSelectionMode === 'pay' ? 'Chọn hóa đơn cần thanh toán' : 'Chọn hóa đơn cần xem'}
+                open={selectInvoiceModalVisible}
+                onCancel={() => {
+                    setSelectInvoiceModalVisible(false);
+                    setInvoicesForSelection([]);
+                }}
+                footer={null}
+                maskClosable={true}
+                width={600}
+            >
+                <List
+                    dataSource={invoicesForSelection}
+                    renderItem={(inv: any) => {
+                        // Kiểm tra cả snake_case và camelCase
+                        const splitInvoices = inv.split_invoices || inv.splitInvoices || [];
+                        const splitFrom = inv.split_from || inv.splitFrom;
+                        const isOriginal = Array.isArray(splitInvoices) && splitInvoices.length > 0;
+                        const isSplitChild = !!splitFrom;
+                        
+                        // Lấy tên phòng nếu là hóa đơn đã tách
+                        let roomName = '';
+                        if (isSplitChild && splitFrom) {
+                            const bookingDetail = splitFrom.booking_detail || splitFrom.bookingDetail;
+                            if (bookingDetail) {
+                                const room = bookingDetail.room;
+                                if (room) {
+                                    roomName = room.name || '';
+                                }
+                            }
+                        }
+                        
+                        const title = isOriginal
+                            ? `Hóa đơn gốc (#${inv.id})`
+                            : isSplitChild && roomName
+                            ? `Hóa đơn phòng ${roomName} (#${inv.id})`
+                            : isSplitChild
+                            ? `Hóa đơn phòng (#${inv.id})`
+                            : `Hóa đơn #${inv.id}`;
+
+                        const description = isOriginal
+                            ? 'Hóa đơn ban đầu trước khi tách'
+                            : isSplitChild && roomName
+                            ? `Hóa đơn đã tách cho phòng ${roomName}`
+                            : isSplitChild
+                            ? 'Hóa đơn đã tách theo phòng'
+                            : 'Hóa đơn';
+
+                        return (
+                            <List.Item
+                                style={{
+                                    cursor: 'pointer',
+                                    padding: '12px 16px',
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: 8,
+                                    marginBottom: 8,
+                                    transition: 'all 0.3s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    e.currentTarget.style.borderColor = '#cb8670';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.borderColor = '#f0f0f0';
+                                }}
+                                onClick={() => {
+                                    if (invoiceSelectionMode === 'pay') {
+                                        setPaymentInvoiceId(inv.id);
+                                        setPaymentTotalAmount(inv.total_amount || 0);
+                                        setSelectInvoiceModalVisible(false);
+                                        setInvoicesForSelection([]);
+                                        setPaymentModalVisible(true);
+                                    } else {
+                                        setViewInvoiceId(inv.id);
+                                        setInvoiceModalVisible(true);
+                                        setSelectInvoiceModalVisible(false);
+                                        setInvoicesForSelection([]);
+                                    }
+                                }}
+                            >
+                                <List.Item.Meta
+                                    title={
+                                        <Space>
+                                            <FileTextOutlined style={{ color: '#cb8670' }} />
+                                            <Text strong style={{ fontSize: 16 }}>
+                                                {title}
+                                            </Text>
+                                            {isOriginal && (
+                                                <Tag color="orange">Gốc</Tag>
+                                            )}
+                                            {isSplitChild && (
+                                                <Tag color="blue">Đã tách</Tag>
+                                            )}
+                                        </Space>
+                                    }
+                                    description={
+                                        <Text type="secondary" style={{ fontSize: 14 }}>
+                                            {description}
+                                        </Text>
+                                    }
+                                />
+                            </List.Item>
+                        );
+                    }}
+                />
+            </Modal>
         </div>
     );
 };

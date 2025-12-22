@@ -46,6 +46,7 @@ const roomtypeService = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000, // 60 seconds for file uploads
     });
     return response.data;
   },
@@ -58,6 +59,7 @@ const roomtypeService = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000, // 60 seconds for file uploads
     });
     return response.data;
   },
