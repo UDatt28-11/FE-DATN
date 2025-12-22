@@ -219,8 +219,11 @@ const RoomList: React.FC = () => {
         if (totalGuestsParam) {
             const guests = parseInt(totalGuestsParam, 10);
             if (!isNaN(guests) && guests > 1) {
-                setTotalGuests(guests);
-                setDesiredGuests(guests);
+                // total_guests có thể là capacity, nhưng nếu có adults param thì ưu tiên dùng adults
+                if (!adultsParam) {
+                    setTotalGuests(guests);
+                    setDesiredGuests(guests);
+                }
             }
         }
         
@@ -230,6 +233,15 @@ const RoomList: React.FC = () => {
             if (!isNaN(adults) && adults > 0) {
                 setMaxAdults(adults);
                 setNumAdults(adults);
+                setTotalGuests(adults); // Set totalGuests = số người lớn
+                // Tính capacity nếu có children
+                const children = childrenParam ? parseInt(childrenParam, 10) : 0;
+                if (!isNaN(children) && children >= 0) {
+                    const totalCapacity = adults + (children * 2);
+                    setDesiredGuests(totalCapacity);
+                } else {
+                    setDesiredGuests(adults);
+                }
             }
         }
 
@@ -239,6 +251,14 @@ const RoomList: React.FC = () => {
                 setMaxChildren(children);
                 setSearchChildren(children);
                 setNumChildren(children);
+                // Cập nhật desiredGuests nếu đã có adults
+                if (adultsParam) {
+                    const adults = parseInt(adultsParam, 10);
+                    if (!isNaN(adults) && adults > 0) {
+                        const totalCapacity = adults + (children * 2);
+                        setDesiredGuests(totalCapacity);
+                    }
+                }
             }
         }
     }, [searchParams, setDateRange]);
@@ -1476,10 +1496,10 @@ const RoomList: React.FC = () => {
                                                 const adults = Number(value) || 1;
                                                 setNumAdults(adults);
                                                 setMaxAdults(adults);
-                                                // Cập nhật totalGuests và desiredGuests
+                                                // Cập nhật totalGuests (chỉ số người lớn) và desiredGuests (capacity)
                                                 const totalCapacity = adults + (numChildren * 2);
-                                                setTotalGuests(totalCapacity);
-                                                setDesiredGuests(totalCapacity);
+                                                setTotalGuests(adults); // Chỉ lưu số người lớn
+                                                setDesiredGuests(totalCapacity); // Lưu capacity để filter phòng
                                             }}
                                         />
                                         <Button type="default" disabled style={{ pointerEvents: 'none' }}>người lớn</Button>
@@ -1501,10 +1521,9 @@ const RoomList: React.FC = () => {
                                                 setNumChildren(children);
                                                 setSearchChildren(children);
                                                 setMaxChildren(children);
-                                                // Cập nhật totalGuests và desiredGuests
+                                                // Cập nhật desiredGuests (capacity), không thay đổi totalGuests (số người lớn)
                                                 const totalCapacity = numAdults + (children * 2);
-                                                setTotalGuests(totalCapacity);
-                                                setDesiredGuests(totalCapacity);
+                                                setDesiredGuests(totalCapacity); // Lưu capacity để filter phòng
                                             }}
                                         />
                                         <Button type="default" disabled style={{ pointerEvents: 'none' }}>trẻ em</Button>
@@ -1527,8 +1546,8 @@ const RoomList: React.FC = () => {
                                             
                                             // Tính tổng capacity: người lớn + (trẻ em * 2)
                                             const totalCapacity = numAdults + (numChildren * 2);
-                                            setDesiredGuests(totalCapacity);
-                                            setTotalGuests(totalCapacity);
+                                            setDesiredGuests(totalCapacity); // Lưu capacity để filter phòng
+                                            setTotalGuests(numAdults); // Chỉ lưu số người lớn
                                             if (numAdults < 1) {
                                                 message.warning('Vui lòng nhập số người lớn (ít nhất 1) để gợi ý chia phòng phù hợp.');
                                                 return;
