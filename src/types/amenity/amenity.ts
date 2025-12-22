@@ -6,6 +6,7 @@ export interface Amenity {
   type: "basic" | "advanced" | "safety";
   category?: string;
   filter_category?: "key_amenity" | "view" | "floor" | null; // NEW: For filtering
+  status?: "active" | "inactive"; // Trạng thái hoạt động
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;

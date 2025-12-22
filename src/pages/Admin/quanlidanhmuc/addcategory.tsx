@@ -182,15 +182,36 @@ const AddCategory: React.FC<AddCategoryProps> = ({
             <Form.Item
               name="base_price"
               label="Giá / đêm (VNĐ)"
-              rules={[{ required: true, message: "Vui lòng nhập giá / đêm!" }]}
+              required
+              hasFeedback
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (value === undefined || value === null || value === '') {
+                      return Promise.reject(new Error("Vui lòng nhập giá / đêm!"));
+                    }
+                    const numValue = Number(value);
+                    if (isNaN(numValue) || numValue <= 0) {
+                      return Promise.reject(new Error("Giá / đêm phải lớn hơn 0!"));
+                    }
+                    return Promise.resolve();
+                  },
+                  validateTrigger: ['onChange', 'onBlur'],
+                },
+              ]}
             >
               <InputNumber
-                min={0}
+                min={1}
+                step={1}
+                precision={0}
                 style={{ width: "100%" }}
                 formatter={(value) =>
                   `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                 }
-                parser={(value) => value!.replace(/(,*)/g, "")}
+                parser={(value) => {
+                  const parsed = value!.replace(/(,*)/g, "");
+                  return parsed === '' ? null : Number.parseInt(parsed, 10);
+                }}
               />
             </Form.Item>
           </Col>
@@ -199,11 +220,32 @@ const AddCategory: React.FC<AddCategoryProps> = ({
               name="max_adults"
               label="Số người lớn tối đa"
               initialValue={1}
+              required
+              hasFeedback
+
               rules={[
-                { required: true, message: "Vui lòng nhập số người lớn!" },
+                {
+                  validator: (_, value) => {
+                    if (value === undefined || value === null || value === '') {
+                      return Promise.reject(new Error("Vui lòng nhập số người lớn!"));
+                    }
+                    const numValue = Number(value);
+                    if (isNaN(numValue) || numValue < 1) {
+                      return Promise.reject(new Error("Số người lớn tối đa phải lớn hơn hoặc bằng 1!"));
+                    }
+                    return Promise.resolve();
+                  },
+                  validateTrigger: ['onChange', 'onBlur'],
+                },
               ]}
             >
-              <InputNumber min={1} max={20} style={{ width: "100%" }} />
+              <InputNumber 
+                min={1} 
+                max={20} 
+                step={1}
+                precision={0}
+                style={{ width: "100%" }} 
+              />
             </Form.Item>
           </Col>
           <Col span={8}>
@@ -211,8 +253,30 @@ const AddCategory: React.FC<AddCategoryProps> = ({
               name="max_children"
               label="Số trẻ em tối đa"
               initialValue={0}
+              hasFeedback
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (value === undefined || value === null || value === '') {
+                      return Promise.resolve();
+                    }
+                    const numValue = Number(value);
+                    if (isNaN(numValue) || numValue < 0) {
+                      return Promise.reject(new Error("Số trẻ em tối đa phải lớn hơn hoặc bằng 0!"));
+                    }
+                    return Promise.resolve();
+                  },
+                  validateTrigger: ['onChange', 'onBlur'],
+                },
+              ]}
             >
-              <InputNumber min={0} max={20} style={{ width: "100%" }} />
+              <InputNumber 
+                min={0} 
+                max={20} 
+                step={1}
+                precision={0}
+                style={{ width: "100%" }} 
+              />
             </Form.Item>
           </Col>
         </Row>

@@ -12,7 +12,7 @@
 .book-now-form form {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
 }
 
@@ -55,7 +55,14 @@
 /* Override Ant Design Form.Item default margin */
 .book-now-form .ant-form-item {
     margin-bottom: 0 !important;
-    width: 100%;
+    flex: 1 1 0 !important;
+    width: auto !important;
+}
+
+/* Hide hidden form items completely */
+.book-now-form .ant-form-item-hidden {
+    display: none !important;
+    flex: 0 !important;
 }
 
 /* Force vertical layout - label on top, input below */
@@ -71,30 +78,28 @@
     text-align: center !important;
 }
 
-.book-now-form .form-group,
-.book-now-form .form-submit {
+.book-now-form .form-group {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    flex: 0 0 25%;
-    max-width: 25%;
-    width: 25%;
+    flex: 1 1 0;
     height: 174px;
     background-color: #363636;
     border-left: 2px solid #cb8670;
     border-top: 2px solid #cb8670;
     border-bottom: 2px solid #cb8670;
     margin-bottom: 0;
-    padding: 0 30px;
+    padding: 0 20px;
+    box-sizing: border-box;
 }
 
 @media only screen and (min-width: 768px) and (max-width: 991px) {
 
     .book-now-form .form-group {
-        flex: 0 0 33.33%;
-        max-width: 33.33%;
-        width: 33.33%;
+        flex: 0 0 25%;
+        max-width: 25%;
+        width: 25%;
         height: 120px;
         padding: 0 15px;
     }
@@ -165,9 +170,7 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    flex: 0 0 25%;
-    max-width: 25%;
-    width: 25%;
+    flex: 1 1 0;
     height: 174px;
     background-color: #cb8670;
     border: 2px solid #cb8670;
@@ -181,6 +184,7 @@
     outline: none;
     font-weight: 400;
     letter-spacing: 1px;
+    box-sizing: border-box;
 }
 
 @media only screen and (max-width: 767px) {

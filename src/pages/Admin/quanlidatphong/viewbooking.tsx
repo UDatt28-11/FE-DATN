@@ -136,7 +136,10 @@ const ViewBooking: React.FC = () => {
       // LƯU Ý: Hiển thị tất cả invoices (bao gồm cả hóa đơn gốc và hóa đơn đã tách)
       const allInvoices = await invoiceService.getAll();
       const filtered = allInvoices.filter(
-        (inv: Invoice) => inv.booking_order_id === bookingId
+        (inv: Invoice) => 
+          inv.booking_order_id === bookingId && 
+          inv.invoice_status !== 'cancelled' && 
+          (inv as any).status !== 'cancelled'
       );
       
       // Fetch chi tiết cho TẤT CẢ invoices (không chỉ invoice đầu tiên)
@@ -145,6 +148,7 @@ const ViewBooking: React.FC = () => {
           filtered.map(async (inv) => {
             try {
               const invoiceDetail = await invoiceService.getById(inv.id, 'bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments,splitFrom,splitInvoices');
+
               // Map invoice_items từ backend thành items
               if ((invoiceDetail as any).invoice_items && !invoiceDetail.items) {
                 invoiceDetail.items = (invoiceDetail as any).invoice_items;
@@ -360,6 +364,7 @@ const ViewBooking: React.FC = () => {
     // Sử dụng invoice được chọn hoặc invoice đầu tiên
     const invoiceId = selectedInvoiceId || invoices[0].id;
     
+
     try {
       // Tạo FormData để gửi ảnh
       const formData = new FormData();
@@ -1751,6 +1756,7 @@ const ViewBooking: React.FC = () => {
                         const isSplit = (raw.splitFrom || uniqueRoomIds.size === 1) && invoices.length > 1;
                         // Kiểm tra xem có phải hóa đơn gốc không (có splitInvoices relationship)
                         const isOriginal = raw.splitInvoices && raw.splitInvoices.length > 0;
+
                         
                         return {
                           key: String(inv.id),
@@ -1758,6 +1764,7 @@ const ViewBooking: React.FC = () => {
                             <Space>
                               {isOriginal && <Tag color="orange">Hóa đơn gốc</Tag>}
                               {isSplit && !isOriginal && <Tag color="blue">Đã tách</Tag>}
+
                               <span>{roomName}</span>
                               <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
                                 ({inv.invoice_number || `INV-${String(inv.id).padStart(6, "0")}`})
