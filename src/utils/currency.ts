@@ -17,8 +17,8 @@ export const formatVND = (amount: number | string, showCurrency: boolean = true)
         return showCurrency ? '0 VNĐ' : '0';
     }
     
-    // Làm tròn về số nguyên (không có số thập phân)
-    const roundedAmount = Math.round(numAmount);
+    // Làm tròn lên đến hàng đơn vị (ưu tiên làm tròn lên)
+    const roundedAmount = Math.ceil(numAmount);
     
     // Format với dấu chấm ngăn cách hàng nghìn
     const formatted = roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
