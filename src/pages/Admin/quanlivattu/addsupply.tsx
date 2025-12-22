@@ -100,19 +100,23 @@ const AddSupply: React.FC<AddSupplyProps> = ({ visible, onCancel, onAdd, roomId 
         <Form.Item
           label="Số lượng"
           name="current_stock"
-          rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
-          initialValue={0}
+          rules={[
+            { required: true, message: 'Vui lòng nhập số lượng' },
+            { type: 'number', min: 1, message: 'Số lượng phải lớn hơn 0' }
+          ]}
         >
-          <InputNumber min={0} style={{ width: "100%" }} />
+          <InputNumber style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
           label="Giá nhập (₫)"
           name="unit_price"
-          rules={[{ required: true }]}
-          initialValue={0}
+          rules={[
+            { required: true, message: 'Vui lòng nhập giá nhập' },
+            { type: 'number', min: 1, message: 'Giá nhập phải lớn hơn 0' }
+          ]}
         >
-          <InputNumber min={0} style={{ width: "100%" }} />
+          <InputNumber style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item label="Nhà cung cấp" name="supplier">

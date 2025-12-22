@@ -136,6 +136,16 @@ const serviceService = {
     const response = await api.delete(`${API_URL}/admin/services/${id}`);
     return response.data;
   },
+
+
+  /**
+   * PATCH /admin/services/{id}/status
+   * Cập nhật trạng thái dịch vụ
+   */
+  async updateStatus(id: number, status: 'active' | 'disabled'): Promise<ServiceResponse> {
+    const response = await api.patch(`/admin/services/${id}/status`, { status });
+    return response.data;
+  },
 };
 
 export default serviceService;
