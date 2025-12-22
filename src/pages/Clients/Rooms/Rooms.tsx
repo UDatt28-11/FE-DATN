@@ -1,34 +1,36 @@
-import React, { useEffect } from 'react';
-import { Row, Col, Typography, Breadcrumb } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Typography, Breadcrumb, Spin } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { HomeOutlined } from '@ant-design/icons';
 import BookingFilter from '@/components/Booking/BookingFilter';
+import roomtypeService from '@/service/roomtypeService';
+import type { RoomType } from '@/types/roomtype/roomtype';
 import './Rooms.css';
 
 const { Title, Paragraph } = Typography;
 
 const Rooms: React.FC = () => {
   const navigate = useNavigate();
-
-  const rooms = [
-    { id: 1, image: '/img/bg-img/1.jpg', title: 'Deluxe Room', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '100ms' },
-    { id: 2, image: '/img/bg-img/8.jpg', title: 'Double Suite', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '200ms' },
-    { id: 3, image: '/img/bg-img/9.jpg', title: 'Single Room', price: 100, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '300ms' },
-    { id: 4, image: '/img/bg-img/15.jpg', title: 'Deluxe Room', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '100ms' },
-    { id: 5, image: '/img/bg-img/16.jpg', title: 'Double Suite', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '200ms' },
-    { id: 6, image: '/img/bg-img/17.jpg', title: 'Single Room', price: 100, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '300ms' },
-    { id: 7, image: '/img/bg-img/18.jpg', title: 'Deluxe Room', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '100ms' },
-    { id: 8, image: '/img/bg-img/19.jpg', title: 'Double Suite', price: 150, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '200ms' },
-    { id: 9, image: '/img/bg-img/20.jpg', title: 'Single Room', price: 100, desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec malesuada lorem maximus mauris sceleri sque.', delay: '300ms' },
-  ];
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Trigger animations on mount
-    const elements = document.querySelectorAll('.wow');
-    elements.forEach((el) => {
-      el.classList.add('fadeInUp');
-    });
+    fetchRoomTypes();
   }, []);
+
+  const fetchRoomTypes = async () => {
+    try {
+      setLoading(true);
+      const response = await roomtypeService.getRoomTypes({ status: 'active', per_page: 100 });
+      const data = Array.isArray(response.data) ? response.data : [response.data];
+      setRoomTypes(data);
+    } catch (error) {
+      console.error('Error fetching room types:', error);
+      setRoomTypes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBookNow = (values: any) => {
     const params = new URLSearchParams();
@@ -148,7 +150,7 @@ const Rooms: React.FC = () => {
                   color: '#1a1a1a',
                   letterSpacing: '-0.5px',
                 }}>
-                  Chọn Phòng Ưng Ý
+                  Các Loại Phòng
                 </Title>
                 <Paragraph style={{ 
                   color: '#6c757d', 
@@ -157,45 +159,61 @@ const Rooms: React.FC = () => {
                   margin: '0 auto',
                   lineHeight: 1.7,
                 }}>
-                  Mỗi phòng được thiết kế với sự tinh tế, mang đến trải nghiệm nghỉ dưỡng hoàn hảo cho quý khách
+                  Khám phá các loại phòng đa dạng với tiện nghi hiện đại và dịch vụ chất lượng cao
                 </Paragraph>
               </div>
             </div>
           </div>
 
-          <div className="row">
-            {rooms.map((room) => (
-              <div className="col-12 col-md-6 col-lg-4" key={room.id}>
-                <div className="single-rooms-area wow fadeInUp" data-wow-delay={room.delay} style={{ animationDelay: room.delay }}>
-                  {/* Thumbnail */}
-                  <div className="bg-thumbnail bg-img" style={{ backgroundImage: `url(${room.image})` }}></div>
-                  {/* Price */}
-                  <p className="price-from">From ${room.price}/night</p>
-                  {/* Rooms Text */}
-                  <div className="rooms-text">
-                    <div className="line"></div>
-                    <h4>{room.title}</h4>
-                    <p>{room.desc}</p>
-                  </div>
-                  {/* Book Room Button */}
-                  <Link to={`/rooms/${room.id}`} className="book-room-btn btn palatin-btn">Xem chi tiết</Link>
-                </div>
-              </div>
-            ))}
-
-            {/* Pagination */}
-            <div className="col-12">
-              <div className="pagination-area wow fadeInUp" data-wow-delay="400ms" style={{ animationDelay: '400ms' }}>
-                <nav>
-                  <ul className="pagination">
-                    <li className="page-item active"><a className="page-link" href="#">01</a></li>
-                    <li className="page-item"><a className="page-link" href="#">02</a></li>
-                    <li className="page-item"><a className="page-link" href="#">03</a></li>
-                  </ul>
-                </nav>
-              </div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <Spin size="large" />
             </div>
-          </div>
+          ) : (
+            <div className="rooms-grid">
+              {roomTypes.length > 0 ? (
+                roomTypes.map((roomType, index) => (
+                  <div 
+                    key={roomType.id} 
+                    className="room-card wow fadeInUp" 
+                    data-wow-delay={`${(index % 3) * 100 + 100}ms`}
+                    style={{ animationDelay: `${(index % 3) * 100 + 100}ms` }}
+                  >
+                    <div className="room-card-container">
+                      {/* Background Image */}
+                      <div 
+                        className="room-card-bg" 
+                        style={{ backgroundImage: `url(${roomType.image_url || '/img/bg-img/1.jpg'})` }}
+                      ></div>
+                      
+                      {/* Overlay */}
+                      <div className="room-card-overlay"></div>
+                      
+                      {/* Roof decoration */}
+                      <div className="room-card-roof"></div>
+                      
+                      {/* Content */}
+                      <div className="room-card-content">
+                        <h3 className="room-card-title">{roomType.name}</h3>
+                        <p className="room-card-desc">
+                          {roomType.description || 'Loại phòng chất lượng cao với tiện nghi đầy đủ'}
+                        </p>
+                        <Link to={`/rooms/${roomType.id}`} className="room-card-btn">
+                          Xem Chi Tiết
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
+                  <Paragraph style={{ color: '#6c757d', fontSize: 16 }}>
+                    Không có loại phòng nào
+                  </Paragraph>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>

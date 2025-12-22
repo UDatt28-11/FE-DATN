@@ -263,68 +263,6 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Rooms Area */}
-      <section className="rooms-area section-padding-100-0">
-        <div className="container">
-          <Row justify="center">
-            <Col xs={24} lg={12}>
-              <div className="section-heading text-center" data-aos="fade-up">
-                <div className="line-"></div>
-                <h2>Chọn Phòng Của Bạn</h2>
-                <p>Khám phá các loại phòng đa dạng với thiết kế sang trọng, tiện nghi hiện đại và dịch vụ hoàn hảo. Mỗi phòng đều được thiết kế để mang đến sự thoải mái tối đa cho quý khách.</p>
-              </div>
-            </Col>
-          </Row>
-
-          <Row justify="center" gutter={[30, 30]}>
-            {loadingRoomTypes ? (
-              <Col xs={24}>
-                <div style={{ textAlign: 'center', padding: '50px' }}>
-                  <Spin size="large" />
-                </div>
-              </Col>
-            ) : roomTypes.length > 0 ? (
-              roomTypes.map((roomType, index) => (
-                <Col xs={24} md={12} lg={8} key={roomType.id || index}>
-                  <div
-                    className="single-rooms-area"
-                    data-aos="fade-up"
-                    data-aos-delay={index * 200}
-                    onClick={() => handleRoomTypeClick(roomType.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div 
-                      className="bg-thumbnail bg-img" 
-                      style={{ 
-                        backgroundImage: `url(${roomType.image_url || '/img/bg-img/1.jpg'})` 
-                      }}
-                    ></div>
-                    <div className="rooms-text">
-                      <div className="line"></div>
-                      <h4>{roomType.name}</h4>
-                      <p>{roomType.description || 'Khám phá không gian nghỉ dưỡng đẳng cấp'}</p>
-                      {roomType.rooms_count !== undefined && (
-                        <p style={{ fontSize: '12px', marginTop: '10px', opacity: 0.8 }}>
-                          {roomType.rooms_count} phòng có sẵn
-                        </p>
-                      )}
-                    </div>
-                    <BookRoomButton />
-                  </div>
-                </Col>
-              ))
-            ) : (
-              <Col xs={24}>
-                <div style={{ textAlign: 'center', padding: '50px', color: '#999' }}>
-                  Chưa có loại phòng nào
-                </div>
-              </Col>
-            )}
-          </Row>
-        </div>
-      </section>
-
-
       {/* Contact Area */}
       <section className="contact-area d-flex flex-wrap align-items-center">
         <div className="home-map-area" data-aos="fade-right">

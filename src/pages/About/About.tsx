@@ -26,7 +26,7 @@ const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean =
 
       const progress = timestamp - startTimeRef.current;
       const percentage = Math.min(progress / duration, 1);
-      
+
       // Easing function - easeOutQuart for smooth deceleration
       const easeOutQuart = 1 - Math.pow(1 - percentage, 4);
       const currentCount = Math.floor(easeOutQuart * end);
@@ -60,7 +60,7 @@ const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean =
 const injectStyles = () => {
   const styleId = 'about-page-styles';
   if (document.getElementById(styleId)) return;
-  
+
   const style = document.createElement('style');
   style.id = styleId;
   style.textContent = `
@@ -226,17 +226,17 @@ const About: React.FC = () => {
 
   const handleBookNow = (values: any) => {
     const params = new URLSearchParams();
-    
+
     if (values.checkIn) {
       params.set('check_in', values.checkIn.format('YYYY-MM-DD'));
     }
     if (values.checkOut) {
       params.set('check_out', values.checkOut.format('YYYY-MM-DD'));
     }
-    
+
     const totalGuests = values.guests || 2;
     params.set('total_guests', totalGuests.toString());
-    
+
     navigate(`/rooms?${params.toString()}`);
   };
 
@@ -308,11 +308,11 @@ const About: React.FC = () => {
             margin: '0 auto 25px',
             borderRadius: 2,
           }} />
-          <Title 
-            level={1} 
-            style={{ 
-              color: '#fff', 
-              fontSize: 52, 
+          <Title
+            level={1}
+            style={{
+              color: '#fff',
+              fontSize: 52,
               fontWeight: 400,
               marginBottom: 20,
 
@@ -370,10 +370,10 @@ const About: React.FC = () => {
                     borderRadius: 3,
                     boxShadow: '0 2px 8px rgba(203, 134, 112, 0.3)',
                   }} />
-                  <Title level={2} style={{ 
-                    fontSize: 42, 
-                    fontWeight: 600, 
-                    marginBottom: 0, 
+                  <Title level={2} style={{
+                    fontSize: 42,
+                    fontWeight: 600,
+                    marginBottom: 0,
                     color: '#1a1a1a',
                     letterSpacing: '-0.5px',
                   }}>
@@ -384,11 +384,11 @@ const About: React.FC = () => {
                   Nằm giữa thiên nhiên yên bình, homestay của chúng tôi là nơi lý tưởng để bạn thư giãn
                   và tận hưởng khoảng thời gian nghỉ dưỡng tuyệt vời. Với không gian ấm cúng, phòng ốc
                   tiện nghi và dịch vụ tận tâm, chúng tôi cam kết mang đến cho bạn trải nghiệm lưu trú
-                  như ở nhà, đầy ấm áp và thân thiện. Homestay được thiết kế với phong cách hiện đại 
+                  như ở nhà, đầy ấm áp và thân thiện. Homestay được thiết kế với phong cách hiện đại
                   kết hợp truyền thống, mang đến sự hài hòa giữa tiện nghi đô thị và nét đẹp văn hóa địa phương.
                 </Paragraph>
-                <Link 
-                  to="/rooms" 
+                <Link
+                  to="/rooms"
                   style={{
                     display: 'inline-block',
                     marginTop: 50,
@@ -431,10 +431,10 @@ const About: React.FC = () => {
             <Col xs={24} lg={16}>
               <div style={{ textAlign: 'center', marginBottom: 60 }}>
                 <div style={styles.lineCenter} />
-                <Title level={2} style={{ 
-                  color: '#fff', 
-                  fontSize: 42, 
-                  fontWeight: 400, 
+                <Title level={2} style={{
+                  color: '#fff',
+                  fontSize: 42,
+                  fontWeight: 400,
                   marginBottom: 20,
                 }}>
                   Thành Tựu Của Chúng Tôi
@@ -472,10 +472,10 @@ const About: React.FC = () => {
                   </svg>
                 </div>
                 {/* Number */}
-                <Title level={2} style={{ 
-                  color: '#fff', 
-                  margin: '0 0 8px 0', 
-                  fontSize: 56, 
+                <Title level={2} style={{
+                  color: '#fff',
+                  margin: '0 0 8px 0',
+                  fontSize: 56,
                   fontWeight: 300,
                   lineHeight: 1,
                 }}>
@@ -506,10 +506,10 @@ const About: React.FC = () => {
                   </svg>
                 </div>
                 {/* Number */}
-                <Title level={2} style={{ 
-                  color: '#fff', 
-                  margin: '0 0 8px 0', 
-                  fontSize: 56, 
+                <Title level={2} style={{
+                  color: '#fff',
+                  margin: '0 0 8px 0',
+                  fontSize: 56,
                   fontWeight: 300,
                   lineHeight: 1,
                 }}>
@@ -548,10 +548,10 @@ const About: React.FC = () => {
                   </svg>
                 </div>
                 {/* Number */}
-                <Title level={2} style={{ 
-                  color: '#fff', 
-                  margin: '0 0 8px 0', 
-                  fontSize: 56, 
+                <Title level={2} style={{
+                  color: '#fff',
+                  margin: '0 0 8px 0',
+                  fontSize: 56,
                   fontWeight: 300,
                   lineHeight: 1,
                 }}>
@@ -588,10 +588,10 @@ const About: React.FC = () => {
                   </svg>
                 </div>
                 {/* Number */}
-                <Title level={2} style={{ 
-                  color: '#fff', 
-                  margin: '0 0 8px 0', 
-                  fontSize: 56, 
+                <Title level={2} style={{
+                  color: '#fff',
+                  margin: '0 0 8px 0',
+                  fontSize: 56,
                   fontWeight: 300,
                   lineHeight: 1,
                 }}>
@@ -724,16 +724,16 @@ const About: React.FC = () => {
                 </div>
 
                 {/* Single Testimonial */}
-                <div style={{ 
-                  maxWidth: 900, 
+                <div style={{
+                  maxWidth: 900,
                   margin: '0 auto',
                   background: '#fff',
                   padding: '60px 50px',
                   boxShadow: '0 5px 30px rgba(0,0,0,0.08)',
                 }}>
-                  <Paragraph style={{ 
-                    fontSize: 18, 
-                    color: '#7d7d7d', 
+                  <Paragraph style={{
+                    fontSize: 18,
+                    color: '#7d7d7d',
                     lineHeight: 2,
                     marginBottom: 30,
                   }}>
@@ -768,16 +768,16 @@ const About: React.FC = () => {
                   Về Homestay
                 </Title>
                 <Paragraph style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 1.8 }}>
-                  Homestay của chúng tôi mang đến không gian nghỉ dưỡng lý tưởng cho những ai muốn tìm kiếm 
-                  sự yên bình và thư giãn. Với vị trí thuận tiện và dịch vụ chu đáo, chúng tôi cam kết 
+                  Homestay của chúng tôi mang đến không gian nghỉ dưỡng lý tưởng cho những ai muốn tìm kiếm
+                  sự yên bình và thư giãn. Với vị trí thuận tiện và dịch vụ chu đáo, chúng tôi cam kết
                   mang đến cho bạn trải nghiệm lưu trú tuyệt vời nhất.
                 </Paragraph>
                 <div style={{ marginTop: 20 }}>
                   <Text style={{ color: '#d4af37', display: 'block', marginBottom: 8 }}>
-                    📍 36-37-38 Kiều Mai, Phường Yên Hòa, Quận Cầu Giấy, Hà Nội
+                    📍 Số 3 Trịnh Văn Bô, Phường  Nam Từ Liêm, Hà Nội
                   </Text>
                   <Text style={{ color: '#d4af37', display: 'block', marginBottom: 8 }}>
-                    📞 0123-456-789
+                    📞 03332019333
                   </Text>
                   <Text style={{ color: '#d4af37', display: 'block' }}>
                     ✉️ contact@homestay.com
