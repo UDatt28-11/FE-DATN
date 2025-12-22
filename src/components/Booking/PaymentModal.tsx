@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  Button,
-  Space,
-  Typography,
-  Descriptions,
-  Divider,
-  Spin,
-  Table,
-  Tag,
-  Row,
-  Col,
-  Select,
-  Radio,
-  Image,
-} from "antd";
+
+    Modal,
+    Button,
+    Space,
+    Typography,
+    Descriptions,
+    Divider,
+    Spin,
+    Table,
+    Tag,
+    Row,
+    Col,
+    Select,
+    Radio,
+    Image as AntImage,
+} from 'antd';
 import {
   DollarOutlined,
   CheckCircleOutlined,
@@ -748,40 +749,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Text>{invoice.notes}</Text>
               </div>
             )}
-          </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <Text type="secondary">Không tìm thấy thông tin hóa đơn</Text>
-          </div>
-        )}
-      </Modal>
 
-      {/* Modal hiển thị ảnh thiệt hại */}
-      <Modal
-        title={damageImagesModal.title}
-        open={damageImagesModal.visible}
-        onCancel={() =>
-          setDamageImagesModal({ visible: false, images: [], title: "" })
-        }
-        footer={null}
-        width={800}
-      >
-        <Image.PreviewGroup>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-            {damageImagesModal.images.map((url, index) => (
-              <Image
-                key={index}
-                src={url}
-                width={200}
-                style={{ borderRadius: 4 }}
-                alt={`Ảnh minh chứng ${index + 1}`}
-              />
-            ))}
-          </div>
-        </Image.PreviewGroup>
-      </Modal>
-    </>
-  );
+        </Modal>
+
+        {/* Modal hiển thị ảnh thiệt hại */}
+        <Modal
+            title={damageImagesModal.title}
+            open={damageImagesModal.visible}
+            onCancel={() => setDamageImagesModal({ visible: false, images: [], title: '' })}
+            footer={null}
+            width={800}
+        >
+            <AntImage.PreviewGroup>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                    {damageImagesModal.images.map((url, index) => (
+                        <Image
+                            key={index}
+                            src={url}
+                            width={200}
+                            style={{ borderRadius: 4 }}
+                            alt={`Ảnh minh chứng ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            </AntImage.PreviewGroup>
+        </Modal>
+        </>
+    );
 };
 
 export default PaymentModal;

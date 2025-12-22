@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  Descriptions,
-  Table,
-  Tag,
-  Space,
-  Typography,
-  Spin,
-  Button,
-  Divider,
-  Row,
-  Col,
-} from "antd";
+
+    Modal,
+    Descriptions,
+    Table,
+    Tag,
+    Space,
+    Typography,
+    Spin,
+    Button,
+    Divider,
+    Row,
+    Col,
+    Image as AntImage,
+} from 'antd';
 import {
   FileTextOutlined,
   PrinterOutlined,
@@ -387,13 +389,23 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                 const statusKey = getDisplayStatus(invoice);
                 const cfg = getStatusConfig(statusKey);
                 return (
-                  <Tag
-                    icon={cfg.icon}
-                    color={cfg.color}
-                    style={{ fontSize: 14, padding: "4px 12px" }}
-                  >
-                    {cfg.text}
-                  </Tag>
+
+                    <Space size="small" wrap>
+                        {images.map((img: any, index: number) => {
+                            const url = typeof img === 'string' ? img : img.image_url;
+                            if (!url) return null;
+                            return (
+                                <AntImage
+                                    key={index}
+                                    src={url}
+                                    width={40}
+                                    height={40}
+                                    style={{ objectFit: 'cover', borderRadius: 4 }}
+                                    preview={{ src: url }}
+                                />
+                            );
+                        })}
+                    </Space>
                 );
               })()}
             </Col>

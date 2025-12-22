@@ -10,22 +10,15 @@ import {
   Tag,
   Spin,
   DatePicker,
-  Modal,
   Tabs,
   Select,
 } from "antd";
 import {
   SearchOutlined,
-  PlusOutlined,
   HomeOutlined,
   CalendarOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 import type { Dayjs } from "dayjs";
 
 import type { Room } from "../../../types/room/room";
@@ -33,11 +26,8 @@ import roomService from "../../../service/roomService";
 import roomtypeService from "../../../service/roomtypeService";
 import type { RoomType } from "../../../types/roomtype/roomtype";
 
-import AddRoom from "./addroom";
-import EditRoom from "./editroom";
 
 const ListRoom: React.FC = () => {
-  const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [allRooms, setAllRooms] = useState<Room[]>([]); // Lưu tất cả phòng khi filter theo tab
   const [loading, setLoading] = useState<boolean>(false);
@@ -52,9 +42,6 @@ const ListRoom: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
   const [roomTypeFilter, setRoomTypeFilter] = useState<number | undefined>(undefined);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Load danh sách loại phòng
   const loadRoomTypes = async () => {
@@ -206,34 +193,6 @@ const ListRoom: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText, pageSize, selectedDate, activeTab, roomTypeFilter]);
 
-  // Xóa room
-  const handleDeleteRoom = async (room: Room) => {
-    Modal.confirm({
-      title: "Xóa phòng",
-      content: `Bạn có chắc muốn xóa "${room.name}"?`,
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
-      async onOk() {
-        try {
-          const response = await roomService.deleteRoom(room.id);
-          if (response.success) {
-            toast.success(`Đã xóa phòng "${room.name}"`);
-            // Reload dựa trên tab hiện tại
-            if (activeTab !== "all") {
-              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
-            } else {
-              loadRooms(pagination.current, searchText, pageSize, selectedDate, false, roomTypeFilter);
-            }
-          } else {
-            toast.error(response.message || "Có lỗi xảy ra khi xóa");
-          }
-        } catch (error: any) {
-          toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
-        }
-      },
-    });
-  };
 
   // Lấy trạng thái phòng dựa trên booking detail
   const getRoomAvailabilityStatus = (room: Room): { status: 'available' | 'occupied' | 'maintenance'; bookingInfo?: any } => {
@@ -311,7 +270,7 @@ const ListRoom: React.FC = () => {
       key: "id", 
       width: 60, 
       fixed: 'left' as const,
-      render: (id) => <>#{id}</> 
+      render: (id) => <>#{id}</>
     },
     {
       title: "Hình ảnh",
@@ -377,53 +336,6 @@ const ListRoom: React.FC = () => {
         );
       },
     },
-    {
-      title: "Thao tác",
-      key: "actions",
-      width: 120,
-      fixed: 'right' as const,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Xem chi tiết">
-            <Button
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => navigate(`/admin/listing/view/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              size="small"
-              onClick={async () => {
-                try {
-                  // Fetch room với images từ roomType để đảm bảo có đầy đủ thông tin
-                  const roomResponse = await roomService.getRoomById(record.id, 'property,roomType,roomType.images,amenities');
-                  if (roomResponse.success && roomResponse.data) {
-                    setSelectedRoom(roomResponse.data);
-                    setModalMode("edit");
-                    setIsModalVisible(true);
-                  } else {
-                    toast.error("Không thể tải thông tin phòng");
-                  }
-                } catch (error: any) {
-                  console.error("Error loading room:", error);
-                  toast.error("Không thể tải thông tin phòng");
-                }
-              }}
-              icon={<EditOutlined />}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button
-              size="small"
-              danger
-              onClick={() => handleDeleteRoom(record)}
-              icon={<DeleteOutlined />}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
   ];
 
   return (
@@ -472,16 +384,6 @@ const ListRoom: React.FC = () => {
               </Select.Option>
             ))}
           </Select>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setModalMode("add");
-              setIsModalVisible(true);
-            }}
-          >
-            Thêm phòng
-          </Button>
         </Space>
       }
     >
@@ -567,37 +469,6 @@ const ListRoom: React.FC = () => {
         />
       </Spin>
 
-      {/* Modal thêm / sửa */}
-      {modalMode === "add" && (
-        <AddRoom
-          visible={isModalVisible}
-          onClose={() => {
-            setIsModalVisible(false);
-            // Reload dựa trên tab hiện tại
-            if (activeTab !== "all") {
-              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
-            } else {
-              loadRooms(1, searchText, pageSize, selectedDate, false, roomTypeFilter);
-            }
-          }}
-        />
-      )}
-      {modalMode === "edit" && selectedRoom && (
-        <EditRoom
-          visible={isModalVisible}
-          room={selectedRoom}
-          onClose={() => {
-            setIsModalVisible(false);
-            setSelectedRoom(null);
-            // Reload dựa trên tab hiện tại
-            if (activeTab !== "all") {
-              loadRooms(1, searchText, pageSize, selectedDate, true, roomTypeFilter);
-            } else {
-              loadRooms(1, searchText, pageSize, selectedDate, false, roomTypeFilter);
-            }
-          }}
-        />
-      )}
     </Card>
   );
 };
