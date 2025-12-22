@@ -9,7 +9,6 @@ export interface Service {
   name: string;
   price: number;
   unit: string;
-  status?: 'active' | 'disabled';
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;

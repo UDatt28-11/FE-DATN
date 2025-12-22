@@ -109,11 +109,13 @@ const AddService: React.FC<AddServiceProps> = ({ visible, onCancel, onAdd }) => 
                 <Form.Item
                     name="price"
                     label="Giá (VNĐ)"
-                    rules={[{ required: true, message: "Vui lòng nhập giá!" }]}
+                    rules={[
+                        { required: true, message: "Vui lòng nhập giá!" },
+                        { type: 'number', min: 1, message: "Giá phải lớn hơn 0!" }
+                    ]}
                 >
                     <InputNumber
-                        min={0}
-                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\ d{3})+(?!\d))/g, ',')}
                         parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
                         style={{ width: "100%" }}
                         placeholder="Nhập giá dịch vụ"
