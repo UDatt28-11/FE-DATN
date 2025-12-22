@@ -296,6 +296,40 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                 );
             },
         },
+        {
+            title: 'Ảnh minh chứng',
+            key: 'damage_images',
+            width: 200,
+            render: (_: any, record: any) => {
+                const images =
+                    record.damage_images ||
+                    record.damageImages ||
+                    [];
+
+                if (!images || !Array.isArray(images) || images.length === 0) {
+                    return null;
+                }
+
+                return (
+                    <Space size="small" wrap>
+                        {images.map((img: any, index: number) => {
+                            const url = typeof img === 'string' ? img : img.image_url;
+                            if (!url) return null;
+                            return (
+                                <Image
+                                    key={index}
+                                    src={url}
+                                    width={40}
+                                    height={40}
+                                    style={{ objectFit: 'cover', borderRadius: 4 }}
+                                    preview={{ src: url }}
+                                />
+                            );
+                        })}
+                    </Space>
+                );
+            },
+        },
     ];
 
     const handlePrint = () => {

@@ -907,6 +907,19 @@ export async function checkInDirect(
 }
 
 /**
+ * Lấy danh sách phòng có thể thay đổi khi check-in
+ */
+export async function getAvailableRoomsForChange(bookingDetailId: number) {
+  try {
+    const { data } = await api.get(`/staff/check-in/available-rooms/${bookingDetailId}`);
+    return data.data;
+  } catch (error: any) {
+    console.error("Error getting available rooms for change:", error);
+    throw error;
+  }
+}
+
+/**
  * User gửi yêu cầu checkout
  */
 export async function requestCheckOut(

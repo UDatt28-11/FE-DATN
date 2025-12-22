@@ -26,7 +26,8 @@ import {
 import type { UploadFile } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { BookingOrder, BookingDetail, CheckInGuestData } from '../../types/booking/booking';
-import { checkInDirect } from '../../service/bookingService';
+import { getAvailableRoomsForChange } from '../../service/bookingService';
+import api from '../../api/axios';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -162,12 +163,17 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [guestForms, setGuestForms] = useState<number[]>([0]); // Index của các form guest
+    const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+    const [loadingRooms, setLoadingRooms] = useState(false);
+    const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
     useEffect(() => {
         if (isOpen && booking) {
             // Reset form khi mở modal
             form.resetFields();
             setGuestForms([0]);
+            setSelectedRoomId(null);
+            setAvailableRooms([]);
             
             // Pre-fill với thông tin booking nếu có
             let bookingDetail: BookingDetail | undefined;
@@ -181,9 +187,24 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 form.setFieldsValue({
                     notes: booking.notes || '',
                 });
+                
+                // Load danh sách phòng có thể thay đổi
+                loadAvailableRooms(bookingDetail.id);
             }
         }
     }, [isOpen, booking, bookingDetailId, form]);
+    
+    const loadAvailableRooms = async (detailId: number) => {
+        try {
+            setLoadingRooms(true);
+            const data = await getAvailableRoomsForChange(detailId);
+            setAvailableRooms(data.available_rooms || []);
+        } catch (error: any) {
+            console.error('Error loading available rooms:', error);
+        } finally {
+            setLoadingRooms(false);
+        }
+    };
 
     const handleAddGuest = () => {
         setGuestForms([...guestForms, guestForms.length]);
@@ -362,9 +383,55 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 };
             });
 
-            await checkInDirect(booking.id, {
-                guests,
-                notes: values.notes,
+            // Chuẩn bị room_changes nếu có thay đổi phòng
+            const roomChanges: any[] = [];
+            if (selectedRoomId && bookingDetail && selectedRoomId !== bookingDetail.room_id) {
+                roomChanges.push({
+                    booking_detail_id: bookingDetail.id,
+                    new_room_id: selectedRoomId,
+                });
+            }
+            
+            // Tạo FormData để gửi room_changes
+            const formData = new FormData();
+            
+            // Thêm guests data
+            guests.forEach((guest, index) => {
+                formData.append(`guests[${index}][full_name]`, guest.full_name);
+                if (guest.date_of_birth) {
+                    formData.append(`guests[${index}][date_of_birth]`, guest.date_of_birth);
+                }
+                formData.append(`guests[${index}][identity_type]`, guest.identity_type);
+                formData.append(`guests[${index}][identity_number]`, guest.identity_number);
+                formData.append(`guests[${index}][booking_detail_id]`, guest.booking_detail_id.toString());
+                
+                // Thêm nhiều ảnh
+                if (guest.identity_images && Array.isArray(guest.identity_images)) {
+                    guest.identity_images.forEach((file: File, imgIndex: number) => {
+                        formData.append(`guests[${index}][identity_images][${imgIndex}]`, file);
+                    });
+                } else if (guest.identity_image) {
+                    formData.append(`guests[${index}][identity_image]`, guest.identity_image);
+                }
+            });
+            
+            // Thêm room_changes
+            if (roomChanges.length > 0) {
+                roomChanges.forEach((change, index) => {
+                    formData.append(`room_changes[${index}][booking_detail_id]`, change.booking_detail_id.toString());
+                    formData.append(`room_changes[${index}][new_room_id]`, change.new_room_id.toString());
+                });
+            }
+            
+            if (values.notes) {
+                formData.append('notes', values.notes);
+            }
+            
+            // Gọi API check-in với FormData
+            const response = await api.post(`/staff/check-in/${booking.id}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
 
             // Không hiển thị message ở đây, để onSuccess callback xử lý
@@ -458,7 +525,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 <Card size="small" style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}>
                     <Row gutter={16}>
                         <Col span={8}>
-                            <Text type="secondary">Phòng</Text>
+                            <Text type="secondary">Phòng hiện tại</Text>
                             <br />
                             <Text strong>{roomName}</Text>
                         </Col>
@@ -477,6 +544,42 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                             </Text>
                         </Col>
                     </Row>
+                    {availableRooms.length > 0 && (
+                        <Row gutter={16} style={{ marginTop: 16 }}>
+                            <Col span={24}>
+                                <Text type="secondary">Thay đổi phòng (tùy chọn)</Text>
+                                <br />
+                                <Select
+                                    placeholder="Chọn phòng khác (ưu tiên phòng gần nhau)"
+                                    style={{ width: '100%', marginTop: 8 }}
+                                    loading={loadingRooms}
+                                    value={selectedRoomId}
+                                    onChange={(value) => setSelectedRoomId(value)}
+                                    allowClear
+                                    showSearch
+                                    optionFilterProp="label"
+                                    filterOption={(input, option) => {
+                                        const label = String(option?.label || '');
+                                        return label.toLowerCase().includes(input.toLowerCase());
+                                    }}
+                                >
+                                    {availableRooms.map((room: any) => (
+                                        <Select.Option key={room.id} value={room.id} label={room.name}>
+                                            <Space>
+                                                <span>{room.name}</span>
+                                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                                    (Tầng {room.floor_number})
+                                                </Text>
+                                            </Space>
+                                        </Select.Option>
+                                    ))}
+                                </Select>
+                                <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>
+                                    Hệ thống sẽ ưu tiên phòng cùng tầng hoặc gần nhau
+                                </Text>
+                            </Col>
+                        </Row>
+                    )}
                 </Card>
 
                 {/* Cảnh báo về ngày check-in */}
