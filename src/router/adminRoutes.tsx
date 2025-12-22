@@ -9,6 +9,7 @@ import Dashboard from "../pages/Admin/Dashboard";
 import ListRoom from "../pages/Admin/quanliphong/ListRoom";
 import AddRoom from "../pages/Admin/quanliphong/addroom";
 import EditRoom from "../pages/Admin/quanliphong/editroom";
+import ViewRoom from "../pages/Admin/quanliphong/viewroom";
 
 // Quản lý danh mục
 import ListCategory from "../pages/Admin/quanlidanhmuc/listcategory";
@@ -36,12 +37,10 @@ import ListUser from "../pages/Admin/quanlinguoidung/ListUser";
 import AddUser from "../pages/Admin/quanlinguoidung/AddUser";
 import EditUser from "../pages/Admin/quanlinguoidung/EditUser";
 import BlockedUsers from "../pages/Admin/quanlinguoidung/BlockedUsers";
-import ListPromotion from "../pages/Admin/quanlimagiamgia/listPromotion";
-import AddPromotion from "../pages/Admin/quanlimagiamgia/addPromotion";
-import EditPromotion from "../pages/Admin/quanlimagiamgia/editPromotion";
 import ListReview from "../pages/Admin/quanlidanhgia/listReview";
 import ListMessage from "../pages/Admin/quanlibinhluan/listMessage";
 import AdminMessages from "../pages/Admin/quanlibinhluan/AdminMessages";
+
 // Invoice pages đã được gộp vào quản lý đặt phòng
 // import ListInvoice from "../pages/Admin/quanlihoadon/listInvoice";
 // import ViewInvoice from "../pages/Admin/quanlihoadon/viewInvoice";
@@ -66,7 +65,7 @@ import EditVoucher from "../pages/Admin/quanlivoucher/EditVoucher";
 /**
  * Admin Routes - Được bảo vệ bởi RoleBasedRoute
  * Chỉ user với role 'admin' hoặc 'staff' mới có thể truy cập
- * 
+ *
  * Phân quyền:
  * - Dashboard, Rooms, Bookings: Admin + Staff
  * - User Management: Chỉ Admin
@@ -76,7 +75,7 @@ export const adminRoutes: RouteObject[] = [
   {
     path: "/admin",
     element: (
-      <RoleBasedRoute allowedRoles={['admin', 'staff']}>
+      <RoleBasedRoute allowedRoles={["admin", "staff"]}>
         <AdminLayout />
       </RoleBasedRoute>
     ),
@@ -88,16 +87,17 @@ export const adminRoutes: RouteObject[] = [
       { path: "listing", element: <ListRoom /> },
       { path: "listing/add", element: <AddRoom /> },
       { path: "listing/edit/:id", element: <EditRoom /> },
+      { path: "listing/view/:id", element: <ViewRoom /> },
 
       // Quản lý đặt phòng (Admin + Staff)
       { path: "booking", element: <ListBooking /> },
       { path: "booking/add", element: <AddBooking /> },
       { path: "booking/edit/:id", element: <EditBooking /> },
       { path: "booking/view/:id", element: <ViewBooking /> },
-              { path: "check-in-requests", element: <ListCheckInRequests /> },
-              { path: "checkout-requests", element: <ListCheckoutRequests /> },
-              { path: "service-requests", element: <ListServiceRequests /> },
-              { path: "amenity-requests", element: <ListAmenityRequests /> },
+      { path: "check-in-requests", element: <ListCheckInRequests /> },
+      { path: "checkout-requests", element: <ListCheckoutRequests /> },
+      { path: "service-requests", element: <ListServiceRequests /> },
+      { path: "amenity-requests", element: <ListAmenityRequests /> },
 
       // Quản lý danh mục (Admin + Staff)
       { path: "category", element: <ListCategory /> },
@@ -117,50 +117,46 @@ export const adminRoutes: RouteObject[] = [
       { path: "accommodations/view/:id", element: <ViewAccommodation /> },
 
       // Quản lý user (CHỈ ADMIN)
-      { 
-        path: "user", 
+      {
+        path: "user",
         element: (
-          <RoleBasedRoute allowedRoles={['admin']}>
+          <RoleBasedRoute allowedRoles={["admin"]}>
             <ListUser />
           </RoleBasedRoute>
-        ) 
+        ),
       },
-      { 
-        path: "user/add", 
+      {
+        path: "user/add",
         element: (
-          <RoleBasedRoute allowedRoles={['admin']}>
+          <RoleBasedRoute allowedRoles={["admin"]}>
             <AddUser />
           </RoleBasedRoute>
-        ) 
+        ),
       },
-      { 
-        path: "user/edit/:id", 
+      {
+        path: "user/edit/:id",
         element: (
-          <RoleBasedRoute allowedRoles={['admin']}>
+          <RoleBasedRoute allowedRoles={["admin"]}>
             <EditUser />
           </RoleBasedRoute>
-        ) 
+        ),
       },
-      { 
-        path: "user/blocked", 
+      {
+        path: "user/blocked",
         element: (
-          <RoleBasedRoute allowedRoles={['admin']}>
+          <RoleBasedRoute allowedRoles={["admin"]}>
             <BlockedUsers />
           </RoleBasedRoute>
-        ) 
+        ),
       },
 
       // Quản lý mã giảm giá (Admin + Staff)
-      { path: "promotion", element: <ListPromotion /> },
-      { path: "promotion/add", element: <AddPromotion /> },
-      { path: "promotion/edit/:id", element: <EditPromotion /> },
-
       // Quản lý đánh giá (Admin + Staff)
       { path: "review", element: <ListReview /> },
 
       // Quản lý bình luận (Admin + Staff)
       { path: "message", element: <ListMessage /> },
-      
+
       // Quản lý tin nhắn (Admin + Staff) - Bao gồm AI Chat
       { path: "messages", element: <AdminMessages /> },
 
@@ -184,4 +180,3 @@ export const adminRoutes: RouteObject[] = [
     ],
   },
 ];
-

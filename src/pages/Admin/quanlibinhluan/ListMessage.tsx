@@ -22,7 +22,6 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import type { Message, MessageReply } from "../../../types/message/message";
 
-
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -100,30 +99,27 @@ const ListMessage: React.FC = () => {
   };
 
   const handleReply = () => {
-  if (!replyContent.trim() || !selectedMsg) return;
+    if (!replyContent.trim() || !selectedMsg) return;
 
-  const reply: MessageReply = {
-    id: Date.now().toString(),
-    sender: "admin",
-    content: replyContent,
-    createdAt: new Date().toISOString(),
+    const reply: MessageReply = {
+      id: Date.now().toString(),
+      sender: "admin",
+      content: replyContent,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = messages.map((m) =>
+      m.id === selectedMsg.id ? { ...m, replies: [...m.replies, reply] } : m
+    );
+
+    setMessages(updated);
+    setSelectedMsg({
+      ...selectedMsg,
+      replies: [...selectedMsg.replies, reply],
+    });
+    setReplyContent("");
+    toast.success("Đã gửi phản hồi!");
   };
-
-  const updated = messages.map((m) =>
-    m.id === selectedMsg.id
-      ? { ...m, replies: [...m.replies, reply] }
-      : m
-  );
-
-  setMessages(updated);
-  setSelectedMsg({
-    ...selectedMsg,
-    replies: [...selectedMsg.replies, reply],
-  });
-  setReplyContent("");
-  toast.success("Đã gửi phản hồi!");
-};
-
 
   const columns: ColumnsType<Message> = [
     {
@@ -160,7 +156,9 @@ const ListMessage: React.FC = () => {
       render: (status, record) => (
         <Select
           value={status}
-          onChange={(v) => handleStatusChange(record.id, v as "Hiển thị" | "Ẩn")}
+          onChange={(v) =>
+            handleStatusChange(record.id, v as "Hiển thị" | "Ẩn")
+          }
           style={{ width: 120 }}
         >
           <Option value="Hiển thị">Hiển thị</Option>
@@ -173,10 +171,7 @@ const ListMessage: React.FC = () => {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => setSelectedMsg(record)}
-          >
+          <Button icon={<EyeOutlined />} onClick={() => setSelectedMsg(record)}>
             Xem
           </Button>
           <Button
@@ -263,8 +258,7 @@ const ListMessage: React.FC = () => {
                   <div
                     key={r.id}
                     style={{
-                      background:
-                        r.sender === "admin" ? "#e6f7ff" : "white",
+                      background: r.sender === "admin" ? "#e6f7ff" : "white",
                       padding: 8,
                       borderRadius: 6,
                       marginBottom: 6,

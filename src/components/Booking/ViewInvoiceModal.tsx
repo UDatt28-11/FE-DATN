@@ -253,7 +253,20 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             key: 'unit_price',
             width: 120,
             align: 'right',
-            render: (price: number) => formatVND(price),
+            render: (price: number, record: InvoiceItem) => {
+                const isPaid = record.description?.includes('[Đã thanh toán]');
+                return (
+                    <Text
+                        style={{
+                            textDecoration: isPaid ? 'line-through' : 'none',
+                            color: isPaid ? '#8c8c8c' : 'inherit',
+                            opacity: isPaid ? 0.6 : 1,
+                        }}
+                    >
+                        {formatVND(price)}
+                    </Text>
+                );
+            },
         },
         {
             title: 'Thành tiền',
@@ -263,9 +276,22 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             render: (_: any, record: InvoiceItem) => {
                 const total = record.total || record.total_line || (record.unit_price * record.quantity);
                 const isNegative = total < 0;
+                const isPaid = record.description?.includes('[Đã thanh toán]');
                 return (
-                    <Text strong style={{ color: isNegative ? '#ff4d4f' : undefined }}>
+                    <Text
+                        strong
+                        style={{
+                            color: isPaid ? '#8c8c8c' : isNegative ? '#ff4d4f' : undefined,
+                            textDecoration: isPaid ? 'line-through' : 'none',
+                            opacity: isPaid ? 0.6 : 1,
+                        }}
+                    >
                         {isNegative ? '-' : ''}{formatVND(Math.abs(total))}
+                        {isPaid && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#52c41a' }}>
+                                (Đã thanh toán)
+                            </span>
+                        )}
                     </Text>
                 );
             },

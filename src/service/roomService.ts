@@ -9,6 +9,8 @@ interface GetRoomsParams {
   status?: 'available' | 'maintenance' | 'occupied';
   verification_status?: 'pending' | 'verified' | 'rejected';
   search?: string;
+  check_in?: string; // Format: YYYY-MM-DD
+  check_out?: string; // Format: YYYY-MM-DD
   sort_by?: 'id' | 'name' | 'price_per_night' | 'status' | 'created_at' | 'updated_at';
   sort_order?: 'asc' | 'desc';
   page?: number;

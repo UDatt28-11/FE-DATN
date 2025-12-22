@@ -78,10 +78,9 @@ const EditAmenity: React.FC<Props> = ({ visible, onCancel, amenity, onUpdate }) 
             const formData = new FormData();
             formData.append("name", values.name);
             formData.append("type", values.type);
+            // Chỉ gửi property_id nếu có giá trị
             if (values.property_id) {
                 formData.append("property_id", values.property_id);
-            } else {
-                formData.append("property_id", "");
             }
             if (values.category) {
                 formData.append("category", values.category);

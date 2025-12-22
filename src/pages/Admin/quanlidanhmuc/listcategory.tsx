@@ -381,27 +381,79 @@ const ListCategory: React.FC = () => {
         toast.error("Vui lòng chọn cơ sở lưu trú!");
         return;
       }
-      // Giá & sức chứa
-      if (values.base_price != null) {
-        formData.append("base_price", String(values.base_price));
-      }
-      if (values.max_adults != null) {
-        formData.append("max_adults", String(values.max_adults));
-      }
+      // Giá & sức chứa (required fields)
+      // base_price và max_adults là required, luôn phải có giá trị
+      formData.append("base_price", String(values.base_price ?? 0));
+      formData.append("max_adults", String(values.max_adults ?? 1));
       if (values.max_children != null) {
         formData.append("max_children", String(values.max_children));
       }
       // Dịch vụ áp dụng (nếu có)
-      if (Array.isArray(values.service_ids)) {
+      // Laravel nhận array từ FormData với format service_ids[]
+      if (Array.isArray(values.service_ids) && values.service_ids.length > 0) {
         values.service_ids.forEach((id: number) => {
           formData.append("service_ids[]", String(id));
         });
       }
+      // Nếu không có service_ids, không append gì (nullable trong backend)
       formData.append("property_id", values.property_id.toString());
 
-      if (fileList[0]?.originFileObj) {
-        formData.append("image_file", fileList[0].originFileObj);
+      // Xử lý file upload - chỉ append nếu có file hợp lệ
+      // image_file là nullable, nên không có file cũng OK
+      if (fileList && fileList.length > 0 && fileList[0]) {
+        const file = fileList[0];
+        // Ant Design Upload: file có thể là originFileObj hoặc file trực tiếp
+        const fileToUpload = file.originFileObj || file;
+        
+        // Chỉ append nếu là File instance hợp lệ và có size > 0
+        if (fileToUpload instanceof File && fileToUpload.size > 0) {
+          // Kiểm tra file type/extension để đảm bảo hợp lệ
+          const fileName = fileToUpload.name || '';
+          const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+          const validExtensions = ['jpeg', 'jpg', 'png', 'gif', 'webp'];
+          
+          if (validExtensions.includes(fileExtension)) {
+            formData.append("image_file", fileToUpload);
+            console.log('File appended to FormData:', {
+              name: fileToUpload.name,
+              type: fileToUpload.type,
+              size: fileToUpload.size,
+              extension: fileExtension,
+            });
+          } else {
+            console.warn('Invalid file extension:', {
+              fileName,
+              extension: fileExtension,
+              validExtensions,
+            });
+            toast.error(`File không hợp lệ. Chỉ chấp nhận: ${validExtensions.join(', ')}`);
+            return; // Dừng lại, không gửi request
+          }
+        } else {
+          console.warn('File is not a valid File instance:', {
+            isFile: fileToUpload instanceof File,
+            size: fileToUpload?.size,
+            type: typeof fileToUpload,
+          });
+          // Nếu file không hợp lệ nhưng user đã chọn, báo lỗi
+          if (file.status !== 'removed') {
+            toast.error('File không hợp lệ. Vui lòng chọn file ảnh khác.');
+            return;
+          }
+        }
       }
+
+      // Debug: Log dữ liệu gửi lên
+      console.log('FormData values:', {
+        name: values.name,
+        description: values.description,
+        property_id: values.property_id,
+        base_price: values.base_price,
+        max_adults: values.max_adults,
+        max_children: values.max_children,
+        service_ids: values.service_ids,
+        has_file: fileList && fileList.length > 0,
+      });
 
       const response = await roomtypeService.createRoomType(formData);
       if (response.success) {
@@ -470,9 +522,11 @@ const ListCategory: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error creating room type:', error);
+      console.error('Error response:', error.response?.data);
       // Hiển thị lỗi validation chi tiết nếu có
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
+        console.error('Validation errors:', errors);
         const errorMessages = Object.values(errors).flat();
         toast.error(errorMessages.join(', '));
       } else {
@@ -497,7 +551,8 @@ const ListCategory: React.FC = () => {
         toast.error("Vui lòng chọn cơ sở lưu trú!");
         return;
       }
-      // Giá & sức chứa
+      // Giá & sức chứa (required fields)
+      // base_price và max_adults là required, luôn phải có giá trị
       if (values.base_price != null) {
         formData.append("base_price", String(values.base_price));
       }

@@ -39,7 +39,7 @@ const EditPromotion: React.FC = () => {
         try {
             const data = await promotionService.getById(id);
             setDiscountType(data.discount_type);
-            
+
             form.setFieldsValue({
                 code: data.code,
                 description: data.description,
@@ -66,6 +66,14 @@ const EditPromotion: React.FC = () => {
         if (!id) return;
         setLoading(true);
         try {
+            console.log("Form values:", values);
+
+            if (!values.date_range || values.date_range.length < 2) {
+                toast.error("Vui lòng chọn khoảng thời gian!");
+                setLoading(false);
+                return;
+            }
+
             const promotionData: Partial<Promotion> = {
                 code: values.code.toUpperCase(),
                 description: values.description,
@@ -75,12 +83,13 @@ const EditPromotion: React.FC = () => {
                 min_purchase_amount: values.min_purchase_amount,
                 max_usage_limit: values.max_usage_limit,
                 max_usage_per_user: values.max_usage_per_user,
-                start_date: values.date_range[0].format("YYYY-MM-DD HH:mm:ss"),
-                end_date: values.date_range[1].format("YYYY-MM-DD HH:mm:ss"),
+                start_date: values.date_range[0].format("YYYY-MM-DD"),
+                end_date: values.date_range[1].format("YYYY-MM-DD"),
                 is_active: values.is_active,
-                applicable_to: values.applicable_to || null,
+                applicable_to: values.applicable_to || "all",
             };
 
+            console.log("Promotion data:", promotionData);
             await promotionService.update(id, promotionData);
             toast.success("Cập nhật mã giảm giá thành công!");
             navigate("/admin/promotion");
@@ -191,8 +200,12 @@ const EditPromotion: React.FC = () => {
                         <InputNumber min={1} style={{ width: "100%" }} />
                     </Form.Item>
 
-                    <Form.Item label="Áp dụng cho" name="applicable_to">
-                        <Input />
+                    <Form.Item label="Áp dụng cho" name="applicable_to" rules={[{ required: true, message: "Vui lòng chọn phạm vi áp dụng!" }]}>
+                        <Radio.Group>
+                            <Radio value="all">Tất cả phòng</Radio>
+                            <Radio value="specific_rooms">Phòng cụ thể</Radio>
+                            <Radio value="specific_room_types">Loại phòng cụ thể</Radio>
+                        </Radio.Group>
                     </Form.Item>
 
                     <Form.Item label="Trạng thái" name="is_active" rules={[{ required: true }]}>

@@ -29,6 +29,7 @@ import {
   DeleteOutlined,
   ShoppingOutlined,
   WarningOutlined,
+  SplitCellsOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { toast } from "react-toastify";
@@ -267,6 +268,40 @@ const ViewInvoice: React.FC = () => {
     }
   };
 
+  const handleSplitByRooms = async () => {
+    if (!invoice || !id) return;
+    
+    Modal.confirm({
+      title: 'Xác nhận tách hóa đơn',
+      content: 'Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.',
+      okText: 'Xác nhận',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const result = await invoiceService.splitByRooms(id);
+          message.success(`Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`);
+          // Chuyển về trang danh sách hóa đơn
+          navigate('/admin/invoice');
+        } catch (error: any) {
+          console.error("Error splitting invoice:", error);
+          message.error(error.response?.data?.message || "Không thể tách hóa đơn!");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // Kiểm tra xem hóa đơn có thể tách được không (có nhiều hơn 1 phòng)
+  const canSplitByRooms = () => {
+    if (!invoice || !invoice.booking_order) return false;
+    // Kiểm tra xem có nhiều hơn 1 phòng không
+    const bookingOrder = invoice.booking_order as any;
+    const details = bookingOrder.details || [];
+    return details.length > 1 && invoice.invoice_status !== 'cancelled';
+  };
+
   const itemColumns: ColumnsType<InvoiceItem> = [
     {
       title: "Mô tả",
@@ -300,7 +335,20 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "unit_price",
       key: "unit_price",
       align: "right",
-      render: (price) => `${(price || 0).toLocaleString("vi-VN")}₫`,
+      render: (price: number, record: InvoiceItem) => {
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Typography.Text
+            style={{
+              textDecoration: isPaid ? "line-through" : "none",
+              color: isPaid ? "#8c8c8c" : "inherit",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {(price || 0).toLocaleString("vi-VN")}₫
+          </Typography.Text>
+        );
+      },
     },
     {
       title: "Thuế",
@@ -314,11 +362,27 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "total",
       key: "total",
       align: "right",
-      render: (total, record) => (
-        <Text strong style={{ color: "#52c41a" }}>
-          {(total || record.total_line || 0).toLocaleString("vi-VN")}₫
-        </Text>
-      ),
+      render: (total: number, record: InvoiceItem) => {
+        const amount = total || record.total_line || 0;
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Typography.Text
+            strong
+            style={{
+              color: isPaid ? "#8c8c8c" : "#52c41a",
+              textDecoration: isPaid ? "line-through" : "none",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {amount.toLocaleString("vi-VN")}₫
+            {isPaid && (
+              <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
+                (Đã thanh toán)
+              </span>
+            )}
+          </Typography.Text>
+        );
+      },
     },
     {
       title: "Thao tác",
@@ -372,6 +436,23 @@ const ViewInvoice: React.FC = () => {
             In hóa đơn
           </Button>
           <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
+          {canSplitByRooms() && (
+            <Popconfirm
+              title="Tách hóa đơn theo phòng"
+              description="Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy. Bạn có chắc chắn?"
+              onConfirm={handleSplitByRooms}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <Button 
+                icon={<SplitCellsOutlined />} 
+                type="default"
+                danger
+              >
+                Tách hóa đơn theo phòng
+              </Button>
+            </Popconfirm>
+          )}
           
           {/* Trạng thái hóa đơn */}
           <Select
