@@ -74,6 +74,8 @@ export type BookingDetail = {
 export type CheckedInGuest = {
   id: number;
   full_name: string;
+  email?: string | null;
+  phone_number?: string | null;
   date_of_birth?: string | null;
   identity_type?: "cccd" | "passport" | null;
   identity_number?: string | null;

@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
-
-    Modal,
-    Descriptions,
-    Table,
-    Tag,
-    Space,
-    Typography,
-    Spin,
-    Button,
-    Divider,
-    Row,
-    Col,
-    Image as AntImage,
-} from 'antd';
+  Modal,
+  Descriptions,
+  Table,
+  Tag,
+  Space,
+  Typography,
+  Spin,
+  Button,
+  Divider,
+  Row,
+  Col,
+  Image as AntImage,
+} from "antd";
 import {
   FileTextOutlined,
   PrinterOutlined,
@@ -26,6 +25,7 @@ import type { ColumnsType } from "antd/es/table";
 import { toast } from "react-toastify";
 import { getUserInvoice } from "../../service/bookingService";
 import invoiceService from "../../service/invoiceService";
+import api from "../../api/axios";
 import type { Invoice, InvoiceItem } from "../../types/invoice/invoice";
 import { formatVND } from "../../utils/currency";
 
@@ -65,31 +65,64 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
       // Sử dụng admin endpoint nếu isAdmin = true, ngược lại dùng user endpoint
       let invoiceData;
       if (isAdmin) {
-        // Sử dụng admin endpoint với include để load bookingOrder và guest
+        // Sử dụng admin endpoint với include để load bookingOrder, guest, và checkedInGuests
         invoiceData = await invoiceService.getById(
           invoiceId,
-          "bookingOrder,bookingOrder.guest,invoiceItems,payments"
+          "bookingOrder,bookingOrder.guest,bookingOrder.details,bookingOrder.details.checkedInGuests,bookingOrder.details.guests,invoiceItems,payments"
         );
       } else {
-        // Sử dụng user endpoint
+        // Sử dụng user endpoint - cần load thêm details và checkedInGuests
+        // User endpoint hiện tại không load details, nên cần fetch thêm booking để lấy checkedInGuests
         invoiceData = await getUserInvoice(invoiceId);
+        
+        // Nếu có bookingOrder, fetch thêm details với checkedInGuests
+        const invoice = invoiceData?.data || invoiceData;
+        if (invoice?.booking_order_id) {
+          try {
+            // Fetch booking với details và checkedInGuests
+            const bookingResponse = await api.get(`/user/bookings/${invoice.booking_order_id}`, {
+              params: { include: 'details,details.checkedInGuests,details.guests' }
+            });
+            const booking = bookingResponse.data?.data || bookingResponse.data;
+            if (booking && booking.details) {
+              // Gán details vào bookingOrder
+              if (invoice.booking_order) {
+                invoice.booking_order.details = booking.details;
+              }
+              if (invoice.bookingOrder) {
+                invoice.bookingOrder.details = booking.details;
+              }
+            }
+          } catch (error) {
+            console.warn("ViewInvoiceModal: Could not fetch booking details:", error);
+          }
+        }
       }
       // Xử lý response có thể có nhiều dạng
       let invoice: Invoice;
-      if (isAdmin) {
-        // Admin endpoint trả về trực tiếp Invoice object
+      // Cả admin và user endpoint đều có thể wrap trong data
+      if (invoiceData?.data?.data) {
+        invoice = invoiceData.data.data;
+      } else if (invoiceData?.data) {
+        invoice = invoiceData.data;
+      } else if (invoiceData) {
         invoice = invoiceData as Invoice;
       } else {
-        // User endpoint có thể wrap trong data.data hoặc data
-        if (invoiceData?.data?.data) {
-          invoice = invoiceData.data.data;
-        } else if (invoiceData?.data) {
-          invoice = invoiceData.data;
-        } else if (invoiceData) {
-          invoice = invoiceData as Invoice;
-        } else {
-          throw new Error("Không nhận được dữ liệu từ server");
-        }
+        throw new Error("Không nhận được dữ liệu từ server");
+      }
+      
+      console.log('ViewInvoiceModal: Raw invoice data:', invoice);
+      const rawBookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      console.log('ViewInvoiceModal: Raw bookingOrder:', rawBookingOrder);
+      if (rawBookingOrder?.details) {
+        console.log('ViewInvoiceModal: Raw bookingOrder.details:', rawBookingOrder.details);
+        rawBookingOrder.details.forEach((detail: any, index: number) => {
+          console.log(`ViewInvoiceModal: Raw detail[${index}] (id: ${detail.id}):`, {
+            checkedInGuests: detail.checkedInGuests,
+            guests: detail.guests,
+            checked_in_guests: detail.checked_in_guests,
+          });
+        });
       }
 
       // Map invoice_items từ backend (snake_case) thành items cho frontend
@@ -101,6 +134,62 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
         invoice.items = (invoice as any).invoiceItems;
       }
 
+      // Normalize booking_order/bookingOrder để hỗ trợ cả snake_case và camelCase
+      if ((invoice as any).booking_order && !(invoice as any).bookingOrder) {
+        (invoice as any).bookingOrder = (invoice as any).booking_order;
+      }
+      if ((invoice as any).bookingOrder && !(invoice as any).booking_order) {
+        (invoice as any).booking_order = (invoice as any).bookingOrder;
+      }
+
+      // Normalize details trong bookingOrder để hỗ trợ cả snake_case và camelCase
+      const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      if (bookingOrder) {
+        // Normalize checkedInGuests trong mỗi detail
+        const details = bookingOrder.details || [];
+        console.log('ViewInvoiceModal: Normalizing details, count:', details.length);
+        
+        details.forEach((detail: any) => {
+          // Đảm bảo cả checkedInGuests và guests đều có dữ liệu
+          if (detail.checkedInGuests && !detail.guests) {
+            detail.guests = detail.checkedInGuests;
+          }
+          if (detail.guests && !detail.checkedInGuests) {
+            detail.checkedInGuests = detail.guests;
+          }
+          
+          // Đảm bảo normalize cả trong checkedInGuests array
+          if (detail.checkedInGuests && Array.isArray(detail.checkedInGuests)) {
+            console.log('ViewInvoiceModal: detail.id', detail.id, 'has', detail.checkedInGuests.length, 'checkedInGuests');
+            detail.checkedInGuests.forEach((guest: any, index: number) => {
+              console.log(`ViewInvoiceModal: Guest ${index}:`, {
+                full_name: guest.full_name || guest.fullName,
+                email: guest.email,
+                phone_number: guest.phone_number || guest.phoneNumber,
+              });
+            });
+          } else {
+            console.log('ViewInvoiceModal: detail.id', detail.id, 'has no checkedInGuests');
+          }
+        });
+        
+        // Đảm bảo details được gán lại vào bookingOrder
+        if (bookingOrder.details) {
+          (invoice as any).booking_order = bookingOrder;
+          (invoice as any).bookingOrder = bookingOrder;
+        }
+      }
+
+      console.log('ViewInvoiceModal: Final invoice object:', JSON.stringify(invoice, null, 2));
+      const finalBookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      if (finalBookingOrder?.details) {
+        console.log('ViewInvoiceModal: Final bookingOrder.details:', finalBookingOrder.details);
+        finalBookingOrder.details.forEach((detail: any) => {
+          console.log(`ViewInvoiceModal: Detail ${detail.id} checkedInGuests:`, detail.checkedInGuests || detail.guests || 'NOT FOUND');
+        });
+      } else {
+        console.log('ViewInvoiceModal: No details found in bookingOrder');
+      }
       setInvoice(invoice);
     } catch (error: any) {
       console.error("Error fetching invoice:", error);
@@ -145,6 +234,58 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
         text: status || "Không xác định",
       }
     );
+  };
+
+  // Helper function để lấy thông tin khách từ checkedInGuests (ưu tiên khách đã check-in)
+  const getCheckedInGuestInfo = (invoice: Invoice | null) => {
+    if (!invoice) return null;
+
+    const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+    if (!bookingOrder) {
+      console.log('ViewInvoiceModal: No bookingOrder found');
+      return null;
+    }
+
+    // Kiểm tra cả details (array) và detail (object đơn)
+    let details = [];
+    if (Array.isArray(bookingOrder.details)) {
+      details = bookingOrder.details;
+    } else if (bookingOrder.details) {
+      details = [bookingOrder.details];
+    }
+    
+    console.log('ViewInvoiceModal: bookingOrder.details:', bookingOrder.details);
+    console.log('ViewInvoiceModal: details array:', details);
+    
+    // Tìm khách đã check-in đầu tiên từ tất cả booking details
+    for (const detail of details) {
+      if (!detail) continue;
+      
+      // Thử nhiều cách truy cập checkedInGuests
+      const checkedInGuests = detail.checkedInGuests || detail.guests || detail.checked_in_guests || [];
+      
+      console.log('ViewInvoiceModal: detail.id:', detail.id, 'checkedInGuests:', checkedInGuests);
+      
+      if (checkedInGuests && Array.isArray(checkedInGuests) && checkedInGuests.length > 0) {
+        // Lấy khách đầu tiên đã check-in
+        const firstGuest = checkedInGuests[0];
+        
+        console.log('ViewInvoiceModal: firstGuest:', firstGuest);
+        
+        if (firstGuest && (firstGuest.full_name || firstGuest.fullName)) {
+          const result = {
+            full_name: firstGuest.full_name || firstGuest.fullName || '',
+            email: firstGuest.email || null,
+            phone_number: firstGuest.phone_number || firstGuest.phoneNumber || null,
+          };
+          console.log('ViewInvoiceModal: Returning checkedInGuestInfo:', result);
+          return result;
+        }
+      }
+    }
+    
+    console.log('ViewInvoiceModal: No checkedInGuest found, returning null');
+    return null;
   };
 
   const getDisplayStatus = (invoice: Invoice | null): string | undefined => {
@@ -331,7 +472,7 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
               const url = typeof img === "string" ? img : img.image_url;
               if (!url) return null;
               return (
-                <Image
+                <AntImage
                   key={index}
                   src={url}
                   width={40}
@@ -389,23 +530,13 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                 const statusKey = getDisplayStatus(invoice);
                 const cfg = getStatusConfig(statusKey);
                 return (
-
-                    <Space size="small" wrap>
-                        {images.map((img: any, index: number) => {
-                            const url = typeof img === 'string' ? img : img.image_url;
-                            if (!url) return null;
-                            return (
-                                <AntImage
-                                    key={index}
-                                    src={url}
-                                    width={40}
-                                    height={40}
-                                    style={{ objectFit: 'cover', borderRadius: 4 }}
-                                    preview={{ src: url }}
-                                />
-                            );
-                        })}
-                    </Space>
+                  <Tag
+                    icon={cfg.icon}
+                    color={cfg.color}
+                    style={{ fontSize: 14, padding: "4px 12px" }}
+                  >
+                    {cfg.text}
+                  </Tag>
                 );
               })()}
             </Col>
@@ -422,22 +553,85 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             style={{ marginBottom: 24 }}
           >
             <Descriptions.Item label="Tên khách hàng">
-              {invoice.booking_order?.guest?.full_name ||
-                invoice.booking_order?.customer_name ||
-                invoice.customer_name ||
-                "N/A"}
+              {(() => {
+                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
+                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
+                if (checkedInGuestInfo?.full_name) {
+                  return checkedInGuestInfo.full_name;
+                }
+                // Ưu tiên 2: Lấy từ bookingOrder.guest (giống viewbooking.tsx)
+                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+                if (bookingOrder?.guest?.full_name) {
+                  return bookingOrder.guest.full_name;
+                }
+                // Ưu tiên 3: Lấy từ bookingOrder.customer_name
+                if (bookingOrder?.customer_name) {
+                  return bookingOrder.customer_name;
+                }
+                // Ưu tiên 4: Lấy từ invoice.customer_name
+                if (invoice.customer_name) {
+                  return invoice.customer_name;
+                }
+                return "N/A";
+              })()}
             </Descriptions.Item>
             <Descriptions.Item label="Email">
-              {invoice.booking_order?.guest?.email ||
-                invoice.booking_order?.customer_email ||
-                invoice.customer_email ||
-                "N/A"}
+              {(() => {
+                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
+                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
+                console.log('ViewInvoiceModal: Display Email - checkedInGuestInfo:', checkedInGuestInfo);
+                if (checkedInGuestInfo?.email) {
+                  console.log('ViewInvoiceModal: Using email from checkedInGuest:', checkedInGuestInfo.email);
+                  return checkedInGuestInfo.email;
+                }
+                // Ưu tiên 2: bookingOrder.guest.email
+                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+                if (bookingOrder?.guest?.email) {
+                  console.log('ViewInvoiceModal: Using email from bookingOrder.guest:', bookingOrder.guest.email);
+                  return bookingOrder.guest.email;
+                }
+                // Ưu tiên 3: bookingOrder.customer_email
+                if (bookingOrder?.customer_email) {
+                  console.log('ViewInvoiceModal: Using email from bookingOrder.customer_email:', bookingOrder.customer_email);
+                  return bookingOrder.customer_email;
+                }
+                // Ưu tiên 4: invoice.customer_email
+                if (invoice.customer_email) {
+                  console.log('ViewInvoiceModal: Using email from invoice.customer_email:', invoice.customer_email);
+                  return invoice.customer_email;
+                }
+                console.log('ViewInvoiceModal: No email found, returning N/A');
+                return "N/A";
+              })()}
             </Descriptions.Item>
             <Descriptions.Item label="Số điện thoại">
-              {invoice.booking_order?.guest?.phone_number ||
-                invoice.booking_order?.customer_phone ||
-                invoice.customer_phone ||
-                "N/A"}
+              {(() => {
+                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
+                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
+                console.log('ViewInvoiceModal: Display Phone - checkedInGuestInfo:', checkedInGuestInfo);
+                if (checkedInGuestInfo?.phone_number) {
+                  console.log('ViewInvoiceModal: Using phone from checkedInGuest:', checkedInGuestInfo.phone_number);
+                  return checkedInGuestInfo.phone_number;
+                }
+                // Ưu tiên 2: bookingOrder.guest.phone_number
+                const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+                if (bookingOrder?.guest?.phone_number) {
+                  console.log('ViewInvoiceModal: Using phone from bookingOrder.guest:', bookingOrder.guest.phone_number);
+                  return bookingOrder.guest.phone_number;
+                }
+                // Ưu tiên 3: bookingOrder.customer_phone
+                if (bookingOrder?.customer_phone) {
+                  console.log('ViewInvoiceModal: Using phone from bookingOrder.customer_phone:', bookingOrder.customer_phone);
+                  return bookingOrder.customer_phone;
+                }
+                // Ưu tiên 4: invoice.customer_phone
+                if (invoice.customer_phone) {
+                  console.log('ViewInvoiceModal: Using phone from invoice.customer_phone:', invoice.customer_phone);
+                  return invoice.customer_phone;
+                }
+                console.log('ViewInvoiceModal: No phone found, returning N/A');
+                return "N/A";
+              })()}
             </Descriptions.Item>
           </Descriptions>
 

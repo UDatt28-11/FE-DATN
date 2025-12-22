@@ -749,8 +749,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Text>{invoice.notes}</Text>
               </div>
             )}
-
-        </Modal>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <Text type="secondary">Không tìm thấy thông tin hóa đơn</Text>
+          </div>
+        )}
+      </Modal>
 
         {/* Modal hiển thị ảnh thiệt hại */}
         <Modal
