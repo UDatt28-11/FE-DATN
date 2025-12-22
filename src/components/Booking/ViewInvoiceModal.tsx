@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
     Modal,
     Descriptions,
@@ -13,302 +13,552 @@ import {
     Col,
     Image as AntImage,
 } from 'antd';
+
 import {
-    FileTextOutlined,
-    PrinterOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    CloseCircleOutlined,
-    DollarOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import { toast } from 'react-toastify';
-import { getUserInvoice } from '../../service/bookingService';
-import invoiceService from '../../service/invoiceService';
-import type { Invoice, InvoiceItem } from '../../types/invoice/invoice';
-import { formatVND } from '../../utils/currency';
+  FileTextOutlined,
+  PrinterOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import { toast } from "react-toastify";
+import { getUserInvoice } from "../../service/bookingService";
+import invoiceService from "../../service/invoiceService";
+import api from "../../api/axios";
+import type { Invoice, InvoiceItem } from "../../types/invoice/invoice";
+import { formatVND } from "../../utils/currency";
 
 const { Title, Text } = Typography;
 
 interface ViewInvoiceModalProps {
-    open?: boolean;
-    visible?: boolean; // Deprecated, use open instead
-    invoiceId: number | null;
-    onCancel: () => void;
-    isAdmin?: boolean; // Nếu true, sử dụng admin endpoint thay vì user endpoint
+  open?: boolean;
+  visible?: boolean; // Deprecated, use open instead
+  invoiceId: number | null;
+  onCancel: () => void;
+  isAdmin?: boolean; // Nếu true, sử dụng admin endpoint thay vì user endpoint
 }
 
 const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
-    open,
-    visible, // Deprecated, use open instead
-    invoiceId,
-    onCancel,
-    isAdmin = false,
+  open,
+  visible, // Deprecated, use open instead
+  invoiceId,
+  onCancel,
+  isAdmin = false,
 }) => {
-    const isOpen = open !== undefined ? open : visible; // Support both for backward compatibility
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
-    const [loading, setLoading] = useState(false);
+  const isOpen = open !== undefined ? open : visible; // Support both for backward compatibility
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && invoiceId) {
-            fetchInvoice();
-        } else {
-            setInvoice(null);
-        }
-    }, [isOpen, invoiceId]);
+  useEffect(() => {
+    if (isOpen && invoiceId) {
+      fetchInvoice();
+    } else {
+      setInvoice(null);
+    }
+  }, [isOpen, invoiceId]);
 
-    const fetchInvoice = async () => {
-        if (!invoiceId) return;
-        setLoading(true);
-        try {
-            // Sử dụng admin endpoint nếu isAdmin = true, ngược lại dùng user endpoint
-            let invoiceData;
-            if (isAdmin) {
-                // Sử dụng admin endpoint với include để load bookingOrder và guest
-                invoiceData = await invoiceService.getById(invoiceId, 'bookingOrder,bookingOrder.guest,invoiceItems,payments');
-            } else {
-                // Sử dụng user endpoint
-                invoiceData = await getUserInvoice(invoiceId);
-            }
-            // Xử lý response có thể có nhiều dạng
-            let invoice: Invoice;
-            if (isAdmin) {
-                // Admin endpoint trả về trực tiếp Invoice object
-                invoice = invoiceData as Invoice;
-            } else {
-                // User endpoint có thể wrap trong data.data hoặc data
-                if (invoiceData?.data?.data) {
-                    invoice = invoiceData.data.data;
-                } else if (invoiceData?.data) {
-                    invoice = invoiceData.data;
-                } else if (invoiceData) {
-                    invoice = invoiceData as Invoice;
-                } else {
-                    throw new Error("Không nhận được dữ liệu từ server");
-                }
-            }
-            
-            // Map invoice_items từ backend (snake_case) thành items cho frontend
-            if ((invoice as any).invoice_items && !invoice.items) {
-                invoice.items = (invoice as any).invoice_items;
-            }
-            // Hoặc nếu backend trả về invoiceItems (camelCase)
-            if ((invoice as any).invoiceItems && !invoice.items) {
-                invoice.items = (invoice as any).invoiceItems;
-            }
-            
-            setInvoice(invoice);
-        } catch (error: any) {
-            console.error('Error fetching invoice:', error);
-            toast.error(error.response?.data?.message || 'Không thể tải thông tin hóa đơn');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const getStatusConfig = (status?: string) => {
-        const configs: Record<string, { color: string; icon: React.ReactNode; text: string }> = {
-            pending: {
-                color: 'gold',
-                icon: <ClockCircleOutlined />,
-                text: 'Chờ thanh toán',
-            },
-            paid: {
-                color: 'green',
-                icon: <CheckCircleOutlined />,
-                text: 'Đã thanh toán',
-            },
-            overdue: {
-                color: 'red',
-                icon: <CloseCircleOutlined />,
-                text: 'Quá hạn',
-            },
-            cancelled: {
-                color: 'default',
-                icon: <CloseCircleOutlined />,
-                text: 'Đã hủy',
-            },
-        };
-        return configs[status || 'pending'] || {
-            color: 'default',
-            icon: <ClockCircleOutlined />,
-            text: status || 'Không xác định',
-        };
-    };
-
-    const getDisplayStatus = (invoice: Invoice | null): string | undefined => {
-        if (!invoice) return undefined;
-
-        // Ưu tiên: nếu đã thanh toán đủ hoặc không còn số dư thì coi như "paid"
-        const total = invoice.total_amount ?? 0;
-        const paid = invoice.paid_amount ?? 0;
-        const balance = typeof invoice.balance === 'number' ? invoice.balance : total - paid;
-
-        if (total === 0 || balance <= 0) {
-            return 'paid';
-        }
-
-        // Nếu backend có payment_status thì dùng, map partially_paid -> pending để hiển thị thân thiện
-        if (invoice.payment_status) {
-            if (invoice.payment_status === 'paid') return 'paid';
-            if (invoice.payment_status === 'overdue') return 'overdue';
-            if (invoice.payment_status === 'cancelled') return 'cancelled';
-            return 'pending';
-        }
-
-        // Fallback theo invoice_status
-        if (invoice.invoice_status === 'paid') return 'paid';
-        if (invoice.invoice_status === 'cancelled') return 'cancelled';
-
-        return 'pending';
-    };
-
-    const getDisplayPaymentMethod = (invoice: Invoice | null): string => {
-        if (!invoice) return 'N/A';
-
-        const rawMethod = (invoice as any).payment_method || invoice.booking_order?.payment_method;
-        const normalize = (method?: string | null): string | undefined => {
-            if (!method) return undefined;
-            const lower = method.toLowerCase();
-            if (lower === 'payos' || lower === 'pay_os') return 'PayOS';
-            if (lower === 'cash') return 'Tiền mặt';
-            if (lower === 'bank_transfer') return 'Chuyển khoản';
-            if (lower === 'credit_card') return 'Thẻ tín dụng';
-            if (lower === 'e_wallet') return 'Ví điện tử';
-            return method;
-        };
-
-        const normalizedFromField = normalize(rawMethod);
-        if (normalizedFromField) return normalizedFromField;
-
-        // Nếu không có field payment_method, thử đoán theo invoice items (deposit PayOS)
-        const items: any[] =
-            (invoice as any).items ||
-            (invoice as any).invoice_items ||
-            (invoice as any).invoiceItems ||
-            [];
-
-        const hasPayOSDeposit = items.some(
-            (item) =>
-                item?.item_type === 'deposit' &&
-                typeof item.description === 'string' &&
-                item.description.toLowerCase().includes('payos'),
+  const fetchInvoice = async () => {
+    if (!invoiceId) return;
+    setLoading(true);
+    try {
+      // Sử dụng admin endpoint nếu isAdmin = true, ngược lại dùng user endpoint
+      let invoiceData;
+      if (isAdmin) {
+        // Sử dụng admin endpoint với include để load bookingOrder, guest, và checkedInGuests
+        invoiceData = await invoiceService.getById(
+          invoiceId,
+          "bookingOrder,bookingOrder.guest,bookingOrder.details,bookingOrder.details.checkedInGuests,bookingOrder.details.guests,invoiceItems,payments"
         );
-
-        if (hasPayOSDeposit) return 'PayOS';
-
-        return 'N/A';
-    };
-
-    const formatDate = (dateString?: string | null): string => {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('vi-VN');
-        } catch {
-            return dateString;
+      } else {
+        // Sử dụng user endpoint - cần load thêm details và checkedInGuests
+        // User endpoint hiện tại không load details, nên cần fetch thêm booking để lấy checkedInGuests
+        invoiceData = await getUserInvoice(invoiceId);
+        
+        // Nếu có bookingOrder, fetch thêm details với checkedInGuests
+        const invoice = invoiceData?.data || invoiceData;
+        if (invoice?.booking_order_id) {
+          try {
+            // Fetch booking với details và checkedInGuests
+            const bookingResponse = await api.get(`/user/bookings/${invoice.booking_order_id}`, {
+              params: { include: 'details,details.checkedInGuests,details.guests' }
+            });
+            const booking = bookingResponse.data?.data || bookingResponse.data;
+            if (booking && booking.details) {
+              // Gán details vào bookingOrder
+              if (invoice.booking_order) {
+                invoice.booking_order.details = booking.details;
+              }
+              if (invoice.bookingOrder) {
+                invoice.bookingOrder.details = booking.details;
+              }
+            }
+          } catch (error) {
+            console.warn("ViewInvoiceModal: Could not fetch booking details:", error);
+          }
         }
+      }
+      // Xử lý response có thể có nhiều dạng
+      let invoice: Invoice;
+      // Cả admin và user endpoint đều có thể wrap trong data
+      if (invoiceData?.data?.data) {
+        invoice = invoiceData.data.data;
+      } else if (invoiceData?.data) {
+        invoice = invoiceData.data;
+      } else if (invoiceData) {
+        invoice = invoiceData as Invoice;
+      } else {
+        throw new Error("Không nhận được dữ liệu từ server");
+      }
+      
+      console.log('ViewInvoiceModal: Raw invoice data:', invoice);
+      const rawBookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      console.log('ViewInvoiceModal: Raw bookingOrder:', rawBookingOrder);
+      if (rawBookingOrder?.details) {
+        console.log('ViewInvoiceModal: Raw bookingOrder.details:', rawBookingOrder.details);
+        rawBookingOrder.details.forEach((detail: any, index: number) => {
+          console.log(`ViewInvoiceModal: Raw detail[${index}] (id: ${detail.id}):`, {
+            checkedInGuests: detail.checkedInGuests,
+            guests: detail.guests,
+            checked_in_guests: detail.checked_in_guests,
+          });
+        });
+      }
+
+      // Map invoice_items từ backend (snake_case) thành items cho frontend
+      if ((invoice as any).invoice_items && !invoice.items) {
+        invoice.items = (invoice as any).invoice_items;
+      }
+      // Hoặc nếu backend trả về invoiceItems (camelCase)
+      if ((invoice as any).invoiceItems && !invoice.items) {
+        invoice.items = (invoice as any).invoiceItems;
+      }
+
+      // Normalize booking_order/bookingOrder để hỗ trợ cả snake_case và camelCase
+      if ((invoice as any).booking_order && !(invoice as any).bookingOrder) {
+        (invoice as any).bookingOrder = (invoice as any).booking_order;
+      }
+      if ((invoice as any).bookingOrder && !(invoice as any).booking_order) {
+        (invoice as any).booking_order = (invoice as any).bookingOrder;
+      }
+
+      // Normalize details trong bookingOrder để hỗ trợ cả snake_case và camelCase
+      const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      if (bookingOrder) {
+        // Normalize checkedInGuests trong mỗi detail
+        const details = bookingOrder.details || [];
+        console.log('ViewInvoiceModal: Normalizing details, count:', details.length);
+        
+        details.forEach((detail: any) => {
+          // Đảm bảo cả checkedInGuests và guests đều có dữ liệu
+          if (detail.checkedInGuests && !detail.guests) {
+            detail.guests = detail.checkedInGuests;
+          }
+          if (detail.guests && !detail.checkedInGuests) {
+            detail.checkedInGuests = detail.guests;
+          }
+          
+          // Đảm bảo normalize cả trong checkedInGuests array
+          if (detail.checkedInGuests && Array.isArray(detail.checkedInGuests)) {
+            console.log('ViewInvoiceModal: detail.id', detail.id, 'has', detail.checkedInGuests.length, 'checkedInGuests');
+            detail.checkedInGuests.forEach((guest: any, index: number) => {
+              console.log(`ViewInvoiceModal: Guest ${index}:`, {
+                full_name: guest.full_name || guest.fullName,
+                email: guest.email,
+                phone_number: guest.phone_number || guest.phoneNumber,
+              });
+            });
+          } else {
+            console.log('ViewInvoiceModal: detail.id', detail.id, 'has no checkedInGuests');
+          }
+        });
+        
+        // Đảm bảo details được gán lại vào bookingOrder
+        if (bookingOrder.details) {
+          (invoice as any).booking_order = bookingOrder;
+          (invoice as any).bookingOrder = bookingOrder;
+        }
+      }
+
+      console.log('ViewInvoiceModal: Final invoice object:', JSON.stringify(invoice, null, 2));
+      const finalBookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+      if (finalBookingOrder?.details) {
+        console.log('ViewInvoiceModal: Final bookingOrder.details:', finalBookingOrder.details);
+        finalBookingOrder.details.forEach((detail: any) => {
+          console.log(`ViewInvoiceModal: Detail ${detail.id} checkedInGuests:`, detail.checkedInGuests || detail.guests || 'NOT FOUND');
+        });
+      } else {
+        console.log('ViewInvoiceModal: No details found in bookingOrder');
+      }
+      setInvoice(invoice);
+    } catch (error: any) {
+      console.error("Error fetching invoice:", error);
+      toast.error(
+        error.response?.data?.message || "Không thể tải thông tin hóa đơn"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusConfig = (status?: string) => {
+    const configs: Record<
+      string,
+      { color: string; icon: React.ReactNode; text: string }
+    > = {
+      pending: {
+        color: "gold",
+        icon: <ClockCircleOutlined />,
+        text: "Chờ thanh toán",
+      },
+      paid: {
+        color: "green",
+        icon: <CheckCircleOutlined />,
+        text: "Đã thanh toán",
+      },
+      overdue: {
+        color: "red",
+        icon: <CloseCircleOutlined />,
+        text: "Quá hạn",
+      },
+      cancelled: {
+        color: "default",
+        icon: <CloseCircleOutlined />,
+        text: "Đã hủy",
+      },
+    };
+    return (
+      configs[status || "pending"] || {
+        color: "default",
+        icon: <ClockCircleOutlined />,
+        text: status || "Không xác định",
+      }
+    );
+  };
+
+  // Helper function để lấy thông tin khách từ checkedInGuests (ưu tiên khách đã check-in)
+  const getCheckedInGuestInfo = (invoice: Invoice | null) => {
+    if (!invoice) return null;
+
+    const bookingOrder = (invoice as any).booking_order || (invoice as any).bookingOrder;
+    if (!bookingOrder) {
+      console.log('ViewInvoiceModal: No bookingOrder found');
+      return null;
+    }
+
+    // Kiểm tra cả details (array) và detail (object đơn)
+    let details = [];
+    if (Array.isArray(bookingOrder.details)) {
+      details = bookingOrder.details;
+    } else if (bookingOrder.details) {
+      details = [bookingOrder.details];
+    }
+    
+    console.log('ViewInvoiceModal: bookingOrder.details:', bookingOrder.details);
+    console.log('ViewInvoiceModal: details array:', details);
+    
+    // Tìm khách đã check-in đầu tiên từ tất cả booking details
+    for (const detail of details) {
+      if (!detail) continue;
+      
+      // Thử nhiều cách truy cập checkedInGuests
+      const checkedInGuests = detail.checkedInGuests || detail.guests || detail.checked_in_guests || [];
+      
+      console.log('ViewInvoiceModal: detail.id:', detail.id, 'checkedInGuests:', checkedInGuests);
+      
+      if (checkedInGuests && Array.isArray(checkedInGuests) && checkedInGuests.length > 0) {
+        // Lấy khách đầu tiên đã check-in
+        const firstGuest = checkedInGuests[0];
+        
+        console.log('ViewInvoiceModal: firstGuest:', firstGuest);
+        
+        if (firstGuest && (firstGuest.full_name || firstGuest.fullName)) {
+          const result = {
+            full_name: firstGuest.full_name || firstGuest.fullName || '',
+            email: firstGuest.email || null,
+            phone_number: firstGuest.phone_number || firstGuest.phoneNumber || null,
+          };
+          console.log('ViewInvoiceModal: Returning checkedInGuestInfo:', result);
+          return result;
+        }
+      }
+    }
+    
+    console.log('ViewInvoiceModal: No checkedInGuest found, returning null');
+    return null;
+  };
+
+  const getDisplayStatus = (invoice: Invoice | null): string | undefined => {
+    if (!invoice) return undefined;
+
+    // Ưu tiên: nếu đã thanh toán đủ hoặc không còn số dư thì coi như "paid"
+    const total = invoice.total_amount ?? 0;
+    const paid = invoice.paid_amount ?? 0;
+    const balance =
+      typeof invoice.balance === "number" ? invoice.balance : total - paid;
+
+    if (total === 0 || balance <= 0) {
+      return "paid";
+    }
+
+    // Nếu backend có payment_status thì dùng, map partially_paid -> pending để hiển thị thân thiện
+    if (invoice.payment_status) {
+      if (invoice.payment_status === "paid") return "paid";
+      if (invoice.payment_status === "overdue") return "overdue";
+      if (invoice.payment_status === "cancelled") return "cancelled";
+      return "pending";
+    }
+
+    // Fallback theo invoice_status
+    if (invoice.invoice_status === "paid") return "paid";
+    if (invoice.invoice_status === "cancelled") return "cancelled";
+
+    return "pending";
+  };
+
+  const getDisplayPaymentMethod = (invoice: Invoice | null): string => {
+    if (!invoice) return "N/A";
+
+    const rawMethod =
+      (invoice as any).payment_method || invoice.booking_order?.payment_method;
+    const normalize = (method?: string | null): string | undefined => {
+      if (!method) return undefined;
+      const lower = method.toLowerCase();
+      if (lower === "payos" || lower === "pay_os") return "PayOS";
+      if (lower === "cash") return "Tiền mặt";
+      if (lower === "bank_transfer") return "Chuyển khoản";
+      if (lower === "credit_card") return "Thẻ tín dụng";
+      if (lower === "e_wallet") return "Ví điện tử";
+      return method;
     };
 
-    const itemColumns: ColumnsType<InvoiceItem> = [
-        {
-            title: 'STT',
-            key: 'index',
-            width: 60,
-            render: (_: any, __: any, index: number) => index + 1,
-        },
-        {
-            title: 'Mô tả',
-            dataIndex: 'description',
-            key: 'description',
-        },
-        {
-            title: 'Loại',
-            dataIndex: 'item_type',
-            key: 'item_type',
-            width: 120,
-            render: (type: string) => {
-                const typeMap: Record<string, { label: string; color: string }> = {
-                    room_charge: { label: 'Phí phòng', color: '' },
-                    service_charge: { label: 'Dịch vụ', color: 'blue' },
-                    damage_fee: { label: 'Thiệt hại', color: 'red' },
-                    penalty: { label: 'Phạt', color: 'red' },
-                    deposit: { label: 'Tiền cọc', color: 'orange' },
-                    voucher_discount: { label: 'Giảm giá', color: 'green' },
-                    other: { label: 'Khác', color: '' },
-                };
-                const config = typeMap[type] || { label: type, color: '' };
-                return <Tag color={config.color || undefined}>{config.label}</Tag>;
-            },
-        },
-        {
-            title: 'Số lượng',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            width: 100,
-            align: 'right',
-        },
-        {
-            title: 'Đơn giá',
-            dataIndex: 'unit_price',
-            key: 'unit_price',
-            width: 120,
-            align: 'right',
-            render: (price: number, record: InvoiceItem) => {
-                const isPaid = record.description?.includes('[Đã thanh toán]');
-                return (
-                    <Text
-                        style={{
-                            textDecoration: isPaid ? 'line-through' : 'none',
-                            color: isPaid ? '#8c8c8c' : 'inherit',
-                            opacity: isPaid ? 0.6 : 1,
-                        }}
-                    >
-                        {formatVND(price)}
-                    </Text>
-                );
-            },
-        },
-        {
-            title: 'Thành tiền',
-            key: 'total',
-            width: 150,
-            align: 'right',
-            render: (_: any, record: InvoiceItem) => {
-                const total = record.total || record.total_line || (record.unit_price * record.quantity);
-                const isNegative = total < 0;
-                const isPaid = record.description?.includes('[Đã thanh toán]');
-                return (
-                    <Text
-                        strong
-                        style={{
-                            color: isPaid ? '#8c8c8c' : isNegative ? '#ff4d4f' : undefined,
-                            textDecoration: isPaid ? 'line-through' : 'none',
-                            opacity: isPaid ? 0.6 : 1,
-                        }}
-                    >
-                        {isNegative ? '-' : ''}{formatVND(Math.abs(total))}
-                        {isPaid && (
-                            <span style={{ marginLeft: 8, fontSize: 12, color: '#52c41a' }}>
-                                (Đã thanh toán)
-                            </span>
-                        )}
-                    </Text>
-                );
-            },
-        },
-        {
-            title: 'Ảnh minh chứng',
-            key: 'damage_images',
-            width: 200,
-            render: (_: any, record: any) => {
-                const images =
-                    record.damage_images ||
-                    record.damageImages ||
-                    [];
+    const normalizedFromField = normalize(rawMethod);
+    if (normalizedFromField) return normalizedFromField;
 
-                if (!images || !Array.isArray(images) || images.length === 0) {
-                    return null;
+    // Nếu không có field payment_method, thử đoán theo invoice items (deposit PayOS)
+    const items: any[] =
+      (invoice as any).items ||
+      (invoice as any).invoice_items ||
+      (invoice as any).invoiceItems ||
+      [];
+
+    const hasPayOSDeposit = items.some(
+      (item) =>
+        item?.item_type === "deposit" &&
+        typeof item.description === "string" &&
+        item.description.toLowerCase().includes("payos")
+    );
+
+    if (hasPayOSDeposit) return "PayOS";
+
+    return "N/A";
+  };
+
+  const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("vi-VN");
+    } catch {
+      return dateString;
+    }
+  };
+
+  const itemColumns: ColumnsType<InvoiceItem> = [
+    {
+      title: "STT",
+      key: "index",
+      width: 60,
+      render: (_: any, __: any, index: number) => index + 1,
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+    },
+    {
+      title: "Loại",
+      dataIndex: "item_type",
+      key: "item_type",
+      width: 120,
+      render: (type: string) => {
+        const typeMap: Record<string, { label: string; color: string }> = {
+          room_charge: { label: "Phí phòng", color: "" },
+          service_charge: { label: "Dịch vụ", color: "blue" },
+          damage_fee: { label: "Thiệt hại", color: "red" },
+          penalty: { label: "Phạt", color: "red" },
+          deposit: { label: "Tiền cọc", color: "orange" },
+          voucher_discount: { label: "Giảm giá", color: "green" },
+          other: { label: "Khác", color: "" },
+        };
+        const config = typeMap[type] || { label: type, color: "" };
+        return <Tag color={config.color || undefined}>{config.label}</Tag>;
+      },
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "quantity",
+      key: "quantity",
+      width: 100,
+      align: "right",
+    },
+    {
+      title: "Đơn giá",
+      dataIndex: "unit_price",
+      key: "unit_price",
+      width: 120,
+      align: "right",
+      render: (price: number, record: InvoiceItem) => {
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Text
+            style={{
+              textDecoration: isPaid ? "line-through" : "none",
+              color: isPaid ? "#8c8c8c" : "inherit",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {formatVND(price)}
+          </Text>
+        );
+      },
+    },
+    {
+      title: "Thành tiền",
+      key: "total",
+      width: 150,
+      align: "right",
+      render: (_: any, record: InvoiceItem) => {
+        const total =
+          record.total ||
+          record.total_line ||
+          record.unit_price * record.quantity;
+        const isNegative = total < 0;
+        const isPaid = record.description?.includes("[Đã thanh toán]");
+        return (
+          <Text
+            strong
+            style={{
+              color: isPaid ? "#8c8c8c" : isNegative ? "#ff4d4f" : undefined,
+              textDecoration: isPaid ? "line-through" : "none",
+              opacity: isPaid ? 0.6 : 1,
+            }}
+          >
+            {isNegative ? "-" : ""}
+            {formatVND(Math.abs(total))}
+            {isPaid && (
+              <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
+                (Đã thanh toán)
+              </span>
+            )}
+          </Text>
+        );
+      },
+    },
+    {
+      title: "Ảnh minh chứng",
+      key: "damage_images",
+      width: 200,
+      render: (_: any, record: any) => {
+        const images = record.damage_images || record.damageImages || [];
+
+        if (!images || !Array.isArray(images) || images.length === 0) {
+          return null;
+        }
+
+        return (
+          <Space size="small" wrap>
+            {images.map((img: any, index: number) => {
+              const url = typeof img === "string" ? img : img.image_url;
+              if (!url) return null;
+              return (
+                <AntImage
+                  key={index}
+                  src={url}
+                  width={40}
+                  height={40}
+                  style={{ objectFit: "cover", borderRadius: 4 }}
+                  preview={{ src: url }}
+                />
+              );
+            })}
+          </Space>
+        );
+      },
+    },
+  ];
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <Modal
+      title={
+        <Space>
+          <FileTextOutlined />
+          <span>Chi tiết hóa đơn</span>
+        </Space>
+      }
+      open={isOpen}
+      onCancel={onCancel}
+      footer={[
+        <Button key="close" onClick={onCancel}>
+          Đóng
+        </Button>,
+      ]}
+      width={900}
+    >
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <Spin size="large" />
+        </div>
+      ) : invoice ? (
+        <div style={{ padding: "20px 0" }}>
+          {/* Header */}
+          <Row justify="space-between" align="top" style={{ marginBottom: 24 }}>
+            <Col>
+              <Title level={3} style={{ margin: 0, color: "#cb8670" }}>
+                HÓA ĐƠN
+              </Title>
+              <Text type="secondary">
+                Số hóa đơn: {invoice.invoice_number || `#${invoice.id}`}
+              </Text>
+            </Col>
+            <Col>
+              {(() => {
+                const statusKey = getDisplayStatus(invoice);
+                const cfg = getStatusConfig(statusKey);
+                return (
+                  <Tag
+                    icon={cfg.icon}
+                    color={cfg.color}
+                    style={{ fontSize: 14, padding: "4px 12px" }}
+                  >
+                    {cfg.text}
+                  </Tag>
+                );
+              })()}
+            </Col>
+          </Row>
+
+          <Divider />
+
+          {/* Thông tin khách hàng */}
+          <Descriptions
+            title="Thông tin khách hàng"
+            bordered
+            column={2}
+            size="small"
+            style={{ marginBottom: 24 }}
+          >
+            <Descriptions.Item label="Tên khách hàng">
+              {(() => {
+                // Ưu tiên 1: Lấy từ checkedInGuests (khách đã check-in từ form check-in)
+                const checkedInGuestInfo = getCheckedInGuestInfo(invoice);
+                if (checkedInGuestInfo?.full_name) {
+                  return checkedInGuestInfo.full_name;
                 }
 
                 return (
@@ -556,10 +806,135 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                     <Text type="secondary">Không tìm thấy thông tin hóa đơn</Text>
                 </div>
+
             )}
-        </Modal>
-    );
+          </Descriptions>
+
+          {/* Chi tiết hóa đơn */}
+          <div style={{ marginBottom: 24 }}>
+            <Title level={5}>Chi tiết hóa đơn</Title>
+            <Table
+              columns={itemColumns}
+              dataSource={
+                invoice.items ||
+                (invoice as any).invoice_items ||
+                (invoice as any).invoiceItems ||
+                []
+              }
+              rowKey="id"
+              pagination={false}
+              size="small"
+              bordered
+            />
+          </div>
+
+          {/* Tổng tiền */}
+          <Row justify="end" style={{ marginBottom: 24 }}>
+            <Col span={12}>
+              <Space
+                direction="vertical"
+                size="small"
+                style={{ width: "100%" }}
+              >
+                <Row justify="space-between">
+                  <Col>
+                    <Text>Tạm tính:</Text>
+                  </Col>
+                  <Col>
+                    <Text>
+                      {formatVND(invoice.subtotal || invoice.total_amount)}
+                    </Text>
+                  </Col>
+                </Row>
+                {invoice.discount_amount > 0 && (
+                  <Row justify="space-between">
+                    <Col>
+                      <Text type="secondary">Giảm giá:</Text>
+                    </Col>
+                    <Col>
+                      <Text type="secondary">
+                        -{formatVND(invoice.discount_amount)}
+                      </Text>
+                    </Col>
+                  </Row>
+                )}
+                {invoice.tax_amount > 0 && (
+                  <Row justify="space-between">
+                    <Col>
+                      <Text type="secondary">Thuế ({invoice.tax_rate}%):</Text>
+                    </Col>
+                    <Col>
+                      <Text type="secondary">
+                        {formatVND(invoice.tax_amount)}
+                      </Text>
+                    </Col>
+                  </Row>
+                )}
+                <Divider style={{ margin: "8px 0" }} />
+                <Row justify="space-between">
+                  <Col>
+                    <Text strong style={{ fontSize: 16 }}>
+                      Tổng cộng:
+                    </Text>
+                  </Col>
+                  <Col>
+                    <Text strong style={{ fontSize: 18, color: "#cb8670" }}>
+                      {formatVND(invoice.total_amount)}
+                    </Text>
+                  </Col>
+                </Row>
+                {invoice.paid_amount > 0 && (
+                  <Row justify="space-between">
+                    <Col>
+                      <Text type="secondary">Đã thanh toán:</Text>
+                    </Col>
+                    <Col>
+                      <Text type="success">
+                        {formatVND(invoice.paid_amount)}
+                      </Text>
+                    </Col>
+                  </Row>
+                )}
+                {invoice.balance > 0 && (
+                  <Row justify="space-between">
+                    <Col>
+                      <Text strong>Còn lại:</Text>
+                    </Col>
+                    <Col>
+                      <Text strong style={{ color: "#ff4d4f" }}>
+                        {formatVND(invoice.balance)}
+                      </Text>
+                    </Col>
+                  </Row>
+                )}
+              </Space>
+            </Col>
+          </Row>
+
+          {/* Ghi chú */}
+          {invoice.notes && (
+            <div style={{ marginTop: 24 }}>
+              <Text type="secondary">Ghi chú: </Text>
+              <Text>{invoice.notes}</Text>
+            </div>
+          )}
+
+          {/* Điều khoản */}
+          {invoice.terms_conditions && (
+            <div style={{ marginTop: 16 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {invoice.terms_conditions}
+              </Text>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <Text type="secondary">Không tìm thấy thông tin hóa đơn</Text>
+        </div>
+      )}
+    </Modal>
+  );
 };
 
 export default ViewInvoiceModal;
-

@@ -379,6 +379,8 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
 
                 return {
                     full_name: guestData.full_name,
+                    email: guestData.email || null,
+                    phone_number: guestData.phone_number || null,
                     date_of_birth: dateOfBirth,
                     identity_type: guestData.identity_type,
                     identity_number: guestData.identity_number,
@@ -403,6 +405,12 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
             // Thêm guests data
             guests.forEach((guest, index) => {
                 formData.append(`guests[${index}][full_name]`, guest.full_name);
+                if (guest.email) {
+                    formData.append(`guests[${index}][email]`, guest.email);
+                }
+                if (guest.phone_number) {
+                    formData.append(`guests[${index}][phone_number]`, guest.phone_number);
+                }
                 if (guest.date_of_birth) {
                     formData.append(`guests[${index}][date_of_birth]`, guest.date_of_birth);
                 }
@@ -668,6 +676,31 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         >
                             <Input placeholder="Nhập họ và tên" />
                         </Form.Item>
+
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item
+                                    name={[`guests_${index}`, 'email']}
+                                    label="Email"
+                                    rules={[
+                                        { type: 'email', message: 'Email không hợp lệ' },
+                                    ]}
+                                >
+                                    <Input placeholder="Nhập email" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    name={[`guests_${index}`, 'phone_number']}
+                                    label="Số điện thoại"
+                                    rules={[
+                                        { pattern: /^[0-9]{10}$/, message: 'Số điện thoại phải có 10 chữ số' },
+                                    ]}
+                                >
+                                    <Input placeholder="Nhập số điện thoại" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
 
                         <Row gutter={16}>
                             {/* Ngày sinh - 3 dropdown nhỏ gọn */}
