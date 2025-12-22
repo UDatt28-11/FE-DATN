@@ -1,7 +1,9 @@
-import { Layout, Typography, Row, Col, Card, Button, Image } from "antd";
-import { CheckCircleOutlined } from "@ant-design/icons";
+import { Layout, Typography, Row, Col, Card, Button, Image, Rate, Avatar, Spin } from "antd";
+import { CheckCircleOutlined, UserOutlined } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import dayjs from "../../../utils/dayjs";
+import reviewService from "../../../service/reviewService";
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -16,6 +18,8 @@ export default function AboutPage() {
     ];
 
     const [index, setIndex] = useState(0);
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -23,6 +27,49 @@ export default function AboutPage() {
         }, 5000);
 
         return () => clearInterval(interval);
+    }, []);
+
+    // Fetch reviews từ API
+    useEffect(() => {
+        const fetchReviews = async () => {
+            setLoadingReviews(true);
+            try {
+                // Lấy 4 reviews đã được duyệt (approved), có user info
+                const response = await reviewService.getAll({
+                    status: 'approved',
+                    per_page: 4,
+                    page: 1,
+                });
+                
+                // Xử lý response - format: { success: true, data: [...], meta: {...} }
+                const rawList = Array.isArray(response?.data) 
+                    ? response.data 
+                    : (response?.data?.data || response?.items || []);
+                
+                // Lọc chỉ lấy reviews có comment hoặc title
+                const filteredReviews = rawList
+                    .filter((review: any) => review.comment || review.title)
+                    .slice(0, 4)
+                    .map((review: any) => ({
+                        ...review,
+                        // Đảm bảo có user object
+                        user: review.user || {
+                            full_name: review.user_id || "Khách hàng",
+                            avatar_url: null,
+                        },
+                    }));
+                
+                setReviews(filteredReviews);
+            } catch (error: any) {
+                console.error("Error fetching reviews:", error);
+                // Fallback: giữ mảng rỗng nếu lỗi
+                setReviews([]);
+            } finally {
+                setLoadingReviews(false);
+            }
+        };
+
+        fetchReviews();
     }, []);
 
     return (
@@ -342,44 +389,129 @@ export default function AboutPage() {
 
                 {/* Đánh giá khách hàng */}
                 <div style={{ background: '#f8f8f8', padding: '80px 50px' }}>
-                    <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-                        <div style={{
-                            width: 60,
-                            height: 4,
-                            background: '#d4af37',
-                            margin: '0 auto 20px'
-                        }} />
-                        <Title level={2} style={{ fontSize: 36, fontWeight: 700, marginBottom: 40 }}>
-                            Khách hàng nói gì
-                        </Title>
+                    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                            <div style={{
+                                width: 60,
+                                height: 4,
+                                background: '#d4af37',
+                                margin: '0 auto 20px'
+                            }} />
+                            <Title level={2} style={{ fontSize: 36, fontWeight: 700, marginBottom: 40 }}>
+                                Đánh giá của khách hàng
+                            </Title>
+                        </div>
 
-                        <Card
-                            style={{
-                                border: 'none',
-                                borderRadius: 12,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                            }}
-                            styles={{ body: { padding: '50px 40px' } }}
-                        >
-                            <Paragraph style={{
-                                fontSize: 18,
-                                color: '#666',
-                                lineHeight: 1.8,
-                                marginBottom: 30
-                            }}>
-                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin gravida lorem eu
-                                consectetur imperdiet. Donec vel magna nunc. Ut ligula justo, consequat a egestas at,
-                                pretium ac urna. Mauris ut risus ut leo rhoncus iaculis. Sed at erat sit amet felis
-                                varius ultrices eget vel elit. Cras ultricies pharetra pulvinar."
-                            </Paragraph>
-                            <div style={{ marginTop: 30 }}>
-                                <img
-                                    src="https://logo.com/image-cdn/images/kts928pd/production/eb25c68b2f90b321c630fb8f3fcb1962e4c2a7e2-920x920.png?w=1080&q=72"
-                                    alt="TripAdvisor"
-                                    style={{ height: 40, opacity: 0.8 }}
-                                />
+                        {loadingReviews ? (
+                            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                                <Spin size="large" />
                             </div>
-                        </Card>
+                        ) : reviews.length > 0 ? (
+                            <Row gutter={[24, 24]}>
+                                {reviews.map((review: any) => {
+                                    const reviewDate = review.reviewed_at || review.created_at || review.createdAt;
+                                    const timeAgo = reviewDate ? (() => {
+                                        const now = dayjs();
+                                        const reviewTime = dayjs(reviewDate);
+                                        const diffDays = now.diff(reviewTime, 'day');
+                                        const diffHours = now.diff(reviewTime, 'hour');
+                                        const diffMinutes = now.diff(reviewTime, 'minute');
+                                        
+                                        if (diffDays > 0) {
+                                            return `cách đây ${diffDays} ${diffDays === 1 ? 'ngày' : 'ngày'}`;
+                                        } else if (diffHours > 0) {
+                                            return `cách đây ${diffHours} ${diffHours === 1 ? 'giờ' : 'giờ'}`;
+                                        } else if (diffMinutes > 0) {
+                                            return `cách đây ${diffMinutes} ${diffMinutes === 1 ? 'phút' : 'phút'}`;
+                                        } else {
+                                            return "vừa xong";
+                                        }
+                                    })() : "gần đây";
+                                    
+                                    return (
+                                        <Col xs={24} sm={12} lg={6} key={review.id || review.userId}>
+                                            <Card
+                                                style={{
+                                                    border: 'none',
+                                                    borderRadius: 12,
+                                                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                                                    height: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
+                                                }}
+                                                styles={{ body: { padding: '30px 24px', flex: 1, display: 'flex', flexDirection: 'column' } }}
+                                            >
+                                                <div style={{ marginBottom: 16 }}>
+                                                    <Rate 
+                                                        disabled 
+                                                        defaultValue={review.rating || 5} 
+                                                        style={{ fontSize: 16 }}
+                                                    />
+                                                </div>
+                                                
+                                                {review.title && (
+                                                    <Text strong style={{ 
+                                                        fontSize: 16, 
+                                                        display: 'block', 
+                                                        marginBottom: 12,
+                                                        color: '#333'
+                                                    }}>
+                                                        {review.title}
+                                                    </Text>
+                                                )}
+                                                
+                                                <Paragraph 
+                                                    style={{
+                                                        fontSize: 14,
+                                                        color: '#666',
+                                                        lineHeight: 1.7,
+                                                        marginBottom: 20,
+                                                        flex: 1,
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 5,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
+                                                    }}
+                                                >
+                                                    {review.comment || review.title || "Đánh giá tuyệt vời!"}
+                                                </Paragraph>
+                                                
+                                                <div style={{ 
+                                                    marginTop: 'auto', 
+                                                    paddingTop: 16, 
+                                                    borderTop: '1px solid #f0f0f0',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12
+                                                }}>
+                                                    <Avatar 
+                                                        size={40}
+                                                        src={review.user?.avatar_url || review.user?.avatar}
+                                                        icon={<UserOutlined />}
+                                                        style={{ background: '#d4af37' }}
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                        <Text strong style={{ display: 'block', fontSize: 14 }}>
+                                                            {review.user?.full_name || review.userId || "Khách hàng"}
+                                                        </Text>
+                                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                                            {timeAgo}
+                                                        </Text>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                                <Text type="secondary" style={{ fontSize: 16 }}>
+                                    Chưa có đánh giá nào
+                                </Text>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -1561,7 +1561,26 @@ const RoomTypeDetailPage: React.FC = () => {
                                     type="secondary"
                                     style={{ fontSize: 12 }}
                                   >
-                                    Đánh giá cách đây 4 ngày
+                                    {(() => {
+                                      const reviewDate = review.reviewed_at || review.created_at || review.createdAt;
+                                      if (!reviewDate) return "Đánh giá gần đây";
+                                      
+                                      const now = dayjs();
+                                      const reviewTime = dayjs(reviewDate);
+                                      const diffDays = now.diff(reviewTime, 'day');
+                                      const diffHours = now.diff(reviewTime, 'hour');
+                                      const diffMinutes = now.diff(reviewTime, 'minute');
+                                      
+                                      if (diffDays > 0) {
+                                        return `Đánh giá cách đây ${diffDays} ${diffDays === 1 ? 'ngày' : 'ngày'}`;
+                                      } else if (diffHours > 0) {
+                                        return `Đánh giá cách đây ${diffHours} ${diffHours === 1 ? 'giờ' : 'giờ'}`;
+                                      } else if (diffMinutes > 0) {
+                                        return `Đánh giá cách đây ${diffMinutes} ${diffMinutes === 1 ? 'phút' : 'phút'}`;
+                                      } else {
+                                        return "Đánh giá vừa xong";
+                                      }
+                                    })()}
                                   </Text>
                                   <Text
                                     type="secondary"
