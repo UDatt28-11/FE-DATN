@@ -11,7 +11,7 @@ import {
     Button,
     Divider,
     Space,
-    Image,
+    Image as AntImage,
     DatePicker,
     Avatar,
     List,
@@ -590,7 +590,7 @@ const RoomDetailPage: React.FC = () => {
 
                                 {/* Gallery ảnh */}
                                 <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-                                    <Image.PreviewGroup>
+                                    <AntImage.PreviewGroup>
                                         <Row gutter={[8, 8]}>
                                             <Col span={24}>
                                                 <Image
@@ -639,7 +639,7 @@ const RoomDetailPage: React.FC = () => {
                                                 </Col>
                                             ))}
                                         </Row>
-                                    </Image.PreviewGroup>
+                                    </AntImage.PreviewGroup>
                                 </Card>
 
                                 {/* Thông tin phòng */}

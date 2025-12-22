@@ -11,7 +11,7 @@ import {
     Divider,
     Space,
     Tag,
-    Image,
+    Image as AntImage,
     DatePicker,
     Select,
     Avatar,
@@ -383,7 +383,7 @@ const HomestayDetailPage: React.FC = () => {
                     </Space>
 
                     {/* Thư viện ảnh */}
-                    <Image.PreviewGroup>
+                    <AntImage.PreviewGroup>
                         <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                             <Col span={16}>
                                 <Image
@@ -414,7 +414,7 @@ const HomestayDetailPage: React.FC = () => {
                                 </Row>
                             </Col>
                         </Row>
-                    </Image.PreviewGroup>
+                    </AntImage.PreviewGroup>
 
                     {/* Nội dung chính và Form Đặt phòng */}
                     <Row gutter={[32, 32]} style={{ marginTop: 32 }}>

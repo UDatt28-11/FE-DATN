@@ -11,6 +11,7 @@ import {
     Divider,
     Row,
     Col,
+    Image as AntImage,
 } from 'antd';
 import {
     FileTextOutlined,
@@ -316,7 +317,7 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                             const url = typeof img === 'string' ? img : img.image_url;
                             if (!url) return null;
                             return (
-                                <Image
+                                <AntImage
                                     key={index}
                                     src={url}
                                     width={40}

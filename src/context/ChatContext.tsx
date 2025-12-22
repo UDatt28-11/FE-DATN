@@ -359,10 +359,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           );
           return [...filtered, ...uniqueNewMessages];
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error sending message:", error);
+        
         // Remove temp message on error
-        setMessages((prev) => prev.filter((msg) => msg.id !== Date.now()));
+        setMessages((prev) => {
+          const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
+          
+          // Add error message from AI/BookStay
+          const errorMessage: ChatMessage = {
+            id: Date.now() + 1,
+            conversation_id: conversation.id,
+            sender_id: null,
+            content: error?.response?.data?.message || 
+                     error?.message || 
+                     "Xin lỗi, dịch vụ AI chat hiện đang tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ với chúng tôi qua email.",
+            message_type: "ai",
+            is_read: false,
+            is_hidden: false,
+            sender: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          return [...filtered, errorMessage];
+        });
       } finally {
         setIsLoading(false);
       }

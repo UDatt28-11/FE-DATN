@@ -13,7 +13,7 @@ import {
     Col,
     Select,
     Radio,
-    Image,
+    Image as AntImage,
 } from 'antd';
 import {
     DollarOutlined,
@@ -647,7 +647,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             footer={null}
             width={800}
         >
-            <Image.PreviewGroup>
+            <AntImage.PreviewGroup>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                     {damageImagesModal.images.map((url, index) => (
                         <Image
@@ -659,7 +659,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         />
                     ))}
                 </div>
-            </Image.PreviewGroup>
+            </AntImage.PreviewGroup>
         </Modal>
         </>
     );

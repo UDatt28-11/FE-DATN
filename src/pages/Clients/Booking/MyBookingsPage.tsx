@@ -217,6 +217,8 @@ const MyBookingsPage: React.FC = () => {
     const [invoiceSelectionMode, setInvoiceSelectionMode] = useState<'view' | 'pay'>('view');
     const [reviewModalVisible, setReviewModalVisible] = useState(false);
     const [reviewBookingDetail, setReviewBookingDetail] = useState<BookingDetail | null>(null);
+    const [selectRoomForReviewModalVisible, setSelectRoomForReviewModalVisible] = useState(false);
+    const [selectedBookingForReview, setSelectedBookingForReview] = useState<BookingOrder | null>(null);
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
     const [cancelBookingId, setCancelBookingId] = useState<number | null>(null);
     const [cancelBookingCode, setCancelBookingCode] = useState<string | undefined>(undefined);
@@ -242,7 +244,7 @@ const MyBookingsPage: React.FC = () => {
                 page: 1,
                 per_page: 1000, // Lấy tất cả để đếm
                 sort: '-created_at',
-                include: 'details,details.room,details.room.roomType,details.room.roomType.images,invoices,invoices.payments,invoices.invoiceItems,checkoutRequests',
+                include: 'details,details.room,details.room.roomType,details.room.roomType.images,invoices,invoices.payments,invoices.invoiceItems,invoices.splitFrom,invoices.splitFrom.bookingDetail,checkoutRequests',
             });
             setAllBookings(response.data || []);
         } catch (error: any) {
@@ -284,7 +286,7 @@ const MyBookingsPage: React.FC = () => {
                 per_page: 20, // Giảm từ 50 xuống 20 để tăng tốc độ
                 status: statusFilter,
                 sort: '-created_at',
-                include: 'details,details.room,details.room.roomType,details.room.roomType.images,details.review,details.bookingServices,details.bookingServices.service,invoices,invoices.payments,invoices.invoiceItems,checkoutRequests', // Thêm bookingServices để hiển thị dịch vụ đang sử dụng
+                include: 'details,details.room,details.room.roomType,details.room.roomType.images,details.review,details.bookingServices,details.bookingServices.service,invoices,invoices.payments,invoices.invoiceItems,invoices.splitFrom,invoices.splitFrom.bookingDetail,checkoutRequests', // Thêm bookingServices và splitFrom để hiển thị dịch vụ đang sử dụng và kiểm tra invoice đã tách
             });
 
             setBookings(response.data || []);
@@ -453,15 +455,17 @@ const MyBookingsPage: React.FC = () => {
         const invoicesArray = getInvoicesArray(booking);
         if (!invoicesArray.length) return false;
 
-        const hasSplitChild = invoicesArray.some((inv: any) => inv.split_from || inv.splitFrom);
+        // Phân loại invoices: split invoices và invoice gốc
+        const splitInvoices = invoicesArray.filter((inv: any) => inv.split_from || inv.splitFrom);
+        const originalInvoices = invoicesArray.filter((inv: any) => !inv.split_from && !inv.splitFrom);
 
-        if (hasSplitChild && booking.details && booking.details.length > 1) {
-            // Đơn có hóa đơn tách phòng: chỉ tính các hóa đơn phòng đủ điều kiện thanh toán
-            return invoicesArray.some((inv: any) => {
+        // Nếu có split invoices và đơn có nhiều phòng
+        if (splitInvoices.length > 0 && booking.details && booking.details.length > 1) {
+            // Kiểm tra các split invoices có phòng đã checkout và còn pending
+            const hasUnpaidSplitInvoice = splitInvoices.some((inv: any) => {
                 const status = inv.payment_status || inv.status || inv.invoice_status;
                 const splitFrom = inv.split_from || inv.splitFrom;
-                const isSplitChild = !!splitFrom;
-
+                
                 let detailStatus: string | undefined;
                 if (splitFrom) {
                     const bd = splitFrom.booking_detail || splitFrom.bookingDetail;
@@ -479,8 +483,26 @@ const MyBookingsPage: React.FC = () => {
                     status === 'partially_paid' ||
                     status === 'sent';
 
-                return isSplitChild && isDetailCheckedOut && isPayableStatus;
+                return isDetailCheckedOut && isPayableStatus;
             });
+
+            // Nếu có split invoice chưa thanh toán, trả về true
+            if (hasUnpaidSplitInvoice) return true;
+
+            // Nếu không có split invoice chưa thanh toán, kiểm tra invoice gốc (nếu có)
+            // Invoice gốc có thể còn pending nếu chưa được split hoàn toàn
+            if (originalInvoices.length > 0) {
+                return originalInvoices.some((inv: any) => {
+                    const status = inv.payment_status || inv.status || inv.invoice_status;
+                    return (
+                        status === 'pending' ||
+                        status === 'partially_paid' ||
+                        status === 'sent'
+                    );
+                });
+            }
+
+            return false;
         }
 
         // Đơn 1 phòng (không tách) hoặc chưa tách: bất kỳ invoice nào còn ở trạng thái chờ thanh toán
@@ -497,8 +519,11 @@ const MyBookingsPage: React.FC = () => {
     // Filter bookings dựa trên trạng thái và hóa đơn (ưu tiên dùng thông tin invoice)
     const filteredBookings = React.useMemo(() => {
         if (activeTab === 'booked') {
-            // ĐÃ ĐẶT: đơn đã thanh toán cọc/đủ nhưng chưa check-in (pending/confirmed)
+            // ĐÃ ĐẶT: đơn đã thanh toán cọc/đủ nhưng chưa check-in (pending/confirmed), không bị hủy
             return bookings.filter((booking) => {
+                // Loại trừ booking đã hủy
+                if (booking.status === 'cancelled') return false;
+                
                 const isPendingOrConfirmed = booking.status === 'pending' || booking.status === 'confirmed';
                 // Đã thanh toán cọc (có thể partial hoặc paid) - không cần kiểm tra invoice vì đây là booking mới chưa checkout
                 // Kiểm tra payment_status hoặc paid_amount > 0 để đảm bảo đã có thanh toán
@@ -507,19 +532,37 @@ const MyBookingsPage: React.FC = () => {
                 return isPendingOrConfirmed && hasPaidDeposit;
             });
         } else if (activeTab === 'pending_payment') {
-            // CHỜ THANH TOÁN: đã checkout (toàn phần hoặc một phần) và vẫn còn ít nhất 1 hóa đơn chưa thanh toán hết
+            // CHỜ THANH TOÁN: đã checkout (toàn phần hoặc một phần) và vẫn còn ít nhất 1 hóa đơn chưa thanh toán hết, không bị hủy
             return bookings.filter((booking) => {
+                // Loại trừ booking đã hủy
+                if (booking.status === 'cancelled') return false;
+                
                 const isCheckedOut =
                     booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed';
                 const hasUnpaid = hasUnpaidInvoices(booking);
                 return isCheckedOut && hasUnpaid;
             });
         } else if (activeTab === 'paid') {
-            // ĐÃ THANH TOÁN: không còn hóa đơn nào chưa thanh toán
+            // ĐÃ THANH TOÁN: đã checkout và không còn hóa đơn nào chưa thanh toán, không bị hủy
             return bookings.filter((booking) => {
+                // Loại trừ booking đã hủy
+                if (booking.status === 'cancelled') return false;
+                
+                // Chỉ hiển thị booking đã checkout (không phải booking chưa check-in)
+                const isCheckedOut = 
+                    booking.status === 'checked_out' || 
+                    booking.status === 'partially_checked_out' || 
+                    booking.status === 'completed';
+                
+                if (!isCheckedOut) return false;
+                
+                // Không còn hóa đơn nào chưa thanh toán
                 const hasUnpaid = hasUnpaidInvoices(booking);
-                return !hasUnpaid && (booking.payment_status === 'paid' || booking.status === 'completed');
+                return !hasUnpaid;
             });
+        } else if (activeTab === 'cancelled') {
+            // ĐÃ HỦY: chỉ booking có status = cancelled
+            return bookings.filter((booking) => booking.status === 'cancelled');
         }
         return bookings; // Các tab khác giữ nguyên
     }, [bookings, activeTab]);
@@ -690,8 +733,9 @@ const MyBookingsPage: React.FC = () => {
                                     >
                                         Xem chi tiết
                                     </Button>
+                                    {/* Nút "Thanh toán" chỉ hiển thị khi đã checkout và còn invoice chưa thanh toán */}
                                     {(booking.status === 'checked_out' || booking.status === 'partially_checked_out' || booking.status === 'completed') &&
-                                        booking.payment_status !== 'paid' && (
+                                        hasUnpaidInvoices(booking) && (
                                             <Button
                                                 type="primary"
                                                 icon={<DollarOutlined />}
@@ -788,61 +832,81 @@ const MyBookingsPage: React.FC = () => {
                                                 Thanh toán
                                             </Button>
                                         )}
-                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị ở tab "Đã thanh toán" 
-                                        VÀ booking đã checkout (tránh trường hợp mới check-in đã được đánh giá) */}
-                                    {activeTab === 'paid' 
-                                        && booking.payment_status === 'paid' 
-                                        && (booking.status === 'checked_out' 
-                                            || booking.status === 'partially_checked_out' 
-                                            || booking.status === 'completed')
+                                    {/* Nút đánh giá/xem đánh giá chỉ hiển thị khi:
+                                        - Booking đã checkout (tránh trường hợp mới check-in đã được đánh giá)
+                                        - Không còn invoice nào chưa thanh toán (đã thanh toán đầy đủ)
+                                        - Không bị hủy */}
+                                    {(booking.status === 'checked_out' 
+                                        || booking.status === 'partially_checked_out' 
+                                        || booking.status === 'completed')
+                                        && !hasUnpaidInvoices(booking)
+                                        && booking.status !== 'cancelled'
                                         && booking.details 
-                                        && booking.details.length > 0 && (
-                                        <>
-                                            {booking.details.map((detail: BookingDetail) => {
-                                                const hasReview = detail.review && detail.review.id;
-                                                
-                                                if (hasReview) {
-                                                    // Đã có review - hiển thị nút "Xem/Sửa đánh giá"
-                                                    return (
-                                                        <Button
-                                                            key={detail.id}
-                                                            icon={<EyeOutlined />}
-                                                            onClick={() => {
-                                                                setReviewBookingDetail(detail);
-                                                                setReviewModalVisible(true);
-                                                            }}
-                                                            style={{
-                                                                backgroundColor: '#1890ff',
-                                                                borderColor: '#1890ff',
-                                                                color: '#fff',
-                                                            }}
-                                                        >
-                                                            Xem đánh giá phòng {detail.room?.name || ''}
-                                                        </Button>
-                                                    );
-                                                } else {
-                                                    // Chưa có review - hiển thị nút "Đánh giá"
-                                                    return (
-                                                        <Button
-                                                            key={detail.id}
-                                                            icon={<StarOutlined />}
-                                                            onClick={() => {
-                                                                setReviewBookingDetail(detail);
-                                                                setReviewModalVisible(true);
-                                                            }}
-                                                            style={{
-                                                                backgroundColor: '#faad14',
-                                                                borderColor: '#faad14',
-                                                                color: '#fff',
-                                                            }}
-                                                        >
-                                                            Đánh giá phòng {detail.room?.name || ''}
-                                                        </Button>
-                                                    );
-                                                }
-                                            })}
-                                        </>
-                                    )}
+                                        && booking.details.length > 0 && (() => {
+                                            // Kiểm tra xem có phòng nào đã đánh giá chưa
+                                            const firstDetail = booking.details[0];
+                                            // Kiểm tra cả review (số ít) và reviews (số nhiều) vì relationship là hasMany
+                                            const review = firstDetail.review || (firstDetail.reviews && firstDetail.reviews.length > 0 ? firstDetail.reviews[0] : null);
+                                            const hasReview = review && review.id;
+                                            const roomTypeId = firstDetail.room?.roomType?.id || firstDetail.room?.room_type_id;
+                                            
+                                            // Nếu chỉ có 1 phòng và đã đánh giá: hiển thị nút "Xem đánh giá" và điều hướng
+                                            if (booking.details.length === 1 && hasReview && roomTypeId) {
+                                                return (
+                                                    <Button
+                                                        icon={<EyeOutlined />}
+                                                        onClick={() => {
+                                                            navigate(`/room-types/${roomTypeId}`);
+                                                        }}
+                                                        style={{
+                                                            backgroundColor: '#1890ff',
+                                                            borderColor: '#1890ff',
+                                                            color: '#fff',
+                                                        }}
+                                                    >
+                                                        Xem đánh giá
+                                                    </Button>
+                                                );
+                                            }
+                                            
+                                            // Nếu chưa đánh giá hoặc có nhiều phòng: hiển thị nút "Đánh giá"
+                                            return (
+                                                <Button
+                                                    icon={<StarOutlined />}
+                                                    onClick={async () => {
+                                                        // Nếu chỉ có 1 phòng: đánh giá luôn
+                                                        if (booking.details && booking.details.length === 1) {
+                                                            setReviewBookingDetail(booking.details[0]);
+                                                            setReviewModalVisible(true);
+                                                        } else {
+                                                            // Nếu có nhiều phòng: fetch lại booking data mới nhất và mở modal chọn phòng
+                                                            try {
+                                                                const freshBooking = await getUserBooking(
+                                                                    booking.id,
+                                                                    'details,details.room,details.room.property,details.room.roomType,details.room.roomType.images,details.guests,details.bookingServices,details.bookingServices.service,details.review'
+                                                                );
+                                                                setSelectedBookingForReview(freshBooking);
+                                                                setSelectRoomForReviewModalVisible(true);
+                                                            } catch (error) {
+                                                                console.error('Error fetching booking details:', error);
+                                                                // Fallback: dùng booking data hiện tại
+                                                                setSelectedBookingForReview(booking);
+                                                                setSelectRoomForReviewModalVisible(true);
+                                                            }
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        backgroundColor: '#faad14',
+                                                        borderColor: '#faad14',
+                                                        color: '#fff',
+                                                    }}
+                                                >
+                                                    {booking.details && booking.details.length > 1 
+                                                        ? 'Đánh giá phòng' 
+                                                        : 'Đánh giá'}
+                                                </Button>
+                                            );
+                                        })()}
                                     {(booking.status === 'pending' || booking.status === 'confirmed') && (
                                         <>
                                             {/* Nút đổi ngày - chỉ hiện nếu chưa dùng hết lượt */}
@@ -929,9 +993,14 @@ const MyBookingsPage: React.FC = () => {
                             {
                                 key: 'booked',
                                 label: `Đã đặt (${allBookings.filter(b => {
+                                    // Loại trừ booking đã hủy
+                                    if (b.status === 'cancelled') return false;
+                                    
                                     const isPendingOrConfirmed = b.status === 'pending' || b.status === 'confirmed';
-                                    const isPaid = b.payment_status === 'paid';
-                                    return isPendingOrConfirmed && isPaid;
+                                    // Đã thanh toán cọc (có thể partial hoặc paid)
+                                    const hasPaidDeposit = (b.payment_status === 'partial' || b.payment_status === 'paid') || 
+                                                          (b.paid_amount && b.paid_amount > 0);
+                                    return isPendingOrConfirmed && hasPaidDeposit;
                                 }).length})`,
                             },
                             {
@@ -941,6 +1010,9 @@ const MyBookingsPage: React.FC = () => {
                             {
                                 key: 'pending_payment',
                                 label: `Chờ thanh toán (${allBookings.filter(b => {
+                                    // Loại trừ booking đã hủy
+                                    if (b.status === 'cancelled') return false;
+                                    
                                     const isCheckedOut =
                                         b.status === 'checked_out' || b.status === 'partially_checked_out' || b.status === 'completed';
                                     const hasUnpaid = hasUnpaidInvoices(b as any);
@@ -950,8 +1022,20 @@ const MyBookingsPage: React.FC = () => {
                             {
                                 key: 'paid',
                                 label: `Đã thanh toán (${allBookings.filter(b => {
+                                    // Loại trừ booking đã hủy
+                                    if (b.status === 'cancelled') return false;
+                                    
+                                    // Chỉ tính booking đã checkout
+                                    const isCheckedOut = 
+                                        b.status === 'checked_out' || 
+                                        b.status === 'partially_checked_out' || 
+                                        b.status === 'completed';
+                                    
+                                    if (!isCheckedOut) return false;
+                                    
+                                    // Không còn hóa đơn nào chưa thanh toán
                                     const hasUnpaid = hasUnpaidInvoices(b as any);
-                                    return !hasUnpaid && (b.payment_status === 'paid' || b.status === 'completed');
+                                    return !hasUnpaid;
                                 }).length})`,
                             },
                             {
@@ -1288,10 +1372,23 @@ const MyBookingsPage: React.FC = () => {
                     setReviewModalVisible(false);
                     setReviewBookingDetail(null);
                 }}
-                onSuccess={() => {
+                onSuccess={async () => {
                     // Refresh bookings sau khi đánh giá thành công
-                    fetchBookings();
-                    fetchAllBookingsForCount();
+                    await fetchBookings();
+                    await fetchAllBookingsForCount();
+                    
+                    // Nếu đang có modal chọn phòng mở, refresh lại booking data
+                    if (selectedBookingForReview) {
+                        try {
+                            const updatedBooking = await getUserBooking(
+                                selectedBookingForReview.id,
+                                'details,details.room,details.room.property,details.room.roomType,details.room.roomType.images,details.guests,details.bookingServices,details.bookingServices.service,details.review'
+                            );
+                            setSelectedBookingForReview(updatedBooking);
+                        } catch (error) {
+                            console.error('Error refreshing booking for review modal:', error);
+                        }
+                    }
                 }}
             />
 
@@ -1446,6 +1543,113 @@ const MyBookingsPage: React.FC = () => {
                         );
                     }}
                 />
+            </Modal>
+
+            {/* Modal chọn phòng để đánh giá (cho đơn có nhiều phòng) */}
+            <Modal
+                title={
+                    <Space>
+                        <StarOutlined />
+                        <span>Chọn phòng để đánh giá</span>
+                    </Space>
+                }
+                open={selectRoomForReviewModalVisible}
+                onCancel={() => {
+                    setSelectRoomForReviewModalVisible(false);
+                    setSelectedBookingForReview(null);
+                }}
+                footer={null}
+                maskClosable={true}
+                width={600}
+            >
+                {selectedBookingForReview && selectedBookingForReview.details && (
+                    <List
+                        dataSource={selectedBookingForReview.details}
+                        renderItem={(detail: BookingDetail) => {
+                            // Kiểm tra cả review (số ít) và reviews (số nhiều) vì relationship là hasMany
+                            const review = detail.review || (detail.reviews && detail.reviews.length > 0 ? detail.reviews[0] : null);
+                            const hasReview = review && review.id;
+                            const roomName = detail.room?.name || `Phòng #${detail.id}`;
+                            
+                            return (
+                                <List.Item
+                                    style={{
+                                        padding: '16px',
+                                        border: '1px solid #f0f0f0',
+                                        borderRadius: 8,
+                                        marginBottom: 12,
+                                        transition: 'all 0.3s',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                        e.currentTarget.style.borderColor = '#cb8670';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                        e.currentTarget.style.borderColor = '#f0f0f0';
+                                    }}
+                                >
+                                    <List.Item.Meta
+                                        title={
+                                            <Space>
+                                                <HomeOutlined style={{ color: '#cb8670' }} />
+                                                <Text strong style={{ fontSize: 16 }}>
+                                                    {roomName}
+                                                </Text>
+                                                {hasReview && (
+                                                    <Tag color="green">Đã đánh giá</Tag>
+                                                )}
+                                                {!hasReview && (
+                                                    <Tag color="orange">Chưa đánh giá</Tag>
+                                                )}
+                                            </Space>
+                                        }
+                                        description={
+                                            <Space direction="vertical" size="small" style={{ width: '100%', marginTop: 8 }}>
+                                                <Text type="secondary">
+                                                    Nhận phòng: {new Date(detail.check_in_date).toLocaleDateString('vi-VN')}
+                                                </Text>
+                                                <Text type="secondary">
+                                                    Trả phòng: {new Date(detail.check_out_date).toLocaleDateString('vi-VN')}
+                                                </Text>
+                                            </Space>
+                                        }
+                                    />
+                                    <Button
+                                        type={hasReview ? 'default' : 'primary'}
+                                        icon={hasReview ? <EyeOutlined /> : <StarOutlined />}
+                                        onClick={() => {
+                                            if (hasReview) {
+                                                // Nếu đã đánh giá: điều hướng đến trang chi tiết loại phòng
+                                                const roomTypeId = detail.room?.roomType?.id || detail.room?.room_type_id;
+                                                if (roomTypeId) {
+                                                    navigate(`/room-types/${roomTypeId}`);
+                                                    setSelectRoomForReviewModalVisible(false);
+                                                    setSelectedBookingForReview(null);
+                                                } else {
+                                                    message.warning('Không tìm thấy thông tin loại phòng');
+                                                }
+                                            } else {
+                                                // Nếu chưa đánh giá: mở modal đánh giá
+                                                setReviewBookingDetail(detail);
+                                                setSelectRoomForReviewModalVisible(false);
+                                                setSelectedBookingForReview(null);
+                                                setReviewModalVisible(true);
+                                            }
+                                        }}
+                                        style={{
+                                            backgroundColor: hasReview ? '#1890ff' : '#faad14',
+                                            borderColor: hasReview ? '#1890ff' : '#faad14',
+                                            color: '#fff',
+                                        }}
+                                    >
+                                        {hasReview ? 'Xem đánh giá' : 'Đánh giá'}
+                                    </Button>
+                                </List.Item>
+                            );
+                        }}
+                    />
+                )}
             </Modal>
         </div>
     );

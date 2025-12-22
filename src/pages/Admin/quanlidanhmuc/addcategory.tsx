@@ -222,7 +222,6 @@ const AddCategory: React.FC<AddCategoryProps> = ({
               initialValue={1}
               required
               hasFeedback
-
               rules={[
                 {
                   validator: (_, value) => {
