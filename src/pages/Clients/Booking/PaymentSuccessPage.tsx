@@ -286,8 +286,8 @@ const PaymentSuccessPage: React.FC = () => {
                   {booking.payment_status === "paid"
                     ? "Đã thanh toán tiền phòng"
                     : booking.payment_status === "partial"
-                    ? "Đã đặt cọc"
-                    : "Chưa thanh toán"}
+                    ? "Đã thanh toán"
+                    : "Đã đặt cọc thành công"}
                 </Text>
               </div>
             )}
