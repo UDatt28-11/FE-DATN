@@ -67,7 +67,9 @@ const ViewInvoice: React.FC = () => {
     try {
       setLoadingServices(true);
       // Chỉ fetch services cần thiết, không cần tất cả
-      const data = await serviceService.getAll({ property_id: invoice?.property_id });
+      const data = await serviceService.getAll({
+        property_id: invoice?.property_id,
+      });
       setServices(Array.isArray(data) ? data : []);
     } catch (error: any) {
       if (import.meta.env.DEV) {
@@ -97,8 +99,11 @@ const ViewInvoice: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      // Gọi API với include parameter để load invoiceItems
-      const response: any = await invoiceService.getById(id, 'bookingOrder,bookingOrder.guest,invoiceItems');
+      // Gọi API với include parameter để load invoiceItems, bookingOrder, guest, và payments
+      const response: any = await invoiceService.getById(
+        id,
+        "bookingOrder,bookingOrder.guest,invoiceItems,payments"
+      );
       // Xử lý response có thể có nhiều dạng
       let invoiceData: Invoice;
       if (response?.data?.data) {
@@ -110,7 +115,7 @@ const ViewInvoice: React.FC = () => {
       } else {
         throw new Error("Không nhận được dữ liệu từ server");
       }
-      
+
       // Map invoice_items từ backend (snake_case) thành items cho frontend
       if ((invoiceData as any).invoice_items && !invoiceData.items) {
         invoiceData.items = (invoiceData as any).invoice_items;
@@ -119,25 +124,36 @@ const ViewInvoice: React.FC = () => {
       if ((invoiceData as any).invoiceItems && !invoiceData.items) {
         invoiceData.items = (invoiceData as any).invoiceItems;
       }
-      
+
       // Map status từ backend thành invoice_status và payment_status nếu chưa có
       if (!invoiceData.invoice_status && (invoiceData as any).status) {
         const status = (invoiceData as any).status;
-        const statusMap: Record<string, { invoice_status: string; payment_status: string }> = {
-          'pending': { invoice_status: 'sent', payment_status: 'pending' },
-          'paid': { invoice_status: 'paid', payment_status: 'paid' },
-          'overdue': { invoice_status: 'sent', payment_status: 'overdue' },
-          'cancelled': { invoice_status: 'cancelled', payment_status: 'cancelled' },
+        const statusMap: Record<
+          string,
+          { invoice_status: string; payment_status: string }
+        > = {
+          pending: { invoice_status: "sent", payment_status: "pending" },
+          paid: { invoice_status: "paid", payment_status: "paid" },
+          overdue: { invoice_status: "sent", payment_status: "overdue" },
+          cancelled: {
+            invoice_status: "cancelled",
+            payment_status: "cancelled",
+          },
         };
-        const mapped = statusMap[status] || { invoice_status: 'sent', payment_status: 'pending' };
+        const mapped = statusMap[status] || {
+          invoice_status: "sent",
+          payment_status: "pending",
+        };
         invoiceData.invoice_status = mapped.invoice_status as any;
         invoiceData.payment_status = mapped.payment_status as any;
       }
-      
+
       setInvoice(invoiceData);
     } catch (error: any) {
       console.error("Lỗi khi tải hóa đơn:", error);
-      toast.error(error.response?.data?.message || "Không thể tải thông tin hóa đơn!");
+      toast.error(
+        error.response?.data?.message || "Không thể tải thông tin hóa đơn!"
+      );
       navigate("/admin/invoice");
     } finally {
       setLoading(false);
@@ -179,7 +195,9 @@ const ViewInvoice: React.FC = () => {
       fetchInvoice();
     } catch (error: any) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
+      toast.error(
+        error.response?.data?.message || "Không thể cập nhật trạng thái!"
+      );
     }
   };
 
@@ -225,10 +243,11 @@ const ViewInvoice: React.FC = () => {
       fetchInvoice();
     } catch (error: any) {
       console.error("Error adding service:", error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.service_id?.[0] ||
-                          error.response?.data?.errors?.quantity?.[0] ||
-                          "Không thể thêm dịch vụ!";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.service_id?.[0] ||
+        error.response?.data?.errors?.quantity?.[0] ||
+        "Không thể thêm dịch vụ!";
       message.error(errorMessage);
     }
   };
@@ -248,10 +267,11 @@ const ViewInvoice: React.FC = () => {
       fetchInvoice();
     } catch (error: any) {
       console.error("Error adding damage:", error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.supply_id?.[0] ||
-                          error.response?.data?.errors?.quantity?.[0] ||
-                          "Không thể thêm thiệt hại!";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.supply_id?.[0] ||
+        error.response?.data?.errors?.quantity?.[0] ||
+        "Không thể thêm thiệt hại!";
       message.error(errorMessage);
     }
   };
@@ -270,22 +290,27 @@ const ViewInvoice: React.FC = () => {
 
   const handleSplitByRooms = async () => {
     if (!invoice || !id) return;
-    
+
     Modal.confirm({
-      title: 'Xác nhận tách hóa đơn',
-      content: 'Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.',
-      okText: 'Xác nhận',
-      cancelText: 'Hủy',
+      title: "Xác nhận tách hóa đơn",
+      content:
+        "Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.",
+      okText: "Xác nhận",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
           setLoading(true);
           const result = await invoiceService.splitByRooms(id);
-          message.success(`Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`);
+          message.success(
+            `Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`
+          );
           // Chuyển về trang danh sách hóa đơn
-          navigate('/admin/invoice');
+          navigate("/admin/invoice");
         } catch (error: any) {
           console.error("Error splitting invoice:", error);
-          message.error(error.response?.data?.message || "Không thể tách hóa đơn!");
+          message.error(
+            error.response?.data?.message || "Không thể tách hóa đơn!"
+          );
         } finally {
           setLoading(false);
         }
@@ -299,7 +324,7 @@ const ViewInvoice: React.FC = () => {
     // Kiểm tra xem có nhiều hơn 1 phòng không
     const bookingOrder = invoice.booking_order as any;
     const details = bookingOrder.details || [];
-    return details.length > 1 && invoice.invoice_status !== 'cancelled';
+    return details.length > 1 && invoice.invoice_status !== "cancelled";
   };
 
   const itemColumns: ColumnsType<InvoiceItem> = [
@@ -390,7 +415,10 @@ const ViewInvoice: React.FC = () => {
       align: "center",
       render: (_, record) => {
         // Chỉ cho phép xóa nếu invoice chưa thanh toán và không phải room_charge
-        if (invoice?.payment_status === "paid" || record.item_type === "room_charge") {
+        if (
+          invoice?.payment_status === "paid" ||
+          record.item_type === "room_charge"
+        ) {
           return null;
         }
         return (
@@ -402,12 +430,7 @@ const ViewInvoice: React.FC = () => {
             cancelText="Hủy"
             okType="danger"
           >
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-            >
+            <Button type="link" danger icon={<DeleteOutlined />} size="small">
               Xóa
             </Button>
           </Popconfirm>
@@ -429,7 +452,10 @@ const ViewInvoice: React.FC = () => {
       {/* Header Actions */}
       <div style={{ marginBottom: 24 }}>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/admin/invoice")}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/admin/invoice")}
+          >
             Quay lại
           </Button>
           <Button icon={<PrinterOutlined />} onClick={handlePrint}>
@@ -444,16 +470,12 @@ const ViewInvoice: React.FC = () => {
               okText="Xác nhận"
               cancelText="Hủy"
             >
-              <Button 
-                icon={<SplitCellsOutlined />} 
-                type="default"
-                danger
-              >
+              <Button icon={<SplitCellsOutlined />} type="default" danger>
                 Tách hóa đơn theo phòng
               </Button>
             </Popconfirm>
           )}
-          
+
           {/* Trạng thái hóa đơn */}
           <Select
             value={invoice.invoice_status}
@@ -469,52 +491,55 @@ const ViewInvoice: React.FC = () => {
           </Select>
 
           {/* Xác nhận sẵn sàng thanh toán (Admin/Staff) */}
-          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
-            <Button 
-              type="primary" 
-              icon={<CheckCircleOutlined />} 
-              onClick={async () => {
-                if (!invoice || !id) return;
-                try {
-                  await invoiceService.approveForPayment(id);
-                  message.success("Đã xác nhận hóa đơn sẵn sàng thanh toán!");
-                  fetchInvoice();
-                } catch (error: any) {
-                  message.error(error.response?.data?.message || "Không thể xác nhận!");
-                }
-              }}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-            >
-              Xác nhận sẵn sàng thanh toán
-            </Button>
-          )}
+          {invoice.payment_status !== "paid" &&
+            invoice.invoice_status !== "cancelled" && (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={async () => {
+                  if (!invoice || !id) return;
+                  try {
+                    await invoiceService.approveForPayment(id);
+                    message.success("Đã xác nhận hóa đơn sẵn sàng thanh toán!");
+                    fetchInvoice();
+                  } catch (error: any) {
+                    message.error(
+                      error.response?.data?.message || "Không thể xác nhận!"
+                    );
+                  }
+                }}
+                style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+              >
+                Xác nhận sẵn sàng thanh toán
+              </Button>
+            )}
 
           {/* Đánh dấu đã thanh toán (Admin/Staff) */}
-          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
-            <Button 
-              type="primary" 
-              icon={<CheckCircleOutlined />} 
-              onClick={handleMarkAsPaid}
-            >
-              Đánh dấu đã thanh toán
-            </Button>
-          )}
+          {invoice.payment_status !== "paid" &&
+            invoice.invoice_status !== "cancelled" && (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={handleMarkAsPaid}
+              >
+                Đánh dấu đã thanh toán
+              </Button>
+            )}
 
           {/* Hủy hóa đơn */}
-          {invoice.invoice_status !== "cancelled" && invoice.invoice_status !== "paid" && (
-            <Popconfirm
-              title="Xác nhận hủy hóa đơn"
-              description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
-              onConfirm={handleCancelInvoice}
-              okText="Hủy"
-              cancelText="Không"
-              okType="danger"
-            >
-              <Button danger>
-                Hủy hóa đơn
-              </Button>
-            </Popconfirm>
-          )}
+          {invoice.invoice_status !== "cancelled" &&
+            invoice.invoice_status !== "paid" && (
+              <Popconfirm
+                title="Xác nhận hủy hóa đơn"
+                description="Bạn có chắc chắn muốn hủy hóa đơn này? Hành động này không thể hoàn tác."
+                onConfirm={handleCancelInvoice}
+                okText="Hủy"
+                cancelText="Không"
+                okType="danger"
+              >
+                <Button danger>Hủy hóa đơn</Button>
+              </Popconfirm>
+            )}
         </Space>
       </div>
 
@@ -529,17 +554,23 @@ const ViewInvoice: React.FC = () => {
           </Col>
           <Col style={{ textAlign: "right" }}>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>Trạng thái:</Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>
+                Trạng thái:
+              </Text>
               {getInvoiceStatusTag(invoice.invoice_status)}
             </div>
             <div style={{ marginBottom: 8 }}>
-              <Text type="secondary" style={{ marginRight: 8 }}>Thanh toán:</Text>
+              <Text type="secondary" style={{ marginRight: 8 }}>
+                Thanh toán:
+              </Text>
               {getPaymentStatusTag(invoice.payment_status)}
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Ngày tạo:</Text>
               <br />
-              <Text strong>{dayjs(invoice.issue_date).format("DD/MM/YYYY")}</Text>
+              <Text strong>
+                {dayjs(invoice.issue_date).format("DD/MM/YYYY")}
+              </Text>
             </div>
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">Hạn thanh toán:</Text>
@@ -556,25 +587,84 @@ const ViewInvoice: React.FC = () => {
           <Col span={12}>
             <Descriptions title="Thông tin khách hàng" column={1} size="small">
               <Descriptions.Item label="Tên">
-                <Text strong>{invoice.customer_name}</Text>
+                <Text strong>
+                  {invoice.bookingOrder?.guest?.full_name ||
+                    invoice.bookingOrder?.customer_name ||
+                    invoice.customer_name ||
+                    "-"}
+                </Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Email">{invoice.customer_email || "-"}</Descriptions.Item>
-              <Descriptions.Item label="Điện thoại">{invoice.customer_phone || "-"}</Descriptions.Item>
-              <Descriptions.Item label="Địa chỉ">{invoice.customer_address || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {invoice.bookingOrder?.guest?.email ||
+                  invoice.bookingOrder?.customer_email ||
+                  invoice.customer_email ||
+                  "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Điện thoại">
+                {invoice.bookingOrder?.guest?.phone_number ||
+                  invoice.bookingOrder?.customer_phone ||
+                  invoice.customer_phone ||
+                  "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ">
+                {invoice.bookingOrder?.guest?.address ||
+                  invoice.customer_address ||
+                  "-"}
+              </Descriptions.Item>
             </Descriptions>
           </Col>
           <Col span={12}>
             <Descriptions title="Thông tin thanh toán" column={1} size="small">
               <Descriptions.Item label="Phương thức">
-                {invoice.payment_method || "Chưa xác định"}
+                {(() => {
+                  // Lấy payment mới nhất từ invoice payments
+                  const latestPayment =
+                    invoice.payments &&
+                    Array.isArray(invoice.payments) &&
+                    invoice.payments.length > 0
+                      ? invoice.payments.sort(
+                          (a: any, b: any) =>
+                            new Date(b.paid_at || b.created_at || 0).getTime() -
+                            new Date(a.paid_at || a.created_at || 0).getTime()
+                        )[0]
+                      : null;
+
+                  return (
+                    latestPayment?.payment_method ||
+                    invoice.payment_method ||
+                    invoice.bookingOrder?.payment_method ||
+                    "Chưa xác định"
+                  );
+                })()}
               </Descriptions.Item>
               <Descriptions.Item label="Ngày thanh toán">
-                {invoice.payment_date
-                  ? dayjs(invoice.payment_date).format("DD/MM/YYYY")
-                  : "Chưa thanh toán"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Ghi chú thanh toán">
-                {invoice.payment_notes || "-"}
+                {(() => {
+                  // Lấy payment mới nhất từ invoice payments
+                  const latestPayment =
+                    invoice.payments &&
+                    Array.isArray(invoice.payments) &&
+                    invoice.payments.length > 0
+                      ? invoice.payments.sort(
+                          (a: any, b: any) =>
+                            new Date(b.paid_at || b.created_at || 0).getTime() -
+                            new Date(a.paid_at || a.created_at || 0).getTime()
+                        )[0]
+                      : null;
+
+                  if (latestPayment?.paid_at) {
+                    return dayjs(latestPayment.paid_at).format("DD/MM/YYYY");
+                  }
+                  if (
+                    latestPayment?.created_at &&
+                    latestPayment?.status === "success"
+                  ) {
+                    return dayjs(latestPayment.created_at).format("DD/MM/YYYY");
+                  }
+                  if (invoice.payment_date) {
+                    return dayjs(invoice.payment_date).format("DD/MM/YYYY");
+                  }
+                  return "Chưa thanh toán";
+                })()}
               </Descriptions.Item>
             </Descriptions>
           </Col>
@@ -583,34 +673,44 @@ const ViewInvoice: React.FC = () => {
         <Divider />
 
         {/* Invoice Items */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>Chi tiết hóa đơn</Title>
-          {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
-            <Space>
-              <Button
-                type="primary"
-                icon={<ShoppingOutlined />}
-                onClick={() => setAddServiceModalVisible(true)}
-              >
-                Thêm dịch vụ
-              </Button>
-              <Button
-                type="primary"
-                danger
-                icon={<WarningOutlined />}
-                onClick={() => setAddDamageModalVisible(true)}
-              >
-                Thêm thiệt hại
-              </Button>
-            </Space>
-          )}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Title level={4} style={{ margin: 0 }}>
+            Chi tiết hóa đơn
+          </Title>
+          {invoice.payment_status !== "paid" &&
+            invoice.invoice_status !== "cancelled" && (
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<ShoppingOutlined />}
+                  onClick={() => setAddServiceModalVisible(true)}
+                >
+                  Thêm dịch vụ
+                </Button>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<WarningOutlined />}
+                  onClick={() => setAddDamageModalVisible(true)}
+                >
+                  Thêm thiệt hại
+                </Button>
+              </Space>
+            )}
         </div>
         <Table
           columns={itemColumns}
           dataSource={
-            invoice.items || 
-            (invoice as any).invoice_items || 
-            (invoice as any).invoiceItems || 
+            invoice.items ||
+            (invoice as any).invoice_items ||
+            (invoice as any).invoiceItems ||
             []
           }
           rowKey="id"
@@ -623,24 +723,48 @@ const ViewInvoice: React.FC = () => {
         {/* Summary */}
         <Row justify="end">
           <Col span={8}>
-            <div style={{ padding: 16, background: "#fafafa", borderRadius: 8 }}>
-              <Space direction="vertical" style={{ width: "100%" }} size="small">
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div
+              style={{ padding: 16, background: "#fafafa", borderRadius: 8 }}
+            >
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="small"
+              >
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <Text>Tổng phụ:</Text>
-                  <Text>{(invoice.subtotal || 0).toLocaleString("vi-VN")}₫</Text>
+                  <Text>
+                    {(invoice.subtotal || 0).toLocaleString("vi-VN")}₫
+                  </Text>
                 </div>
                 {(invoice.discount_amount || 0) > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      color: "#52c41a",
+                    }}
+                  >
                     <Text>Giảm giá:</Text>
-                    <Text>-{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫</Text>
+                    <Text>
+                      -{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫
+                    </Text>
                   </div>
                 )}
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <Text>Thuế ({invoice.tax_rate || 0}%):</Text>
-                  <Text>{(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫</Text>
+                  <Text>
+                    {(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫
+                  </Text>
                 </div>
                 <Divider style={{ margin: "8px 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <Text strong style={{ fontSize: 16 }}>
                     Tổng cộng:
                   </Text>
@@ -648,15 +772,24 @@ const ViewInvoice: React.FC = () => {
                     {(invoice.total_amount || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <Text>Đã thanh toán:</Text>
                   <Text style={{ color: "#52c41a" }}>
                     {(invoice.paid_amount || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <Text strong>Còn lại:</Text>
-                  <Text strong style={{ color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a" }}>
+                  <Text
+                    strong
+                    style={{
+                      color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a",
+                    }}
+                  >
                     {(invoice.balance || 0).toLocaleString("vi-VN")}₫
                   </Text>
                 </div>
@@ -671,7 +804,14 @@ const ViewInvoice: React.FC = () => {
             <Divider />
             <div>
               <Text strong>Ghi chú:</Text>
-              <div style={{ marginTop: 8, padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: 12,
+                  background: "#f5f5f5",
+                  borderRadius: 4,
+                }}
+              >
                 {invoice.notes}
               </div>
             </div>
@@ -710,11 +850,7 @@ const ViewInvoice: React.FC = () => {
         cancelText="Hủy"
         width={600}
       >
-        <Form
-          form={serviceForm}
-          layout="vertical"
-          onFinish={handleAddService}
-        >
+        <Form form={serviceForm} layout="vertical" onFinish={handleAddService}>
           <Form.Item
             name="service_id"
             label="Dịch vụ"
@@ -726,12 +862,19 @@ const ViewInvoice: React.FC = () => {
               showSearch
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             >
               {services.map((service) => (
-                <Select.Option key={service.id} value={service.id} label={service.name}>
-                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/{service.unit}
+                <Select.Option
+                  key={service.id}
+                  value={service.id}
+                  label={service.name}
+                >
+                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/
+                  {service.unit}
                 </Select.Option>
               ))}
             </Select>
@@ -752,10 +895,7 @@ const ViewInvoice: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Mô tả (tùy chọn)"
-          >
+          <Form.Item name="description" label="Mô tả (tùy chọn)">
             <Input.TextArea rows={3} placeholder="Nhập mô tả nếu có" />
           </Form.Item>
         </Form>
@@ -779,11 +919,7 @@ const ViewInvoice: React.FC = () => {
         cancelText="Hủy"
         width={600}
       >
-        <Form
-          form={damageForm}
-          layout="vertical"
-          onFinish={handleAddDamage}
-        >
+        <Form form={damageForm} layout="vertical" onFinish={handleAddDamage}>
           <Form.Item
             name="supply_id"
             label="Vật tư bị thiệt hại"
@@ -795,12 +931,19 @@ const ViewInvoice: React.FC = () => {
               showSearch
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             >
               {supplies.map((supply) => (
-                <Select.Option key={supply.id} value={supply.id} label={supply.name}>
-                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/{supply.unit || "cái"}
+                <Select.Option
+                  key={supply.id}
+                  value={supply.id}
+                  label={supply.name}
+                >
+                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/
+                  {supply.unit || "cái"}
                 </Select.Option>
               ))}
             </Select>
@@ -821,17 +964,11 @@ const ViewInvoice: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Mô tả thiệt hại (tùy chọn)"
-          >
+          <Form.Item name="description" label="Mô tả thiệt hại (tùy chọn)">
             <Input.TextArea rows={2} placeholder="Mô tả chi tiết thiệt hại" />
           </Form.Item>
 
-          <Form.Item
-            name="notes"
-            label="Ghi chú (tùy chọn)"
-          >
+          <Form.Item name="notes" label="Ghi chú (tùy chọn)">
             <Input.TextArea rows={2} placeholder="Ghi chú thêm về thiệt hại" />
           </Form.Item>
         </Form>
@@ -841,6 +978,3 @@ const ViewInvoice: React.FC = () => {
 };
 
 export default ViewInvoice;
-
-
-

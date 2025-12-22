@@ -152,7 +152,7 @@ const RoomList: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [totalRoomTypes, setTotalRoomTypes] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [pageSize, setPageSize] = useState<number>(12);
+    const [pageSize, setPageSize] = useState<number>(6);
 
     // State cho modal chi tiết loại phòng
     const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
@@ -928,8 +928,8 @@ const RoomList: React.FC = () => {
             // Lấy check-in/check-out dates nếu có
             // Chỉ gửi check_in/check_out nếu cả hai đều có giá trị hợp lệ và không phải ngày quá khứ
             const params: any = {
-                per_page: pageSize, // Pagination ở backend
-                page: currentPage,
+                per_page: 1000, // Fetch all for client-side filtering/pagination
+                page: 1,
             };
 
             if (dateRange && dateRange[0] && dateRange[1]) {
@@ -975,9 +975,15 @@ const RoomList: React.FC = () => {
 
                 // Rating filter (client-side)
                 if (minRating > 0) {
-                    filteredRoomTypes = filteredRoomTypes.filter(rt =>
-                        (rt.rating || 0) >= minRating
-                    );
+                    filteredRoomTypes = filteredRoomTypes.filter(rt => {
+                        const rating = rt.rating || 0;
+                        // Nếu chọn 5 sao, lấy chính xác 5 (hoặc > 4.9)
+                        if (minRating === 5) {
+                            return rating >= 5;
+                        }
+                        // Các sao khác: lấy phần nguyên. VD: 4 sao -> 4.0 đến 4.9
+                        return Math.floor(rating) === minRating;
+                    });
                 }
 
                 // Guests filter (client-side)
@@ -1066,7 +1072,8 @@ const RoomList: React.FC = () => {
 
                 // Set data from backend pagination
                 setRoomTypes(filteredRoomTypes);
-                setTotalRoomTypes(response.meta?.pagination?.total || filteredRoomTypes.length);
+                // Client-side pagination: use filtered length
+                setTotalRoomTypes(filteredRoomTypes.length);
             }
         } catch (error: any) {
             // Ignore abort errors
@@ -1087,8 +1094,6 @@ const RoomList: React.FC = () => {
             }
         }
     }, [
-        currentPage,
-        pageSize,
         debouncedSearchQuery,
         selectedAmenityIds,
         selectedKeyAmenityIds,
@@ -1665,8 +1670,11 @@ const RoomList: React.FC = () => {
                                             onChange={setMinRating}
                                         >
                                             <Option value={0}>Tất cả</Option>
-                                            <Option value={4}>⭐ 4+</Option>
-                                            <Option value={4.5}>⭐ 4.5+</Option>
+                                            <Option value={1}>⭐ 1 sao</Option>
+                                            <Option value={2}>⭐ 2 sao</Option>
+                                            <Option value={3}>⭐ 3 sao</Option>
+                                            <Option value={4}>⭐ 4 sao</Option>
+                                            <Option value={5}>⭐ 5 sao</Option>
                                         </Select>
                                     </div>
 
@@ -1750,7 +1758,7 @@ const RoomList: React.FC = () => {
                             ) : (
                                 <>
                                     <Row gutter={[24, 24]}>
-                                        {roomTypes.map((roomType) => {
+                                        {roomTypes.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((roomType) => {
                                             const roomTypeImage = getRoomTypeImage(roomType);
                                             const roomTypeLocation = getRoomTypeLocation(roomType);
                                             const bedType = getBedType(roomType);
@@ -1972,19 +1980,17 @@ const RoomList: React.FC = () => {
 
                                     {/* Pagination */}
                                     {totalRoomTypes > pageSize && (
-                                        <div style={{ marginTop: 32, textAlign: 'center' }}>
+                                        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'flex-end' }}>
                                             <Pagination
                                                 current={currentPage}
                                                 total={totalRoomTypes}
                                                 pageSize={pageSize}
                                                 showSizeChanger
-                                                showQuickJumper
-                                                showTotal={(total, range) =>
-                                                    `${range[0]}-${range[1]} của ${total} phòng`
-                                                }
+                                                pageSizeOptions={['6', '12', '24', '48']}
+                                                showTotal={(total) => `Tổng ${total} phòng`}
                                                 onChange={(page, size) => {
                                                     setCurrentPage(page);
-                                                    setPageSize(size || 12);
+                                                    setPageSize(size || 6);
                                                 }}
                                                 onShowSizeChange={(_current, size) => {
                                                     setCurrentPage(1);

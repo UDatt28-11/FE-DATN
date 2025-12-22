@@ -1,8 +1,8 @@
-import React from 'react';
-import { Button, Typography, Space } from 'antd';
-import { MessageOutlined, RobotOutlined } from '@ant-design/icons';
-import { useChat } from '../../context/ChatContext';
-import './Chatbox.css';
+import React from "react";
+import { Button, Typography, Space } from "antd";
+import { MessageOutlined, RobotOutlined } from "@ant-design/icons";
+import { useChat } from "../../context/ChatContext";
+import "./Chatbox.css";
 
 const { Title, Text } = Typography;
 
@@ -11,7 +11,7 @@ const WelcomeScreen: React.FC = () => {
 
   const handleStartChat = async () => {
     if (conversation) {
-      await sendMessage('Xin chào!');
+      await sendMessage("Xin chào!");
     }
   };
 
@@ -40,7 +40,8 @@ const WelcomeScreen: React.FC = () => {
             </div>
             <div className="welcome-message-content">
               <Text>
-                Chào mừng bạn đến với BookStay! Tôi là trợ lý AI, sẵn sàng hỗ trợ bạn về:
+                Chào mừng bạn đến với BookStay! Tôi là trợ lý AI, sẵn sàng hỗ
+                trợ bạn về:
               </Text>
               <ul className="welcome-features">
                 <li>Thông tin phòng và dịch vụ</li>
@@ -62,7 +63,7 @@ const WelcomeScreen: React.FC = () => {
             onClick={handleStartChat}
             className="start-chat-button"
           >
-            Let's chat
+            Bắt đầu
           </Button>
         </div>
 
@@ -77,4 +78,3 @@ const WelcomeScreen: React.FC = () => {
 };
 
 export default WelcomeScreen;
-
