@@ -42,11 +42,11 @@ import dayjs from 'dayjs';
 import {
     getCheckoutRequests,
     rejectCheckoutRequest,
-    getSuppliesForCheckout,
     approveCheckoutRequest,
     type CheckoutRequest,
     type DamagedSupply,
 } from '../../../service/bookingService';
+import supplyService from '../../../service/supplyService';
 import type { Pagination } from '../../../types/booking/booking';
 import { formatVND } from '../../../utils/currency';
 
@@ -94,6 +94,7 @@ const ListCheckoutRequests: React.FC = () => {
     const [roomStatus, setRoomStatus] = useState<'available' | 'maintenance'>('available');
     const [checkoutNotes, setCheckoutNotes] = useState('');
     const [processingCheckout, setProcessingCheckout] = useState(false);
+    const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
 
     const fetchData = async (page = 1, status?: string) => {
         setLoading(true);
@@ -171,14 +172,40 @@ const ListCheckoutRequests: React.FC = () => {
         });
     }, [allRequests, activeTab, statusFilter]);
 
-    // Pagination cho filtered requests
+    // Group requests theo booking_order_id
+    const groupedRequests = useMemo(() => {
+        const grouped = new Map<number, CheckoutRequest[]>();
+        
+        filteredRequests.forEach((request) => {
+            const bookingOrderId = request.booking_order_id;
+            if (!bookingOrderId) return;
+            
+            if (!grouped.has(bookingOrderId)) {
+                grouped.set(bookingOrderId, []);
+            }
+            grouped.get(bookingOrderId)!.push(request);
+        });
+        
+        // Chuyển Map thành array, mỗi phần tử là một nhóm (booking order)
+        return Array.from(grouped.values()).map(requests => ({
+            booking_order_id: requests[0].booking_order_id,
+            booking_order: requests[0].booking_order,
+            requests: requests,
+            // Lấy thông tin từ request đầu tiên làm đại diện
+            id: `group_${requests[0].booking_order_id}`,
+            status: requests[0].status, // Có thể cần logic phức tạp hơn nếu có nhiều status khác nhau
+            created_at: requests[0].created_at,
+        }));
+    }, [filteredRequests]);
+
+    // Pagination cho grouped requests
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 15;
     const paginatedRequests = useMemo(() => {
         const start = (currentPage - 1) * pageSize;
         const end = start + pageSize;
-        return filteredRequests.slice(start, end);
-    }, [filteredRequests, currentPage]);
+        return groupedRequests.slice(start, end);
+    }, [groupedRequests, currentPage]);
 
     // Mở modal checkout với thiệt hại
     const handleOpenCheckoutModal = async (request: CheckoutRequest) => {
@@ -188,18 +215,24 @@ const ListCheckoutRequests: React.FC = () => {
         setCheckoutNotes('');
         setCheckoutModalVisible(true);
 
-        // Fetch supplies cho booking này
-        if (request.booking_order_id) {
+        // Chỉ lấy vật tư gắn với phòng đang được duyệt checkout
+        const roomId = request.booking_detail?.room?.id;
+        if (roomId) {
             setLoadingSupplies(true);
             try {
-                const result = await getSuppliesForCheckout(request.booking_order_id);
-                setSupplies(result.data || []);
+                const roomSupplies = await supplyService.getByRoom(roomId);
+                setSupplies(roomSupplies || []);
             } catch (error: any) {
-                console.error('Error fetching supplies:', error);
-                // Don't show error, just continue without supplies
+                console.error('Error fetching room supplies:', error);
+                message.error('Không thể tải danh sách vật tư của phòng này');
+                setSupplies([]);
             } finally {
                 setLoadingSupplies(false);
             }
+        } else {
+            // Không xác định được phòng → không load vật tư để tránh chọn nhầm
+            setSupplies([]);
+            message.error('Không xác định được phòng cho yêu cầu checkout này. Vui lòng kiểm tra lại.');
         }
     };
 
@@ -385,131 +418,72 @@ const ListCheckoutRequests: React.FC = () => {
 
     const columns = [
         {
-            title: 'ID',
-            dataIndex: 'id',
-            key: 'id',
-            width: 80,
-        },
-        {
             title: 'Mã đặt phòng',
             key: 'booking_code',
-            width: 150,
-            render: (_: any, record: CheckoutRequest) => (
+            width: 140,
+            render: (_: any, record: any) => (
                 <span>#{record.booking_order?.order_code || record.booking_order_id}</span>
             ),
         },
         {
             title: 'Khách hàng',
             key: 'guest',
-            width: 180,
-            render: (_: any, record: CheckoutRequest) => (
-                <Space direction="vertical" size="small">
-                    <div>
-                        <UserOutlined /> {record.booking_order?.guest?.full_name || record.booking_order?.customer_name || 'N/A'}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#999' }}>
-                        <PhoneOutlined /> {record.booking_order?.guest?.phone_number || record.booking_order?.customer_phone || 'N/A'}
-                    </div>
-                </Space>
-            ),
+            width: 200,
+            render: (_: any, record: any) => {
+                const bookingOrder = record.booking_order || record.requests?.[0]?.booking_order;
+                return (
+                    <Space direction="vertical" size="small">
+                        <div>
+                            <UserOutlined /> {bookingOrder?.guest?.full_name || bookingOrder?.customer_name || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#999' }}>
+                            <PhoneOutlined /> {bookingOrder?.guest?.phone_number || bookingOrder?.customer_phone || 'N/A'}
+                        </div>
+                    </Space>
+                );
+            },
         },
         {
             title: 'Phòng',
             key: 'room',
-            width: 120,
-            render: (_: any, record: CheckoutRequest) => (
-                <Space direction="vertical" size="small">
-                    <div>
+            width: 100,
+            render: (_: any, record: any) => {
+                // Nếu là grouped record (có requests array)
+                if (record.requests && Array.isArray(record.requests)) {
+                    const roomsCount = record.requests.length;
+                    return (
+                        <Space>
+                            <HomeOutlined />
+                            <span>{roomsCount} phòng</span>
+                        </Space>
+                    );
+                }
+                // CheckoutRequest thông thường (fallback)
+                return (
+                    <Space>
                         <HomeOutlined /> {record.booking_detail?.room?.name || 'N/A'}
-                    </div>
-                    {record.booking_detail?.room?.roomType?.name && (
-                        <Tag color="blue">{record.booking_detail.room.roomType.name}</Tag>
-                    )}
-                </Space>
-            ),
+                    </Space>
+                );
+            },
         },
         {
             title: 'Ngày check-in/out',
             key: 'dates',
-            width: 180,
-            render: (_: any, record: CheckoutRequest) => (
-                <Space direction="vertical" size="small">
-                    <div>
-                        <CalendarOutlined /> {record.booking_detail?.check_in_date ? dayjs(record.booking_detail.check_in_date).format('DD/MM/YYYY') : 'N/A'}
-                    </div>
-                    <div>
-                        <LogoutOutlined /> {record.booking_detail?.check_out_date ? dayjs(record.booking_detail.check_out_date).format('DD/MM/YYYY') : 'N/A'}
-                    </div>
-                </Space>
-            ),
-        },
-        {
-            title: 'Ghi chú',
-            dataIndex: 'notes',
-            key: 'notes',
-            width: 150,
-            render: (notes: string) => notes || <span style={{ color: '#999' }}>Không có</span>,
-        },
-        {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            width: 120,
-            render: (status: string) => {
-                const config: Record<string, { color: string; text: string }> = {
-                    pending: { color: 'orange', text: 'Chờ xử lý' },
-                    approved: { color: 'green', text: 'Đã duyệt' },
-                    rejected: { color: 'red', text: 'Đã từ chối' },
-                };
-                const cfg = config[status] || { color: 'default', text: status };
-                return <Tag color={cfg.color}>{cfg.text}</Tag>;
+            width: 160,
+            render: (_: any, record: any) => {
+                // Nếu là grouped record, lấy từ request đầu tiên
+                const firstRequest = record.requests?.[0] || record;
+                return (
+                    <Space direction="vertical" size="small" style={{ fontSize: 12 }}>
+                        <div>
+                            <CalendarOutlined /> {firstRequest.booking_detail?.check_in_date ? dayjs(firstRequest.booking_detail.check_in_date).format('DD/MM/YYYY') : 'N/A'}
+                        </div>
+                        <div>
+                            <LogoutOutlined /> {firstRequest.booking_detail?.check_out_date ? dayjs(firstRequest.booking_detail.check_out_date).format('DD/MM/YYYY') : 'N/A'}
+                        </div>
+                    </Space>
+                );
             },
-        },
-        {
-            title: 'Ngày yêu cầu',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            width: 150,
-            render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
-        },
-        {
-            title: 'Thao tác',
-            key: 'action',
-            width: 250,
-            fixed: 'right' as const,
-            render: (_: any, record: CheckoutRequest) => (
-                <Space>
-                    <Button
-                        type="link"
-                        icon={<EyeOutlined />}
-                        onClick={() => handleViewDetail(record)}
-                    >
-                        Xem
-                    </Button>
-                    {record.status === 'pending' && (
-                        <>
-                            <Button
-                                type="primary"
-                                icon={<CheckCircleOutlined />}
-                                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                                onClick={() => handleOpenCheckoutModal(record)}
-                            >
-                                Duyệt & Checkout
-                            </Button>
-                            <Button
-                                danger
-                                icon={<CloseCircleOutlined />}
-                                onClick={() => {
-                                    setSelectedRequest(record);
-                                    setRejectModalVisible(true);
-                                }}
-                            >
-                                Từ chối
-                            </Button>
-                        </>
-                    )}
-                </Space>
-            ),
         },
     ];
 
@@ -559,28 +533,31 @@ const ListCheckoutRequests: React.FC = () => {
                     items={[
                         {
                             key: 'upcoming',
-                            label: `Chưa tới ngày trả (${allRequests.filter(r => {
-                                const date = r.booking_detail?.check_out_date;
+                            label: `Chưa tới ngày trả (${groupedRequests.filter(g => {
+                                const firstRequest = g.requests?.[0];
+                                const date = firstRequest?.booking_detail?.check_out_date;
                                 return date && dayjs(date).startOf('day').isAfter(dayjs().startOf('day'));
                             }).length})`,
                         },
                         {
                             key: 'today',
-                            label: `Trả trong hôm nay (${allRequests.filter(r => {
-                                const date = r.booking_detail?.check_out_date;
+                            label: `Trả trong hôm nay (${groupedRequests.filter(g => {
+                                const firstRequest = g.requests?.[0];
+                                const date = firstRequest?.booking_detail?.check_out_date;
                                 return date && dayjs(date).startOf('day').isSame(dayjs().startOf('day'));
                             }).length})`,
                         },
                         {
                             key: 'overdue',
-                            label: `Trả muộn (${allRequests.filter(r => {
-                                const date = r.booking_detail?.check_out_date;
+                            label: `Trả muộn (${groupedRequests.filter(g => {
+                                const firstRequest = g.requests?.[0];
+                                const date = firstRequest?.booking_detail?.check_out_date;
                                 return date && dayjs(date).startOf('day').isBefore(dayjs().startOf('day'));
                             }).length})`,
                         },
                         {
                             key: 'all',
-                            label: `Tất cả (${allRequests.length})`,
+                            label: `Tất cả (${groupedRequests.length})`,
                         },
                     ]}
                     style={{ marginBottom: 16 }}
@@ -589,14 +566,160 @@ const ListCheckoutRequests: React.FC = () => {
                 <Table
                     columns={columns}
                     dataSource={paginatedRequests}
-                    rowKey="id"
+                    rowKey={(record: any) => record.id || `group_${record.booking_order_id}`}
                     loading={loading}
                     size="small"
-                    scroll={{ x: 'max-content' }}
+                    expandable={{
+                        expandedRowKeys,
+                        onExpandedRowsChange: (keys) => setExpandedRowKeys(keys as React.Key[]),
+                        expandIcon: () => null, // Ẩn dấu +
+                        expandedRowRender: (record: any) => {
+                            // Chỉ expand cho grouped records có requests
+                            if (!record.requests || !Array.isArray(record.requests)) {
+                                return null;
+                            }
+
+                            const requests = record.requests as CheckoutRequest[];
+
+                            if (requests.length === 0) {
+                                return <div style={{ padding: '16px' }}>Không có thông tin phòng</div>;
+                            }
+                            
+                            // Tự động expand cho các dòng có 1 phòng (để hiển thị action buttons)
+                            // Nhưng không cho phép click để collapse
+
+                            // Columns cho bảng phòng
+                            const roomColumns = [
+                                {
+                                    title: 'Phòng',
+                                    key: 'room',
+                                    width: 120,
+                                    render: (_: any, req: CheckoutRequest) => (
+                                        <Space>
+                                            <HomeOutlined style={{ color: '#1890ff' }} />
+                                            <span style={{ fontWeight: 500 }}>
+                                                {req.booking_detail?.room?.name || 'N/A'}
+                                            </span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Check-in',
+                                    key: 'check_in_date',
+                                    width: 120,
+                                    render: (_: any, req: CheckoutRequest) => (
+                                        <Space>
+                                            <CalendarOutlined style={{ color: '#52c41a' }} />
+                                            <span>{req.booking_detail?.check_in_date ? dayjs(req.booking_detail.check_in_date).format('DD/MM/YYYY') : 'N/A'}</span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Check-out',
+                                    key: 'check_out_date',
+                                    width: 120,
+                                    render: (_: any, req: CheckoutRequest) => (
+                                        <Space>
+                                            <LogoutOutlined style={{ color: '#ff4d4f' }} />
+                                            <span>{req.booking_detail?.check_out_date ? dayjs(req.booking_detail.check_out_date).format('DD/MM/YYYY') : 'N/A'}</span>
+                                        </Space>
+                                    ),
+                                },
+                                {
+                                    title: 'Trạng thái',
+                                    key: 'status',
+                                    width: 110,
+                                    render: (_: any, req: CheckoutRequest) => {
+                                        const config: Record<string, { color: string; text: string }> = {
+                                            pending: { color: 'orange', text: 'Chờ xử lý' },
+                                            approved: { color: 'green', text: 'Đã duyệt' },
+                                            rejected: { color: 'red', text: 'Đã từ chối' },
+                                        };
+                                        const cfg = config[req.status] || { color: 'default', text: req.status };
+                                        return <Tag color={cfg.color}>{cfg.text}</Tag>;
+                                    },
+                                },
+                                {
+                                    title: 'Thao tác',
+                                    key: 'action',
+                                    width: 200,
+                                    render: (_: any, req: CheckoutRequest) => (
+                                        <Space size="small">
+                                            <Button
+                                                type="link"
+                                                icon={<EyeOutlined />}
+                                                onClick={() => handleViewDetail(req)}
+                                                size="small"
+                                            >
+                                                Xem
+                                            </Button>
+                                            {req.status === 'pending' && (
+                                                <>
+                                                    <Button
+                                                        type="primary"
+                                                        icon={<CheckCircleOutlined />}
+                                                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                                                        onClick={() => handleOpenCheckoutModal(req)}
+                                                        size="small"
+                                                    >
+                                                        Duyệt
+                                                    </Button>
+                                                    <Button
+                                                        danger
+                                                        icon={<CloseCircleOutlined />}
+                                                        onClick={() => {
+                                                            setSelectedRequest(req);
+                                                            setRejectModalVisible(true);
+                                                        }}
+                                                        size="small"
+                                                    >
+                                                        Từ chối
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </Space>
+                                    ),
+                                },
+                            ];
+
+                            return (
+                                <Table
+                                    columns={roomColumns}
+                                    dataSource={requests}
+                                    rowKey={(req) => `request-${req.id}`}
+                                    pagination={false}
+                                    size="small"
+                                    style={{ margin: '8px 0' }}
+                                />
+                            );
+                        },
+                        rowExpandable: (record: any) => {
+                            // Cho phép expand cho tất cả grouped records (có requests array)
+                            // Nhưng chỉ cho phép click để expand/collapse khi có nhiều hơn 1 phòng
+                            return record.requests && Array.isArray(record.requests);
+                        },
+                    }}
+                    onRow={(record: any) => {
+                        // Cho phép click để expand/collapse cho tất cả grouped records (kể cả 1 phòng)
+                        if (record.requests && Array.isArray(record.requests)) {
+                            return {
+                                onClick: () => {
+                                    const key = record.id || `group_${record.booking_order_id}`;
+                                    if (expandedRowKeys.includes(key)) {
+                                        setExpandedRowKeys(expandedRowKeys.filter(k => k !== key));
+                                    } else {
+                                        setExpandedRowKeys([...expandedRowKeys, key]);
+                                    }
+                                },
+                                style: { cursor: 'pointer' },
+                            };
+                        }
+                        return {};
+                    }}
                     pagination={{
                         current: currentPage,
                         pageSize: pageSize,
-                        total: filteredRequests.length,
+                        total: groupedRequests.length,
                         onChange: handleTableChange,
                         showSizeChanger: false,
                     }}

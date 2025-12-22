@@ -21,7 +21,9 @@ import {
   Col,
   Typography,
   Checkbox,
+  Upload,
 } from "antd";
+import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "react-toastify";
 import {
   ArrowLeftOutlined,
@@ -86,6 +88,7 @@ const ViewBooking: React.FC = () => {
   const [damageForm] = Form.useForm();
   const [completeServiceForm] = Form.useForm();
   const [approveServiceForm] = Form.useForm();
+  const [damageImageList, setDamageImageList] = useState<UploadFile[]>([]);
 
   // Load dữ liệu booking khi component mount hoặc id thay đổi
   useEffect(() => {
@@ -130,12 +133,10 @@ const ViewBooking: React.FC = () => {
     try {
       // Backend hiện chưa hỗ trợ filter booking_order_id trực tiếp,
       // nên lấy toàn bộ rồi lọc theo booking_order_id ở FE
+      // LƯU Ý: Hiển thị tất cả invoices (bao gồm cả hóa đơn gốc và hóa đơn đã tách)
       const allInvoices = await invoiceService.getAll();
       const filtered = allInvoices.filter(
-        (inv: Invoice) => 
-          inv.booking_order_id === bookingId && 
-          inv.invoice_status !== 'cancelled' && 
-          (inv as any).status !== 'cancelled'
+        (inv: Invoice) => inv.booking_order_id === bookingId
       );
       
       // Fetch chi tiết cho TẤT CẢ invoices (không chỉ invoice đầu tiên)
@@ -143,7 +144,7 @@ const ViewBooking: React.FC = () => {
         const invoiceDetails = await Promise.all(
           filtered.map(async (inv) => {
             try {
-              const invoiceDetail = await invoiceService.getById(inv.id, 'bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments');
+              const invoiceDetail = await invoiceService.getById(inv.id, 'bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments,splitFrom,splitInvoices');
               // Map invoice_items từ backend thành items
               if ((invoiceDetail as any).invoice_items && !invoiceDetail.items) {
                 invoiceDetail.items = (invoiceDetail as any).invoice_items;
@@ -197,12 +198,34 @@ const ViewBooking: React.FC = () => {
   const fetchServicesAndSupplies = async () => {
     await fetchServicesByRoomType();
     
+    // Load tất cả supplies ban đầu (sẽ được filter khi chọn phòng)
     try {
       setLoadingSupplies(true);
       const suppliesData = await supplyService.getAll();
       setSupplies(Array.isArray(suppliesData) ? suppliesData : []);
     } catch (error: any) {
       console.error("Error fetching supplies:", error);
+    } finally {
+      setLoadingSupplies(false);
+    }
+  };
+
+  // Load supplies theo phòng
+  const fetchSuppliesByRoom = async (roomId: number) => {
+    try {
+      setLoadingSupplies(true);
+      const suppliesData = await supplyService.getByRoom(roomId);
+      setSupplies(Array.isArray(suppliesData) ? suppliesData : []);
+    } catch (error: any) {
+      console.error("Error fetching supplies by room:", error);
+      // Fallback: load tất cả supplies nếu không lấy được theo phòng
+      try {
+        const allSupplies = await supplyService.getAll();
+        setSupplies(Array.isArray(allSupplies) ? allSupplies : []);
+      } catch (fallbackError) {
+        console.error("Error fetching all supplies:", fallbackError);
+        setSupplies([]);
+      }
     } finally {
       setLoadingSupplies(false);
     }
@@ -328,18 +351,43 @@ const ViewBooking: React.FC = () => {
   // Add damage to invoice
   const handleAddDamage = async (values: any) => {
     if (!invoices || invoices.length === 0) return;
+    
+    if (!values.booking_detail_id) {
+      message.error("Vui lòng chọn phòng");
+      return;
+    }
+    
     // Sử dụng invoice được chọn hoặc invoice đầu tiên
     const invoiceId = selectedInvoiceId || invoices[0].id;
+    
     try {
-      await invoiceService.addDamage(invoiceId, {
-        supply_id: Number(values.supply_id),
-        quantity: Number(values.quantity),
-        description: values.description || undefined,
-        notes: values.notes || undefined,
+      // Tạo FormData để gửi ảnh
+      const formData = new FormData();
+      formData.append('supply_id', String(values.supply_id));
+      formData.append('quantity', String(values.quantity));
+      formData.append('booking_detail_id', String(values.booking_detail_id));
+      if (values.description) {
+        formData.append('description', values.description);
+      }
+      if (values.notes) {
+        formData.append('notes', values.notes);
+      }
+      if (values.is_paid) {
+        formData.append('is_paid', '1');
+      }
+      
+      // Thêm ảnh vào FormData
+      damageImageList.forEach((file) => {
+        if (file.originFileObj) {
+          formData.append('damage_images[]', file.originFileObj);
+        }
       });
+      
+      await invoiceService.addDamageWithImages(invoiceId, formData);
       message.success("Đã thêm thiệt hại vào hóa đơn!");
       setAddDamageModalVisible(false);
       damageForm.resetFields();
+      setDamageImageList([]);
       if (booking?.id) {
         fetchInvoices(booking.id);
       }
@@ -460,6 +508,29 @@ const ViewBooking: React.FC = () => {
     };
     const config = statusConfig[status] || statusConfig.draft;
     return <Tag color={config.color}>{config.text}</Tag>;
+  };
+  
+  // Chỉ cho phép chỉnh sửa (thêm dịch vụ / thiệt hại) khi hóa đơn còn ở trạng thái nháp
+  // hoặc trước khi checkout hoàn tất. Sau khi duyệt checkout và hóa đơn chuyển sang chờ thanh toán,
+  // không được phép thêm gì nữa.
+  const canEditInvoice = (invoice: Invoice) => {
+    if (!invoice) return false;
+    
+    // Khi đơn đã checkout (hoặc hoàn thành) và payment_status vẫn là pending (chờ thanh toán),
+    // thì KHÔNG cho phép chỉnh sửa hóa đơn nữa.
+    const isWaitingPaymentAfterCheckout =
+      invoice.payment_status === "pending" &&
+      (booking?.status === "checked_out" ||
+        booking?.status === "partially_checked_out" ||
+        booking?.status === "completed");
+
+    if (isWaitingPaymentAfterCheckout) return false;
+
+    // Không cho sửa nếu đã thanh toán hoặc đã hủy
+    if (invoice.payment_status === "paid") return false;
+    if (invoice.invoice_status === "cancelled") return false;
+
+    return true;
   };
   
   // Load services và supplies khi mở modal add service/damage
@@ -1549,7 +1620,7 @@ const ViewBooking: React.FC = () => {
                             {/* Invoice Items */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                               <Typography.Title level={4} style={{ margin: 0 }}>Chi tiết hóa đơn</Typography.Title>
-                              {invoice.payment_status !== "paid" && invoice.invoice_status !== "cancelled" && (
+                              {canEditInvoice(invoice) && (
                                 <Space>
                                   <Button
                                     type="primary"
@@ -1674,16 +1745,19 @@ const ViewBooking: React.FC = () => {
                           }
                         }
                         const roomName = relatedRoom?.room?.name || relatedRoom?.room_name || 'Tất cả phòng';
-                        // Kiểm tra xem invoice này có phải là invoice đã tách không (dựa vào số lượng phòng)
-                        // Nếu invoice chỉ có items của 1 phòng (booking_detail_id giống nhau), có thể là invoice đã tách
+                        // Kiểm tra xem invoice này có phải là invoice đã tách không
+                        // - Nếu invoice có splitFrom relationship hoặc chỉ có items của 1 phòng (booking_detail_id giống nhau) và có nhiều invoices
                         const uniqueRoomIds = new Set(items.filter((item: any) => item.booking_detail_id).map((item: any) => item.booking_detail_id));
-                        const isSplit = uniqueRoomIds.size === 1 && invoices.length > 1;
+                        const isSplit = (raw.splitFrom || uniqueRoomIds.size === 1) && invoices.length > 1;
+                        // Kiểm tra xem có phải hóa đơn gốc không (có splitInvoices relationship)
+                        const isOriginal = raw.splitInvoices && raw.splitInvoices.length > 0;
                         
                         return {
                           key: String(inv.id),
                           label: (
                             <Space>
-                              {isSplit && <Tag color="blue">Đã tách</Tag>}
+                              {isOriginal && <Tag color="orange">Hóa đơn gốc</Tag>}
+                              {isSplit && !isOriginal && <Tag color="blue">Đã tách</Tag>}
                               <span>{roomName}</span>
                               <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
                                 ({inv.invoice_number || `INV-${String(inv.id).padStart(6, "0")}`})
@@ -1858,6 +1932,9 @@ const ViewBooking: React.FC = () => {
         onCancel={() => {
           setAddDamageModalVisible(false);
           damageForm.resetFields();
+          setDamageImageList([]);
+          // Reset supplies về danh sách tất cả khi đóng modal
+          fetchServicesAndSupplies();
         }}
         onOk={() => damageForm.submit()}
         okText="Thêm"
@@ -1869,6 +1946,36 @@ const ViewBooking: React.FC = () => {
           layout="vertical"
           onFinish={handleAddDamage}
         >
+          <Form.Item
+            name="booking_detail_id"
+            label="Phòng"
+            rules={[{ required: true, message: "Vui lòng chọn phòng" }]}
+          >
+            <Select
+              placeholder="Chọn phòng"
+              showSearch
+              optionFilterProp="children"
+              onChange={(value) => {
+                // Khi chọn phòng, load supplies của phòng đó
+                const selectedDetail = booking?.details?.find((d: BookingDetail) => d.id === value);
+                if (selectedDetail?.room?.id) {
+                  fetchSuppliesByRoom(selectedDetail.room.id);
+                } else {
+                  // Nếu không có room_id, load tất cả supplies
+                  fetchServicesAndSupplies();
+                }
+                // Reset supply_id khi đổi phòng
+                damageForm.setFieldsValue({ supply_id: undefined });
+              }}
+            >
+              {booking?.details?.map((detail: BookingDetail) => (
+                <Select.Option key={detail.id} value={detail.id}>
+                  {detail.room?.name || `Phòng ${detail.id}`}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <Form.Item
             name="supply_id"
             label="Vật tư bị thiệt hại"
@@ -1907,6 +2014,13 @@ const ViewBooking: React.FC = () => {
           </Form.Item>
 
           <Form.Item
+            name="is_paid"
+            valuePropName="checked"
+          >
+            <Checkbox>Đã thanh toán</Checkbox>
+          </Form.Item>
+
+          <Form.Item
             name="description"
             label="Mô tả thiệt hại (tùy chọn)"
           >
@@ -1918,6 +2032,30 @@ const ViewBooking: React.FC = () => {
             label="Ghi chú (tùy chọn)"
           >
             <Input.TextArea rows={2} placeholder="Ghi chú thêm về thiệt hại" />
+          </Form.Item>
+
+          <Form.Item
+            label="Ảnh minh chứng thiệt hại (tùy chọn)"
+            extra="Tải lên ảnh để minh chứng thiệt hại vật tư"
+          >
+            <Upload
+              listType="picture-card"
+              fileList={damageImageList}
+              onChange={({ fileList }) => setDamageImageList(fileList)}
+              beforeUpload={() => false}
+              accept="image/*"
+              multiple
+            >
+              {damageImageList.length >= 5 ? null : (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            <div style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+              Tải lên tối đa 5 ảnh minh chứng thiệt hại
+            </div>
           </Form.Item>
         </Form>
       </Modal>

@@ -56,9 +56,17 @@ const PaymentSuccessPage: React.FC = () => {
                     const bookingData = await getUserBooking(Number(bookingId));
                     setBooking(bookingData);
                     
-                    // Clear cart khi thanh toán cọc thành công và đã có invoice
-                    // Kiểm tra payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
-                    if ((bookingData.payment_status === 'partial' || bookingData.payment_status === 'paid') && !cartCleared.current) {
+                    // Clear cart khi thanh toán cọc thành công
+                    // Kiểm tra: 
+                    // 1. payment_status là 'partial' (đã đặt cọc) hoặc 'paid' (đã thanh toán đầy đủ)
+                    // 2. HOẶC status là 'confirmed' (đã được xác nhận sau khi thanh toán cọc)
+                    // 3. HOẶC có paid_amount > 0 (đã có thanh toán)
+                    const hasPayment = bookingData.payment_status === 'partial' || 
+                                      bookingData.payment_status === 'paid' ||
+                                      bookingData.status === 'confirmed' ||
+                                      (bookingData as any).paid_amount > 0;
+                    
+                    if (hasPayment && !cartCleared.current) {
                         cartCleared.current = true;
                         clearCart();
                         message.success('Đã xóa giỏ hàng sau khi thanh toán thành công');

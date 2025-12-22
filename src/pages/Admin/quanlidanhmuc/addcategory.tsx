@@ -112,9 +112,24 @@ const AddCategory: React.FC<AddCategoryProps> = ({
 
   const handleOk = () => {
     form.validateFields().then((values) => {
+      // Đảm bảo max_adults có giá trị mặc định nếu undefined
+      if (!values.max_adults) {
+        values.max_adults = 1;
+      }
+      // Đảm bảo max_children có giá trị mặc định nếu undefined
+      if (values.max_children === undefined || values.max_children === null) {
+        values.max_children = 0;
+      }
       onAdd(values, fileList, []);
       form.resetFields();
       setFileList([]);
+    }).catch((errorInfo) => {
+      console.error('Validation failed:', errorInfo);
+      // Hiển thị lỗi validation
+      if (errorInfo.errorFields && errorInfo.errorFields.length > 0) {
+        const firstError = errorInfo.errorFields[0];
+        message.error(firstError.errors[0]);
+      }
     });
   };
 
@@ -183,6 +198,7 @@ const AddCategory: React.FC<AddCategoryProps> = ({
             <Form.Item
               name="max_adults"
               label="Số người lớn tối đa"
+              initialValue={1}
               rules={[
                 { required: true, message: "Vui lòng nhập số người lớn!" },
               ]}
