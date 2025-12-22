@@ -63,8 +63,8 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
             // Sử dụng admin endpoint nếu isAdmin = true, ngược lại dùng user endpoint
             let invoiceData;
             if (isAdmin) {
-                // Sử dụng admin endpoint
-                invoiceData = await invoiceService.getById(invoiceId);
+                // Sử dụng admin endpoint với include để load bookingOrder và guest
+                invoiceData = await invoiceService.getById(invoiceId, 'bookingOrder,bookingOrder.guest,invoiceItems,payments');
             } else {
                 // Sử dụng user endpoint
                 invoiceData = await getUserInvoice(invoiceId);
@@ -401,13 +401,27 @@ const ViewInvoiceModal: React.FC<ViewInvoiceModalProps> = ({
                     {/* Thông tin khách hàng */}
                     <Descriptions title="Thông tin khách hàng" bordered column={2} size="small" style={{ marginBottom: 24 }}>
                         <Descriptions.Item label="Tên khách hàng">
-                            {invoice.customer_name || invoice.booking_order?.customer_name || 'N/A'}
+                            {invoice.booking_order?.guest?.full_name || 
+                             invoice.booking_order?.customer_name || 
+                             invoice.customer_name || 
+                             'N/A'}
                         </Descriptions.Item>
                         <Descriptions.Item label="Email">
-                            {invoice.customer_email || invoice.booking_order?.customer_email || 'N/A'}
+                            {invoice.booking_order?.guest?.email || 
+                             invoice.booking_order?.customer_email || 
+                             invoice.customer_email || 
+                             'N/A'}
                         </Descriptions.Item>
                         <Descriptions.Item label="Số điện thoại">
-                            {invoice.customer_phone || invoice.booking_order?.customer_phone || 'N/A'}
+                            {invoice.booking_order?.guest?.phone_number || 
+                             invoice.booking_order?.customer_phone || 
+                             invoice.customer_phone || 
+                             'N/A'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Địa chỉ">
+                            {invoice.booking_order?.guest?.address || 
+                             invoice.customer_address || 
+                             'N/A'}
                         </Descriptions.Item>
                     </Descriptions>
 

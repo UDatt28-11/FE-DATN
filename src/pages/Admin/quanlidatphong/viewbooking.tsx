@@ -54,7 +54,12 @@ import type {
   BookingOrder,
   BookingDetail,
 } from "../../../types/booking/booking";
-import { getBooking, requestServiceForGuest, completeServiceRequest, approveServiceRequest } from "../../../service/bookingService";
+import {
+  getBooking,
+  requestServiceForGuest,
+  completeServiceRequest,
+  approveServiceRequest,
+} from "../../../service/bookingService";
 import AdminCheckInModal from "../../../components/Booking/AdminCheckInModal";
 import AdminCheckoutModal from "../../../components/Booking/AdminCheckoutModal";
 import invoiceService from "../../../service/invoiceService";
@@ -73,13 +78,19 @@ const ViewBooking: React.FC = () => {
   // State cho quản lý invoices của booking hiện tại
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(
+    null
+  );
   const [addServiceModalVisible, setAddServiceModalVisible] = useState(false);
   const [addDamageModalVisible, setAddDamageModalVisible] = useState(false);
-  const [completeServiceModalVisible, setCompleteServiceModalVisible] = useState(false);
-  const [approveServiceModalVisible, setApproveServiceModalVisible] = useState(false);
-  const [selectedServiceToComplete, setSelectedServiceToComplete] = useState<any>(null);
-  const [selectedServiceToApprove, setSelectedServiceToApprove] = useState<any>(null);
+  const [completeServiceModalVisible, setCompleteServiceModalVisible] =
+    useState(false);
+  const [approveServiceModalVisible, setApproveServiceModalVisible] =
+    useState(false);
+  const [selectedServiceToComplete, setSelectedServiceToComplete] =
+    useState<any>(null);
+  const [selectedServiceToApprove, setSelectedServiceToApprove] =
+    useState<any>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [supplies, setSupplies] = useState<Supply[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
@@ -107,14 +118,14 @@ const ViewBooking: React.FC = () => {
         bookingId,
         "details,details.room,details.room.roomType,details.guests,details.bookingServices,details.bookingServices.service"
       );
-      
+
       // Đảm bảo details được set đúng
       if (data.bookingDetails && !data.details) {
         data.details = data.bookingDetails;
       }
-      
+
       setBooking(data);
-      
+
       // Fetch invoices của booking này
       if (data.id) {
         fetchInvoices(data.id);
@@ -126,7 +137,7 @@ const ViewBooking: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   // Fetch invoices của booking
   const fetchInvoices = async (bookingId: number) => {
     setLoadingInvoices(true);
@@ -136,21 +147,27 @@ const ViewBooking: React.FC = () => {
       // LƯU Ý: Hiển thị tất cả invoices (bao gồm cả hóa đơn gốc và hóa đơn đã tách)
       const allInvoices = await invoiceService.getAll();
       const filtered = allInvoices.filter(
-        (inv: Invoice) => 
-          inv.booking_order_id === bookingId && 
-          inv.invoice_status !== 'cancelled' && 
-          (inv as any).status !== 'cancelled'
+        (inv: Invoice) =>
+          inv.booking_order_id === bookingId &&
+          inv.invoice_status !== "cancelled" &&
+          (inv as any).status !== "cancelled"
       );
-      
+
       // Fetch chi tiết cho TẤT CẢ invoices (không chỉ invoice đầu tiên)
       if (filtered.length > 0) {
         const invoiceDetails = await Promise.all(
           filtered.map(async (inv) => {
             try {
-              const invoiceDetail = await invoiceService.getById(inv.id, 'bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments,splitFrom,splitInvoices');
+              const invoiceDetail = await invoiceService.getById(
+                inv.id,
+                "bookingOrder,bookingOrder.guest,invoiceItems,invoiceItems.damageImages,payments,splitFrom,splitInvoices"
+              );
 
               // Map invoice_items từ backend thành items
-              if ((invoiceDetail as any).invoice_items && !invoiceDetail.items) {
+              if (
+                (invoiceDetail as any).invoice_items &&
+                !invoiceDetail.items
+              ) {
                 invoiceDetail.items = (invoiceDetail as any).invoice_items;
               }
               if ((invoiceDetail as any).invoiceItems && !invoiceDetail.items) {
@@ -178,7 +195,7 @@ const ViewBooking: React.FC = () => {
       setLoadingInvoices(false);
     }
   };
-  
+
   // Fetch services theo room_type_id
   const fetchServicesByRoomType = async (roomTypeId?: number) => {
     try {
@@ -197,11 +214,11 @@ const ViewBooking: React.FC = () => {
       setLoadingServices(false);
     }
   };
-  
+
   // Fetch services và supplies
   const fetchServicesAndSupplies = async () => {
     await fetchServicesByRoomType();
-    
+
     // Load tất cả supplies ban đầu (sẽ được filter khi chọn phòng)
     try {
       setLoadingSupplies(true);
@@ -234,7 +251,7 @@ const ViewBooking: React.FC = () => {
       setLoadingSupplies(false);
     }
   };
-  
+
   // Tạo invoice mới từ booking
   const handleCreateInvoice = async () => {
     if (!booking?.id) return;
@@ -264,14 +281,13 @@ const ViewBooking: React.FC = () => {
     }
   };
 
-  
   // Thêm dịch vụ trực tiếp vào hóa đơn
   const handleAddService = async (values: any) => {
     if (!booking?.id) {
       message.error("Không tìm thấy thông tin booking");
       return;
     }
-    
+
     if (!values.booking_detail_id) {
       message.error("Vui lòng chọn phòng");
       return;
@@ -300,11 +316,11 @@ const ViewBooking: React.FC = () => {
       service_id: Number(values.service_id),
       quantity: Number(values.quantity),
       description: values.description || undefined,
-      is_paid: values.is_paid === true || values.is_paid === 'true' || false, // Đảm bảo boolean
+      is_paid: values.is_paid === true || values.is_paid === "true" || false, // Đảm bảo boolean
       booking_detail_id: Number(values.booking_detail_id),
     };
 
-    console.log('Adding service to invoice:', {
+    console.log("Adding service to invoice:", {
       invoiceId,
       serviceData,
       is_paid_value: values.is_paid,
@@ -348,46 +364,47 @@ const ViewBooking: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error completing service:", error);
-      message.error(error.response?.data?.message || "Không thể kết thúc dịch vụ!");
+      message.error(
+        error.response?.data?.message || "Không thể kết thúc dịch vụ!"
+      );
     }
   };
-  
+
   // Add damage to invoice
   const handleAddDamage = async (values: any) => {
     if (!invoices || invoices.length === 0) return;
-    
+
     if (!values.booking_detail_id) {
       message.error("Vui lòng chọn phòng");
       return;
     }
-    
+
     // Sử dụng invoice được chọn hoặc invoice đầu tiên
     const invoiceId = selectedInvoiceId || invoices[0].id;
-    
 
     try {
       // Tạo FormData để gửi ảnh
       const formData = new FormData();
-      formData.append('supply_id', String(values.supply_id));
-      formData.append('quantity', String(values.quantity));
-      formData.append('booking_detail_id', String(values.booking_detail_id));
+      formData.append("supply_id", String(values.supply_id));
+      formData.append("quantity", String(values.quantity));
+      formData.append("booking_detail_id", String(values.booking_detail_id));
       if (values.description) {
-        formData.append('description', values.description);
+        formData.append("description", values.description);
       }
       if (values.notes) {
-        formData.append('notes', values.notes);
+        formData.append("notes", values.notes);
       }
       if (values.is_paid) {
-        formData.append('is_paid', '1');
+        formData.append("is_paid", "1");
       }
-      
+
       // Thêm ảnh vào FormData
       damageImageList.forEach((file) => {
         if (file.originFileObj) {
-          formData.append('damage_images[]', file.originFileObj);
+          formData.append("damage_images[]", file.originFileObj);
         }
       });
-      
+
       await invoiceService.addDamageWithImages(invoiceId, formData);
       message.success("Đã thêm thiệt hại vào hóa đơn!");
       setAddDamageModalVisible(false);
@@ -398,10 +415,12 @@ const ViewBooking: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error adding damage:", error);
-      message.error(error.response?.data?.message || "Không thể thêm thiệt hại!");
+      message.error(
+        error.response?.data?.message || "Không thể thêm thiệt hại!"
+      );
     }
   };
-  
+
   // Remove item from invoice
   const handleRemoveItem = async (invoiceId: number, itemId: number) => {
     try {
@@ -415,9 +434,12 @@ const ViewBooking: React.FC = () => {
       message.error(error.response?.data?.message || "Không thể xóa item!");
     }
   };
-  
+
   // Update invoice status
-  const handleUpdateInvoiceStatus = async (invoiceId: number, status: Invoice["invoice_status"]) => {
+  const handleUpdateInvoiceStatus = async (
+    invoiceId: number,
+    status: Invoice["invoice_status"]
+  ) => {
     try {
       await invoiceService.updateStatus(invoiceId, status);
       toast.success("Đã cập nhật trạng thái!");
@@ -426,29 +448,36 @@ const ViewBooking: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error updating status:", error);
-      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái!");
+      toast.error(
+        error.response?.data?.message || "Không thể cập nhật trạng thái!"
+      );
     }
   };
 
   // Tách hóa đơn theo phòng
   const handleSplitInvoiceByRooms = async (invoiceId: number) => {
     Modal.confirm({
-      title: 'Xác nhận tách hóa đơn',
-      content: 'Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.',
-      okText: 'Xác nhận',
-      cancelText: 'Hủy',
+      title: "Xác nhận tách hóa đơn",
+      content:
+        "Bạn có chắc chắn muốn tách hóa đơn này theo phòng? Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy.",
+      okText: "Xác nhận",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
           setLoadingInvoices(true);
           const result = await invoiceService.splitByRooms(invoiceId);
-          message.success(`Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`);
+          message.success(
+            `Đã tách hóa đơn thành ${result.total_split} hóa đơn theo phòng!`
+          );
           // Reload invoices
           if (booking?.id) {
             fetchInvoices(booking.id);
           }
         } catch (error: any) {
           console.error("Error splitting invoice:", error);
-          message.error(error.response?.data?.message || "Không thể tách hóa đơn!");
+          message.error(
+            error.response?.data?.message || "Không thể tách hóa đơn!"
+          );
         } finally {
           setLoadingInvoices(false);
         }
@@ -460,9 +489,9 @@ const ViewBooking: React.FC = () => {
   const canSplitInvoice = (invoice: Invoice) => {
     if (!booking || !booking.details) return false;
     const details = booking.details || (booking as any).bookingDetails || [];
-    return details.length > 1 && invoice.invoice_status !== 'cancelled';
+    return details.length > 1 && invoice.invoice_status !== "cancelled";
   };
-  
+
   // Approve service request (xác nhận dịch vụ)
   const handleApproveService = async (values: any) => {
     if (!selectedServiceToApprove) {
@@ -485,11 +514,12 @@ const ViewBooking: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error approving service:", error);
-      message.error(error.response?.data?.message || "Không thể xác nhận dịch vụ!");
+      message.error(
+        error.response?.data?.message || "Không thể xác nhận dịch vụ!"
+      );
     }
   };
-  
-  
+
   // Helper functions cho status tags
   const getPaymentStatusTag = (status: Invoice["payment_status"]) => {
     const config = {
@@ -514,13 +544,13 @@ const ViewBooking: React.FC = () => {
     const config = statusConfig[status] || statusConfig.draft;
     return <Tag color={config.color}>{config.text}</Tag>;
   };
-  
+
   // Chỉ cho phép chỉnh sửa (thêm dịch vụ / thiệt hại) khi hóa đơn còn ở trạng thái nháp
   // hoặc trước khi checkout hoàn tất. Sau khi duyệt checkout và hóa đơn chuyển sang chờ thanh toán,
   // không được phép thêm gì nữa.
   const canEditInvoice = (invoice: Invoice) => {
     if (!invoice) return false;
-    
+
     // Khi đơn đã checkout (hoặc hoàn thành) và payment_status vẫn là pending (chờ thanh toán),
     // thì KHÔNG cho phép chỉnh sửa hóa đơn nữa.
     const isWaitingPaymentAfterCheckout =
@@ -537,7 +567,7 @@ const ViewBooking: React.FC = () => {
 
     return true;
   };
-  
+
   // Load services và supplies khi mở modal add service/damage
   useEffect(() => {
     if (addServiceModalVisible || addDamageModalVisible) {
@@ -547,7 +577,10 @@ const ViewBooking: React.FC = () => {
 
   // Hàm lấy màu sắc và icon cho trạng thái
   const getStatusConfig = (status: BookingOrder["status"]) => {
-    const configs: Record<string, { color: string; icon: React.ReactNode; text: string }> = {
+    const configs: Record<
+      string,
+      { color: string; icon: React.ReactNode; text: string }
+    > = {
       pending: {
         color: "warning",
         icon: <ClockCircleOutlined />,
@@ -589,11 +622,13 @@ const ViewBooking: React.FC = () => {
         text: "Đã hủy",
       },
     };
-    return configs[status] || {
-      color: "default",
-      icon: <ClockCircleOutlined />,
-      text: status || "Không xác định",
-    };
+    return (
+      configs[status] || {
+        color: "default",
+        icon: <ClockCircleOutlined />,
+        text: status || "Không xác định",
+      }
+    );
   };
 
   // Columns cho bảng chi tiết phòng
@@ -673,16 +708,21 @@ const ViewBooking: React.FC = () => {
         <Space direction="vertical" size={0}>
           <Space>
             <UserOutlined style={{ color: "#1890ff" }} />
-            <span><strong>{record.num_adults}</strong> người lớn</span>
+            <span>
+              <strong>{record.num_adults}</strong> người lớn
+            </span>
           </Space>
           {record.num_children > 0 && (
             <Space style={{ marginLeft: 20 }}>
-              <span><strong>{record.num_children}</strong> trẻ em</span>
+              <span>
+                <strong>{record.num_children}</strong> trẻ em
+              </span>
             </Space>
           )}
           {record.room?.max_adults && (
             <span style={{ fontSize: 11, color: "#8c8c8c" }}>
-              Tối đa: {record.room.max_adults} người lớn, {record.room.max_children || 0} trẻ em
+              Tối đa: {record.room.max_adults} người lớn,{" "}
+              {record.room.max_children || 0} trẻ em
             </span>
           )}
         </Space>
@@ -771,27 +811,31 @@ const ViewBooking: React.FC = () => {
         }
         extra={
           <Space>
-            {(booking.status === 'confirmed' || booking.status === 'pending' || booking.status === 'partially_checked_in') && (
+            {(booking.status === "confirmed" ||
+              booking.status === "pending" ||
+              booking.status === "partially_checked_in") && (
               <Button
                 type="primary"
                 icon={<LoginOutlined />}
                 onClick={() => setCheckInModalVisible(true)}
                 style={{
-                  backgroundColor: '#52c41a',
-                  borderColor: '#52c41a',
+                  backgroundColor: "#52c41a",
+                  borderColor: "#52c41a",
                 }}
               >
                 Check-in trực tiếp
               </Button>
             )}
-            {(booking.status === 'checked_in' || booking.status === 'partially_checked_in' || booking.status === 'partially_checked_out') && (
+            {(booking.status === "checked_in" ||
+              booking.status === "partially_checked_in" ||
+              booking.status === "partially_checked_out") && (
               <Button
                 type="primary"
                 icon={<FileTextOutlined />}
                 onClick={() => setCheckoutModalVisible(true)}
                 style={{
-                  backgroundColor: '#ff4d4f',
-                  borderColor: '#ff4d4f',
+                  backgroundColor: "#ff4d4f",
+                  borderColor: "#ff4d4f",
                 }}
               >
                 Checkout & Tạo hóa đơn
@@ -816,405 +860,468 @@ const ViewBooking: React.FC = () => {
               children: (
                 <>
                   <Descriptions bordered column={2}>
-          {/* Row 1: Mã đơn và Ngày tạo */}
-          <Descriptions.Item label="Mã đơn" span={1}>
-            <strong style={{ fontSize: 15 }}>{booking.code}</strong>
-          </Descriptions.Item>
-          <Descriptions.Item label="Ngày tạo" span={1}>
-            {dayjs(booking.created_at).format("DD/MM/YYYY HH:mm")}
-          </Descriptions.Item>
+                    {/* Row 1: Mã đơn và Ngày tạo */}
+                    <Descriptions.Item label="Mã đơn" span={1}>
+                      <strong style={{ fontSize: 15 }}>{booking.code}</strong>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Ngày tạo" span={1}>
+                      {dayjs(booking.created_at).format("DD/MM/YYYY HH:mm")}
+                    </Descriptions.Item>
 
-          {/* Row 2: Tên khách hàng và SĐT */}
-          <Descriptions.Item label="Tên khách hàng" span={1}>
-            <Space>
-              <UserOutlined style={{ color: "#1890ff" }} />
-              <strong>{booking.customer_name || "N/A"}</strong>
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Số điện thoại" span={1}>
-            <Space>
-              <PhoneOutlined style={{ color: "#52c41a" }} />
-              {booking.customer_phone || "N/A"}
-            </Space>
-          </Descriptions.Item>
+                    {/* Row 2: Tên khách hàng và SĐT */}
+                    <Descriptions.Item label="Tên khách hàng" span={1}>
+                      <Space>
+                        <UserOutlined style={{ color: "#1890ff" }} />
+                        <strong>{booking.customer_name || "N/A"}</strong>
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số điện thoại" span={1}>
+                      <Space>
+                        <PhoneOutlined style={{ color: "#52c41a" }} />
+                        {booking.customer_phone || "N/A"}
+                      </Space>
+                    </Descriptions.Item>
 
-          {/* Row 3: Email (full width) */}
-          <Descriptions.Item label="Email" span={2}>
-            <Space>
-              <MailOutlined style={{ color: "#fa8c16" }} />
-              {booking.customer_email || "N/A"}
-            </Space>
-          </Descriptions.Item>
+                    {/* Row 3: Email (full width) */}
+                    <Descriptions.Item label="Email" span={2}>
+                      <Space>
+                        <MailOutlined style={{ color: "#fa8c16" }} />
+                        {booking.customer_email || "N/A"}
+                      </Space>
+                    </Descriptions.Item>
 
-          {/* Row 4: Check-in và Check-out */}
-          <Descriptions.Item label="Check-in" span={1}>
-            <Space>
-              <CalendarOutlined style={{ color: "#1890ff" }} />
-              <strong>
-                {booking.checkin_date
-                  ? dayjs(booking.checkin_date).format("DD/MM/YYYY")
-                  : "N/A"}
-              </strong>
-            </Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Check-out" span={1}>
-            <Space>
-              <CalendarOutlined style={{ color: "#ff4d4f" }} />
-              <strong>
-                {booking.checkout_date
-                  ? dayjs(booking.checkout_date).format("DD/MM/YYYY")
-                  : "N/A"}
-              </strong>
-            </Space>
-          </Descriptions.Item>
+                    {/* Row 4: Check-in và Check-out */}
+                    <Descriptions.Item label="Check-in" span={1}>
+                      <Space>
+                        <CalendarOutlined style={{ color: "#1890ff" }} />
+                        <strong>
+                          {booking.checkin_date
+                            ? dayjs(booking.checkin_date).format("DD/MM/YYYY")
+                            : "N/A"}
+                        </strong>
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Check-out" span={1}>
+                      <Space>
+                        <CalendarOutlined style={{ color: "#ff4d4f" }} />
+                        <strong>
+                          {booking.checkout_date
+                            ? dayjs(booking.checkout_date).format("DD/MM/YYYY")
+                            : "N/A"}
+                        </strong>
+                      </Space>
+                    </Descriptions.Item>
 
-          {/* Row 5: Tổng tiền (full width, nổi bật) */}
-          <Descriptions.Item label="Tổng tiền" span={1}>
-            <Space>
-              <DollarOutlined style={{ color: "#52c41a", fontSize: 20 }} />
-              <span
-                style={{ fontSize: 20, fontWeight: "bold", color: "#52c41a" }}
-              >
-                {booking.total_amount.toLocaleString("vi-VN")} đ
-              </span>
-            </Space>
-          </Descriptions.Item>
+                    {/* Row 5: Tổng tiền (full width, nổi bật) */}
+                    <Descriptions.Item label="Tổng tiền" span={1}>
+                      <Space>
+                        <DollarOutlined
+                          style={{ color: "#52c41a", fontSize: 20 }}
+                        />
+                        <span
+                          style={{
+                            fontSize: 20,
+                            fontWeight: "bold",
+                            color: "#52c41a",
+                          }}
+                        >
+                          {booking.total_amount.toLocaleString("vi-VN")} đ
+                        </span>
+                      </Space>
+                    </Descriptions.Item>
 
-          {/* Row 6: Số phòng đặt */}
-          <Descriptions.Item label="Số phòng đặt" span={1}>
-            <Space>
-              <HomeOutlined style={{ color: "#1890ff" }} />
-              <strong>{booking.details_count} phòng</strong>
-            </Space>
-          </Descriptions.Item>
-        </Descriptions>
-        
-        {/* Bảng chi tiết phòng */}
-        {(() => {
-        const rawDetails = booking.details || (booking as any).bookingDetails;
-        const details = Array.isArray(rawDetails) ? rawDetails : [];
-        console.log("Details to render:", details);
-        
-        if (details.length === 0) {
-          return (
-            <Card>
-              <div style={{ textAlign: "center", padding: "40px" }}>
-                <HomeOutlined style={{ fontSize: 48, color: "#d9d9d9", marginBottom: 16 }} />
-                <p style={{ color: "#8c8c8c" }}>Chưa có thông tin phòng đặt</p>
-              </div>
-            </Card>
-          );
-        }
-        
-        return (
-          <>
-            <Divider orientation="left">
-              <Space>
-                <HomeOutlined style={{ color: "#1890ff" }} />
-                <span style={{ fontSize: 16, fontWeight: 500 }}>
-                  Chi tiết phòng đặt ({details.length} phòng)
-                </span>
-              </Space>
-            </Divider>
-            <Card>
-              <Table
-                columns={detailColumns}
-                dataSource={details}
-                rowKey="id"
-                pagination={false}
-                bordered
-                size="middle"
-              />
-            </Card>
-          </>
-        );
-      })()}
+                    {/* Row 6: Số phòng đặt */}
+                    <Descriptions.Item label="Số phòng đặt" span={1}>
+                      <Space>
+                        <HomeOutlined style={{ color: "#1890ff" }} />
+                        <strong>{booking.details_count} phòng</strong>
+                      </Space>
+                    </Descriptions.Item>
+                  </Descriptions>
 
-          {/* Hiển thị thông tin khách đã check-in nếu có */}
-          {(() => {
-            const rawDetails = booking.details || (booking as any).bookingDetails;
-            const details = Array.isArray(rawDetails) ? rawDetails : [];
-            return details.some((detail: BookingDetail) => 
-              detail.guests && detail.guests.length > 0
-            );
-          })() && (
-            <>
-              <Divider orientation="left">
-                <Space>
-                  <UserOutlined style={{ color: "#1890ff" }} />
-                  <span style={{ fontSize: 16, fontWeight: 500 }}>
-                    Danh sách khách đã check-in
-                  </span>
-                </Space>
-              </Divider>
-              <Card>
-                {((booking.details || (booking as any).bookingDetails) || []).map((detail: BookingDetail) => {
-                  if (!detail.guests || detail.guests.length === 0) return null;
-                  
-                  return (
-                    <Card
-                      key={detail.id}
-                      type="inner"
-                      title={
+                  {/* Bảng chi tiết phòng */}
+                  {(() => {
+                    const rawDetails =
+                      booking.details || (booking as any).bookingDetails;
+                    const details = Array.isArray(rawDetails) ? rawDetails : [];
+                    console.log("Details to render:", details);
+
+                    if (details.length === 0) {
+                      return (
+                        <Card>
+                          <div style={{ textAlign: "center", padding: "40px" }}>
+                            <HomeOutlined
+                              style={{
+                                fontSize: 48,
+                                color: "#d9d9d9",
+                                marginBottom: 16,
+                              }}
+                            />
+                            <p style={{ color: "#8c8c8c" }}>
+                              Chưa có thông tin phòng đặt
+                            </p>
+                          </div>
+                        </Card>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <Divider orientation="left">
+                          <Space>
+                            <HomeOutlined style={{ color: "#1890ff" }} />
+                            <span style={{ fontSize: 16, fontWeight: 500 }}>
+                              Chi tiết phòng đặt ({details.length} phòng)
+                            </span>
+                          </Space>
+                        </Divider>
+                        <Card>
+                          <Table
+                            columns={detailColumns}
+                            dataSource={details}
+                            rowKey="id"
+                            pagination={false}
+                            bordered
+                            size="middle"
+                          />
+                        </Card>
+                      </>
+                    );
+                  })()}
+
+                  {/* Hiển thị thông tin khách đã check-in nếu có */}
+                  {(() => {
+                    const rawDetails =
+                      booking.details || (booking as any).bookingDetails;
+                    const details = Array.isArray(rawDetails) ? rawDetails : [];
+                    return details.some(
+                      (detail: BookingDetail) =>
+                        detail.guests && detail.guests.length > 0
+                    );
+                  })() && (
+                    <>
+                      <Divider orientation="left">
                         <Space>
-                          <HomeOutlined />
-                          <span>{detail.room?.name || detail.room_name || `Phòng #${detail.id}`}</span>
+                          <UserOutlined style={{ color: "#1890ff" }} />
+                          <span style={{ fontSize: 16, fontWeight: 500 }}>
+                            Danh sách khách đã check-in
+                          </span>
                         </Space>
+                      </Divider>
+                      <Card>
+                        {(
+                          booking.details ||
+                          (booking as any).bookingDetails ||
+                          []
+                        ).map((detail: BookingDetail) => {
+                          if (!detail.guests || detail.guests.length === 0)
+                            return null;
+
+                          return (
+                            <Card
+                              key={detail.id}
+                              type="inner"
+                              title={
+                                <Space>
+                                  <HomeOutlined />
+                                  <span>
+                                    {detail.room?.name ||
+                                      detail.room_name ||
+                                      `Phòng #${detail.id}`}
+                                  </span>
+                                </Space>
+                              }
+                              style={{ marginBottom: 16 }}
+                            >
+                              <Table
+                                columns={[
+                                  {
+                                    title: "Họ tên",
+                                    dataIndex: "full_name",
+                                    key: "full_name",
+                                  },
+                                  {
+                                    title: "Ngày sinh",
+                                    dataIndex: "date_of_birth",
+                                    key: "date_of_birth",
+                                    render: (date: string) =>
+                                      date
+                                        ? dayjs(date).format("DD/MM/YYYY")
+                                        : "N/A",
+                                  },
+                                  {
+                                    title: "Loại giấy tờ",
+                                    dataIndex: "identity_type",
+                                    key: "identity_type",
+                                    render: (type: string) => {
+                                      const typeMap: any = {
+                                        cccd: "CCCD",
+                                        passport: "Hộ chiếu",
+                                      };
+                                      return typeMap[type] || type || "N/A";
+                                    },
+                                  },
+                                  {
+                                    title: "Số giấy tờ",
+                                    dataIndex: "identity_number",
+                                    key: "identity_number",
+                                  },
+                                  {
+                                    title: "Thời gian check-in",
+                                    dataIndex: "check_in_time",
+                                    key: "check_in_time",
+                                    render: (time: string) =>
+                                      time
+                                        ? dayjs(time).format("DD/MM/YYYY HH:mm")
+                                        : "N/A",
+                                  },
+                                ]}
+                                dataSource={
+                                  Array.isArray(detail.guests)
+                                    ? detail.guests
+                                    : []
+                                }
+                                rowKey="id"
+                                pagination={false}
+                                size="small"
+                              />
+                            </Card>
+                          );
+                        })}
+                      </Card>
+                    </>
+                  )}
+
+                  {/* Hiển thị danh sách dịch vụ chờ xác nhận */}
+                  {(() => {
+                    const rawDetails =
+                      booking.details || (booking as any).bookingDetails;
+                    const details = Array.isArray(rawDetails) ? rawDetails : [];
+                    const pendingServices: any[] = [];
+
+                    details.forEach((detail: any) => {
+                      // Backend trả về booking_services (snake_case)
+                      const services =
+                        detail.booking_services || detail.bookingServices;
+                      if (services && Array.isArray(services)) {
+                        services.forEach((bs: any) => {
+                          if (bs.status === "pending") {
+                            pendingServices.push({
+                              ...bs,
+                              roomName:
+                                detail.room?.name ||
+                                detail.room_name ||
+                                `Phòng #${detail.id}`,
+                            });
+                          }
+                        });
                       }
-                      style={{ marginBottom: 16 }}
-                    >
-                      <Table
-                        columns={[
-                          {
-                            title: "Họ tên",
-                            dataIndex: "full_name",
-                            key: "full_name",
-                          },
-                          {
-                            title: "Ngày sinh",
-                            dataIndex: "date_of_birth",
-                            key: "date_of_birth",
-                            render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY") : "N/A",
-                          },
-                          {
-                            title: "Loại giấy tờ",
-                            dataIndex: "identity_type",
-                            key: "identity_type",
-                            render: (type: string) => {
-                              const typeMap: any = {
-                                cccd: "CCCD",
-                                passport: "Hộ chiếu",
-                              };
-                              return typeMap[type] || type || "N/A";
-                            },
-                          },
-                          {
-                            title: "Số giấy tờ",
-                            dataIndex: "identity_number",
-                            key: "identity_number",
-                          },
-                          {
-                            title: "Thời gian check-in",
-                            dataIndex: "check_in_time",
-                            key: "check_in_time",
-                            render: (time: string) => time ? dayjs(time).format("DD/MM/YYYY HH:mm") : "N/A",
-                          },
-                        ]}
-                        dataSource={Array.isArray(detail.guests) ? detail.guests : []}
-                        rowKey="id"
-                        pagination={false}
-                        size="small"
-                      />
-                    </Card>
-                  );
-                })}
-              </Card>
-            </>
-          )}
-
-          {/* Hiển thị danh sách dịch vụ chờ xác nhận */}
-          {(() => {
-            const rawDetails = booking.details || (booking as any).bookingDetails;
-            const details = Array.isArray(rawDetails) ? rawDetails : [];
-            const pendingServices: any[] = [];
-            
-            details.forEach((detail: any) => {
-              // Backend trả về booking_services (snake_case)
-              const services = detail.booking_services || detail.bookingServices;
-              if (services && Array.isArray(services)) {
-                services.forEach((bs: any) => {
-                  if (bs.status === 'pending') {
-                    pendingServices.push({
-                      ...bs,
-                      roomName: detail.room?.name || detail.room_name || `Phòng #${detail.id}`,
                     });
-                  }
-                });
-              }
-            });
 
-            if (pendingServices.length === 0) return null;
+                    if (pendingServices.length === 0) return null;
 
-            return (
-              <>
-                <Divider orientation="left">
-                  <Space>
-                    <ClockCircleOutlined style={{ color: "#faad14" }} />
-                    <span style={{ fontSize: 16, fontWeight: 500 }}>
-                      Dịch vụ chờ xác nhận ({pendingServices.length})
-                    </span>
-                  </Space>
-                </Divider>
-                <Card>
-                  <Table
-                    columns={[
-                      {
-                        title: "Phòng",
-                        dataIndex: "roomName",
-                        key: "roomName",
-                      },
-                      {
-                        title: "Dịch vụ",
-                        key: "service",
-                        render: (_: any, record: any) => (
+                    return (
+                      <>
+                        <Divider orientation="left">
                           <Space>
-                            <span>{record.service?.name || "N/A"}</span>
-                            <Tag color="orange">{record.service?.price?.toLocaleString("vi-VN")}₫/{record.service?.unit}</Tag>
+                            <ClockCircleOutlined style={{ color: "#faad14" }} />
+                            <span style={{ fontSize: 16, fontWeight: 500 }}>
+                              Dịch vụ chờ xác nhận ({pendingServices.length})
+                            </span>
                           </Space>
-                        ),
-                      },
-                      {
-                        title: "Trạng thái",
-                        dataIndex: "status",
-                        key: "status",
-                        render: (status: string) => (
-                          <Tag color="orange">Chờ xác nhận</Tag>
-                        ),
-                      },
-                      {
-                        title: "Ngày yêu cầu",
-                        dataIndex: "created_at",
-                        key: "created_at",
-                        render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "-",
-                      },
-                      {
-                        title: "Ghi chú",
-                        dataIndex: "notes",
-                        key: "notes",
-                        render: (notes: string) => notes || "-",
-                      },
-                      {
-                        title: "Hành động",
-                        key: "action",
-                        render: (_: any, record: any) => (
-                          <Button
-                            type="primary"
-                            size="small"
-                            onClick={() => {
-                              setSelectedServiceToApprove(record);
-                              approveServiceForm.setFieldsValue({
-                                quantity: undefined,
-                                admin_notes: undefined,
-                              });
-                              setApproveServiceModalVisible(true);
-                            }}
-                          >
-                            Xác nhận dịch vụ
-                          </Button>
-                        ),
-                      },
-                    ]}
-                    dataSource={pendingServices}
-                    rowKey="id"
-                    pagination={false}
-                    size="middle"
-                  />
-                </Card>
-              </>
-            );
-          })()}
+                        </Divider>
+                        <Card>
+                          <Table
+                            columns={[
+                              {
+                                title: "Phòng",
+                                dataIndex: "roomName",
+                                key: "roomName",
+                              },
+                              {
+                                title: "Dịch vụ",
+                                key: "service",
+                                render: (_: any, record: any) => (
+                                  <Space>
+                                    <span>{record.service?.name || "N/A"}</span>
+                                    <Tag color="orange">
+                                      {record.service?.price?.toLocaleString(
+                                        "vi-VN"
+                                      )}
+                                      ₫/{record.service?.unit}
+                                    </Tag>
+                                  </Space>
+                                ),
+                              },
+                              {
+                                title: "Trạng thái",
+                                dataIndex: "status",
+                                key: "status",
+                                render: (status: string) => (
+                                  <Tag color="orange">Chờ xác nhận</Tag>
+                                ),
+                              },
+                              {
+                                title: "Ngày yêu cầu",
+                                dataIndex: "created_at",
+                                key: "created_at",
+                                render: (date: string) =>
+                                  date
+                                    ? dayjs(date).format("DD/MM/YYYY HH:mm")
+                                    : "-",
+                              },
+                              {
+                                title: "Ghi chú",
+                                dataIndex: "notes",
+                                key: "notes",
+                                render: (notes: string) => notes || "-",
+                              },
+                              {
+                                title: "Hành động",
+                                key: "action",
+                                render: (_: any, record: any) => (
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    onClick={() => {
+                                      setSelectedServiceToApprove(record);
+                                      approveServiceForm.setFieldsValue({
+                                        quantity: undefined,
+                                        admin_notes: undefined,
+                                      });
+                                      setApproveServiceModalVisible(true);
+                                    }}
+                                  >
+                                    Xác nhận dịch vụ
+                                  </Button>
+                                ),
+                              },
+                            ]}
+                            dataSource={pendingServices}
+                            rowKey="id"
+                            pagination={false}
+                            size="middle"
+                          />
+                        </Card>
+                      </>
+                    );
+                  })()}
 
-          {/* Hiển thị danh sách dịch vụ đang sử dụng */}
-          {(() => {
-            const rawDetails = booking.details || (booking as any).bookingDetails;
-            const details = Array.isArray(rawDetails) ? rawDetails : [];
-            const allServices: any[] = [];
-            
-            details.forEach((detail: any) => {
-              // Backend trả về booking_services (snake_case)
-              const services = detail.booking_services || detail.bookingServices;
-              if (services && Array.isArray(services)) {
-                services.forEach((bs: any) => {
-                  if (bs.status === 'in_use') {
-                    allServices.push({
-                      ...bs,
-                      roomName: detail.room?.name || detail.room_name || `Phòng #${detail.id}`,
+                  {/* Hiển thị danh sách dịch vụ đang sử dụng */}
+                  {(() => {
+                    const rawDetails =
+                      booking.details || (booking as any).bookingDetails;
+                    const details = Array.isArray(rawDetails) ? rawDetails : [];
+                    const allServices: any[] = [];
+
+                    details.forEach((detail: any) => {
+                      // Backend trả về booking_services (snake_case)
+                      const services =
+                        detail.booking_services || detail.bookingServices;
+                      if (services && Array.isArray(services)) {
+                        services.forEach((bs: any) => {
+                          if (bs.status === "in_use") {
+                            allServices.push({
+                              ...bs,
+                              roomName:
+                                detail.room?.name ||
+                                detail.room_name ||
+                                `Phòng #${detail.id}`,
+                            });
+                          }
+                        });
+                      }
                     });
-                  }
-                });
-              }
-            });
 
-            if (allServices.length === 0) return null;
+                    if (allServices.length === 0) return null;
 
-            return (
-              <>
-                <Divider orientation="left">
-                  <Space>
-                    <ShoppingOutlined style={{ color: "#1890ff" }} />
-                    <span style={{ fontSize: 16, fontWeight: 500 }}>
-                      Dịch vụ đang sử dụng ({allServices.length})
-                    </span>
-                  </Space>
-                </Divider>
-                <Card>
-                  <Table
-                    columns={[
-                      {
-                        title: "Phòng",
-                        dataIndex: "roomName",
-                        key: "roomName",
-                      },
-                      {
-                        title: "Dịch vụ",
-                        key: "service",
-                        render: (_: any, record: any) => (
+                    return (
+                      <>
+                        <Divider orientation="left">
                           <Space>
-                            <span>{record.service?.name || "N/A"}</span>
-                            <Tag color="blue">{record.service?.price?.toLocaleString("vi-VN")}₫/{record.service?.unit}</Tag>
+                            <ShoppingOutlined style={{ color: "#1890ff" }} />
+                            <span style={{ fontSize: 16, fontWeight: 500 }}>
+                              Dịch vụ đang sử dụng ({allServices.length})
+                            </span>
                           </Space>
-                        ),
-                      },
-                      {
-                        title: "Trạng thái",
-                        dataIndex: "status",
-                        key: "status",
-                        render: (status: string) => (
-                          <Tag color="processing">Đang sử dụng</Tag>
-                        ),
-                      },
-                      {
-                        title: "Bắt đầu",
-                        dataIndex: "started_at",
-                        key: "started_at",
-                        render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "-",
-                      },
-                      {
-                        title: "Ghi chú",
-                        dataIndex: "notes",
-                        key: "notes",
-                        render: (notes: string) => notes || "-",
-                      },
-                      {
-                        title: "Hành động",
-                        key: "action",
-                        render: (_: any, record: any) => (
-                          <Button
-                            type="primary"
-                            size="small"
-                            onClick={() => {
-                              setSelectedServiceToComplete(record);
-                              completeServiceForm.setFieldsValue({
-                                actual_quantity: record.quantity || 1,
-                                actual_price: record.service?.price || 0,
-                              });
-                              setCompleteServiceModalVisible(true);
-                            }}
-                          >
-                            Kết thúc dịch vụ
-                          </Button>
-                        ),
-                      },
-                    ]}
-                    dataSource={allServices}
-                    rowKey="id"
-                    pagination={false}
-                    size="middle"
-                  />
-                </Card>
-              </>
-            );
-          })()}
+                        </Divider>
+                        <Card>
+                          <Table
+                            columns={[
+                              {
+                                title: "Phòng",
+                                dataIndex: "roomName",
+                                key: "roomName",
+                              },
+                              {
+                                title: "Dịch vụ",
+                                key: "service",
+                                render: (_: any, record: any) => (
+                                  <Space>
+                                    <span>{record.service?.name || "N/A"}</span>
+                                    <Tag color="blue">
+                                      {record.service?.price?.toLocaleString(
+                                        "vi-VN"
+                                      )}
+                                      ₫/{record.service?.unit}
+                                    </Tag>
+                                  </Space>
+                                ),
+                              },
+                              {
+                                title: "Trạng thái",
+                                dataIndex: "status",
+                                key: "status",
+                                render: (status: string) => (
+                                  <Tag color="processing">Đang sử dụng</Tag>
+                                ),
+                              },
+                              {
+                                title: "Bắt đầu",
+                                dataIndex: "started_at",
+                                key: "started_at",
+                                render: (date: string) =>
+                                  date
+                                    ? dayjs(date).format("DD/MM/YYYY HH:mm")
+                                    : "-",
+                              },
+                              {
+                                title: "Ghi chú",
+                                dataIndex: "notes",
+                                key: "notes",
+                                render: (notes: string) => notes || "-",
+                              },
+                              {
+                                title: "Hành động",
+                                key: "action",
+                                render: (_: any, record: any) => (
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    onClick={() => {
+                                      setSelectedServiceToComplete(record);
+                                      completeServiceForm.setFieldsValue({
+                                        actual_quantity: record.quantity || 1,
+                                        actual_price:
+                                          record.service?.price || 0,
+                                      });
+                                      setCompleteServiceModalVisible(true);
+                                    }}
+                                  >
+                                    Kết thúc dịch vụ
+                                  </Button>
+                                ),
+                              },
+                            ]}
+                            dataSource={allServices}
+                            rowKey="id"
+                            pagination={false}
+                            size="middle"
+                          />
+                        </Card>
+                      </>
+                    );
+                  })()}
                 </>
               ),
             },
@@ -1261,473 +1368,858 @@ const ViewBooking: React.FC = () => {
                           (invoice.paid_amount || 0);
 
                         // Lấy thông tin phòng từ invoice items hoặc booking details
-                        const rawDetails = booking?.details || (booking as any)?.bookingDetails;
-                        const details = Array.isArray(rawDetails) ? rawDetails : [];
-                        
+                        const rawDetails =
+                          booking?.details || (booking as any)?.bookingDetails;
+                        const details = Array.isArray(rawDetails)
+                          ? rawDetails
+                          : [];
+
                         // Tìm phòng liên quan đến invoice này (từ invoice items có booking_detail_id)
                         let relatedRoom: any = null;
                         if (invoice.items && invoice.items.length > 0) {
-                          const firstItem = invoice.items.find(item => item.booking_detail_id);
+                          const firstItem = invoice.items.find(
+                            (item) => item.booking_detail_id
+                          );
                           if (firstItem?.booking_detail_id) {
-                            relatedRoom = details.find((d: any) => d.id === firstItem.booking_detail_id);
+                            relatedRoom = details.find(
+                              (d: any) => d.id === firstItem.booking_detail_id
+                            );
                           }
                         }
 
-                        const roomName = relatedRoom?.room?.name || relatedRoom?.room_name || 'Tất cả phòng';
+                        const roomName =
+                          relatedRoom?.room?.name ||
+                          relatedRoom?.room_name ||
+                          "Tất cả phòng";
 
                         // Lấy danh sách dịch vụ chờ xác nhận cho booking này
                         const itemColumns: any[] = [
-                        {
-                          title: "Mô tả",
-                          dataIndex: "description",
-                          key: "description",
-                        },
-                        {
-                          title: "Loại",
-                          dataIndex: "item_type",
-                          key: "item_type",
-                          render: (type: string) => {
-                            const typeMap: Record<
-                              string,
-                              { color: string; text: string }
-                            > = {
-                              room_charge: { color: "blue", text: "Phí phòng" },
-                              service_charge: {
-                                color: "cyan",
-                                text: "Dịch vụ",
-                              },
-                              damage_fee: {
-                                color: "red",
-                                text: "Thiệt hại",
-                              },
-                              penalty: { color: "red", text: "Phạt" },
-                              deposit: { color: "orange", text: "Đặt cọc" },
-                              voucher_discount: { color: "green", text: "Giảm giá" },
-                              other: { color: "default", text: "Khác" },
-                            };
-                            const conf = typeMap[type] || typeMap.other;
-                            return <Tag color={conf.color}>{conf.text}</Tag>;
+                          {
+                            title: "Mô tả",
+                            dataIndex: "description",
+                            key: "description",
                           },
-                        },
-                        {
-                          title: "SL",
-                          dataIndex: "quantity",
-                          key: "quantity",
-                          align: "center" as const,
-                        },
-                        {
-                          title: "Đơn giá",
-                          dataIndex: "unit_price",
-                          key: "unit_price",
-                          align: "right" as const,
-                          render: (price: number, record: InvoiceItem) => {
-                            const isPaid = record.description?.includes("[Đã thanh toán]");
-                            return (
-                              <Typography.Text
-                                style={{
-                                  textDecoration: isPaid ? "line-through" : "none",
-                                  color: isPaid ? "#8c8c8c" : "inherit",
-                                  opacity: isPaid ? 0.6 : 1,
-                                }}
-                              >
-                                {(price || 0).toLocaleString("vi-VN")}₫
-                              </Typography.Text>
-                            );
+                          {
+                            title: "Loại",
+                            dataIndex: "item_type",
+                            key: "item_type",
+                            render: (type: string) => {
+                              const typeMap: Record<
+                                string,
+                                { color: string; text: string }
+                              > = {
+                                room_charge: {
+                                  color: "blue",
+                                  text: "Phí phòng",
+                                },
+                                service_charge: {
+                                  color: "cyan",
+                                  text: "Dịch vụ",
+                                },
+                                damage_fee: {
+                                  color: "red",
+                                  text: "Thiệt hại",
+                                },
+                                penalty: { color: "red", text: "Phạt" },
+                                deposit: { color: "orange", text: "Đặt cọc" },
+                                voucher_discount: {
+                                  color: "green",
+                                  text: "Giảm giá",
+                                },
+                                other: { color: "default", text: "Khác" },
+                              };
+                              const conf = typeMap[type] || typeMap.other;
+                              return <Tag color={conf.color}>{conf.text}</Tag>;
+                            },
                           },
-                        },
-                        {
-                          title: "Thuế",
-                          dataIndex: "tax_amount",
-                          key: "tax_amount",
-                          align: "right" as const,
-                          render: (tax: number) => (tax ? `${tax.toLocaleString("vi-VN")}₫` : "-"),
-                        },
-                        {
-                          title: "Tổng",
-                          dataIndex: "total",
-                          key: "total",
-                          align: "right" as const,
-                          render: (total: number, record: InvoiceItem) => {
-                            const amount = total || record.total_line || 0;
-                            const isNegative = amount < 0;
-                            const isPaid = record.description?.includes("[Đã thanh toán]");
-                            return (
-                              <Typography.Text
-                                strong
-                                style={{
-                                  color: isPaid ? "#8c8c8c" : isNegative ? "#ff4d4f" : "#52c41a",
-                                  textDecoration: isPaid ? "line-through" : "none",
-                                  opacity: isPaid ? 0.6 : 1,
-                                }}
-                              >
-                                {isNegative ? "-" : ""}
-                                {Math.abs(amount).toLocaleString("vi-VN")}₫
-                                {isPaid && (
-                                  <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
-                                    (Đã thanh toán)
-                                  </span>
-                                )}
-                              </Typography.Text>
-                            );
+                          {
+                            title: "SL",
+                            dataIndex: "quantity",
+                            key: "quantity",
+                            align: "center" as const,
                           },
-                        },
-                        {
-                          title: "Thao tác",
-                          key: "action",
-                          align: "center" as const,
-                          render: (_: any, record: InvoiceItem) => {
-                            // Chỉ cho phép xóa nếu invoice chưa thanh toán và không phải room_charge
-                            if (invoice.payment_status === "paid" || record.item_type === "room_charge") {
-                              return null;
-                            }
-                            return (
-                              <Popconfirm
-                                title="Xác nhận xóa"
-                                description="Bạn có chắc chắn muốn xóa item này?"
-                                onConfirm={() => handleRemoveItem(invoice.id, record.id)}
-                                okText="Xóa"
-                                cancelText="Hủy"
-                                okType="danger"
-                              >
-                                <Button
-                                  type="link"
-                                  danger
-                                  icon={<DeleteOutlined />}
-                                  size="small"
+                          {
+                            title: "Đơn giá",
+                            dataIndex: "unit_price",
+                            key: "unit_price",
+                            align: "right" as const,
+                            render: (price: number, record: InvoiceItem) => {
+                              const isPaid =
+                                record.description?.includes("[Đã thanh toán]");
+                              return (
+                                <Typography.Text
+                                  style={{
+                                    textDecoration: isPaid
+                                      ? "line-through"
+                                      : "none",
+                                    color: isPaid ? "#8c8c8c" : "inherit",
+                                    opacity: isPaid ? 0.6 : 1,
+                                  }}
                                 >
-                                  Xóa
-                                </Button>
-                              </Popconfirm>
-                            );
+                                  {(price || 0).toLocaleString("vi-VN")}₫
+                                </Typography.Text>
+                              );
+                            },
                           },
-                        },
-                      ];
-
-                      return (
-                        <div style={{ padding: 0 }}>
-                          {/* Header Actions */}
-                          <div style={{ marginBottom: 24 }}>
-                            <Space>
-                              <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
-                                In hóa đơn
-                              </Button>
-                              <Button icon={<FilePdfOutlined />}>Xuất PDF</Button>
-                              
-                              {/* Button tách hóa đơn theo phòng */}
-                              {canSplitInvoice(invoice) && (
+                          {
+                            title: "Thuế",
+                            dataIndex: "tax_amount",
+                            key: "tax_amount",
+                            align: "right" as const,
+                            render: (tax: number) =>
+                              tax ? `${tax.toLocaleString("vi-VN")}₫` : "-",
+                          },
+                          {
+                            title: "Tổng",
+                            dataIndex: "total",
+                            key: "total",
+                            align: "right" as const,
+                            render: (total: number, record: InvoiceItem) => {
+                              const amount = total || record.total_line || 0;
+                              const isNegative = amount < 0;
+                              const isPaid =
+                                record.description?.includes("[Đã thanh toán]");
+                              return (
+                                <Typography.Text
+                                  strong
+                                  style={{
+                                    color: isPaid
+                                      ? "#8c8c8c"
+                                      : isNegative
+                                      ? "#ff4d4f"
+                                      : "#52c41a",
+                                    textDecoration: isPaid
+                                      ? "line-through"
+                                      : "none",
+                                    opacity: isPaid ? 0.6 : 1,
+                                  }}
+                                >
+                                  {isNegative ? "-" : ""}
+                                  {Math.abs(amount).toLocaleString("vi-VN")}₫
+                                  {isPaid && (
+                                    <span
+                                      style={{
+                                        marginLeft: 8,
+                                        fontSize: 12,
+                                        color: "#52c41a",
+                                      }}
+                                    >
+                                      (Đã thanh toán)
+                                    </span>
+                                  )}
+                                </Typography.Text>
+                              );
+                            },
+                          },
+                          {
+                            title: "Thao tác",
+                            key: "action",
+                            align: "center" as const,
+                            render: (_: any, record: InvoiceItem) => {
+                              // Chỉ cho phép xóa nếu invoice chưa thanh toán và không phải room_charge
+                              if (
+                                invoice.payment_status === "paid" ||
+                                record.item_type === "room_charge"
+                              ) {
+                                return null;
+                              }
+                              return (
                                 <Popconfirm
-                                  title="Tách hóa đơn theo phòng"
-                                  description="Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy. Bạn có chắc chắn?"
-                                  onConfirm={() => handleSplitInvoiceByRooms(invoice.id)}
-                                  okText="Xác nhận"
+                                  title="Xác nhận xóa"
+                                  description="Bạn có chắc chắn muốn xóa item này?"
+                                  onConfirm={() =>
+                                    handleRemoveItem(invoice.id, record.id)
+                                  }
+                                  okText="Xóa"
                                   cancelText="Hủy"
+                                  okType="danger"
                                 >
-                                  <Button 
-                                    icon={<SplitCellsOutlined />} 
-                                    type="default"
+                                  <Button
+                                    type="link"
                                     danger
+                                    icon={<DeleteOutlined />}
+                                    size="small"
                                   >
-                                    Tách hóa đơn theo phòng
+                                    Xóa
                                   </Button>
                                 </Popconfirm>
-                              )}
-                              
-                              {/* Trạng thái hóa đơn */}
-                              <Select
-                                value={invoice.invoice_status}
-                                onChange={(status) => handleUpdateInvoiceStatus(invoice.id, status)}
-                                style={{ width: 180 }}
-                                disabled={invoice.invoice_status === "cancelled"}
-                              >
-                                <Select.Option value="draft">Nháp</Select.Option>
-                                <Select.Option value="sent">Đã gửi</Select.Option>
-                                <Select.Option value="viewed">Đã xem</Select.Option>
-                                <Select.Option value="paid">Đã thanh toán</Select.Option>
-                                <Select.Option value="cancelled">Đã hủy</Select.Option>
-                              </Select>
-
-
-                            </Space>
-                          </div>
-
-                          {/* Invoice Header */}
-                          <Card>
-                            <Row justify="space-between" align="top">
-                              <Col>
-                                <Typography.Title level={2}>HÓA ĐƠN</Typography.Title>
-                                <Typography.Text strong style={{ fontSize: 18 }}>
-                                  {invoice.invoice_number || `INV-${String(invoice.id).padStart(6, "0")}`}
-                                </Typography.Text>
-                              </Col>
-                              <Col style={{ textAlign: "right" }}>
-                                <div style={{ marginBottom: 8 }}>
-                                  <Typography.Text type="secondary" style={{ marginRight: 8 }}>Trạng thái:</Typography.Text>
-                                  {getInvoiceStatusTag(invoice.invoice_status)}
-                                </div>
-                                <div style={{ marginBottom: 8 }}>
-                                  <Typography.Text type="secondary" style={{ marginRight: 8 }}>Thanh toán:</Typography.Text>
-                                  {getPaymentStatusTag(invoice.payment_status)}
-                                </div>
-                                <div style={{ marginTop: 8 }}>
-                                  <Typography.Text type="secondary">Ngày tạo:</Typography.Text>
-                                  <br />
-                                  <Typography.Text strong>{dayjs(invoice.issue_date).format("DD/MM/YYYY")}</Typography.Text>
-                                </div>
-                                <div style={{ marginTop: 8 }}>
-                                  <Typography.Text type="secondary">Hạn thanh toán:</Typography.Text>
-                                  <br />
-                                  <Typography.Text strong>{dayjs(invoice.due_date).format("DD/MM/YYYY")}</Typography.Text>
-                                </div>
-                              </Col>
-                            </Row>
-
-                            <Divider />
-
-                            {/* Customer & Property Info */}
-                            <Row gutter={24}>
-                              <Col span={12}>
-                                <Descriptions title="Thông tin khách hàng" column={1} size="small">
-                                  <Descriptions.Item label="Tên">
-                                    <Typography.Text strong>{invoice.customer_name}</Typography.Text>
-                                  </Descriptions.Item>
-                                  <Descriptions.Item label="Email">{invoice.customer_email || "-"}</Descriptions.Item>
-                                  <Descriptions.Item label="Điện thoại">{invoice.customer_phone || "-"}</Descriptions.Item>
-                                  <Descriptions.Item label="Địa chỉ">{invoice.customer_address || "-"}</Descriptions.Item>
-                                </Descriptions>
-                              </Col>
-                              <Col span={12}>
-                                <Descriptions title="Thông tin thanh toán" column={1} size="small">
-                                  <Descriptions.Item label="Phương thức">
-                                    {invoice.payment_method || "Chưa xác định"}
-                                  </Descriptions.Item>
-                                  <Descriptions.Item label="Ngày thanh toán">
-                                    {invoice.payment_date
-                                      ? dayjs(invoice.payment_date).format("DD/MM/YYYY")
-                                      : "Chưa thanh toán"}
-                                  </Descriptions.Item>
-                                  <Descriptions.Item label="Ghi chú thanh toán">
-                                    {invoice.payment_notes || "-"}
-                                  </Descriptions.Item>
-                                </Descriptions>
-                              </Col>
-                            </Row>
-
-                            <Divider />
-
-                            {/* Dịch vụ chờ xác nhận */}
-                            {(() => {
-                              const rawDetails = booking?.details || (booking as any)?.bookingDetails;
-                              const details = Array.isArray(rawDetails) ? rawDetails : [];
-                              const pendingServices: any[] = [];
-                              
-                              details.forEach((detail: any) => {
-                                // Backend trả về booking_services (snake_case)
-                                const services = detail.booking_services || detail.bookingServices;
-                                if (services && Array.isArray(services)) {
-                                  services.forEach((bs: any) => {
-                                    if (bs.status === 'pending') {
-                                      pendingServices.push({
-                                        ...bs,
-                                        roomName: detail.room?.name || detail.room_name || `Phòng #${detail.id}`,
-                                        bookingDetailId: detail.id,
-                                      });
-                                    }
-                                  });
-                                }
-                              });
-
-                              if (pendingServices.length === 0) return null;
-
-                              return (
-                                <>
-                                  <Divider orientation="left">
-                                    <Space>
-                                      <ClockCircleOutlined style={{ color: "#faad14" }} />
-                                      <span style={{ fontSize: 16, fontWeight: 500 }}>
-                                        Dịch vụ chờ xác nhận ({pendingServices.length})
-                                      </span>
-                                    </Space>
-                                  </Divider>
-                                  <Card style={{ marginBottom: 24, border: "2px solid #faad14", background: "#fffbe6" }}>
-                                    <Table
-                                      columns={[
-                                        {
-                                          title: "Phòng",
-                                          dataIndex: "roomName",
-                                          key: "roomName",
-                                          render: (text: string) => (
-                                            <Space>
-                                              <HomeOutlined style={{ color: "#1890ff", fontSize: 16 }} />
-                                              <strong style={{ color: "#1890ff", fontSize: 15 }}>{text}</strong>
-                                            </Space>
-                                          ),
-                                        },
-                                        {
-                                          title: "Dịch vụ",
-                                          key: "service",
-                                          render: (_: any, record: any) => (
-                                            <Space direction="vertical" size="small">
-                                              <span style={{ fontWeight: 500, fontSize: 15 }}>{record.service?.name || "N/A"}</span>
-                                              <Tag color="orange" style={{ fontSize: 12 }}>
-                                                {record.service?.price?.toLocaleString("vi-VN")}₫/{record.service?.unit}
-                                              </Tag>
-                                            </Space>
-                                          ),
-                                        },
-                                        {
-                                          title: "Ngày yêu cầu",
-                                          dataIndex: "created_at",
-                                          key: "created_at",
-                                          render: (date: string) => date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "-",
-                                        },
-                                        {
-                                          title: "Ghi chú",
-                                          dataIndex: "notes",
-                                          key: "notes",
-                                          render: (notes: string) => (
-                                            <Typography.Text ellipsis style={{ maxWidth: 200 }}>
-                                              {notes || "-"}
-                                            </Typography.Text>
-                                          ),
-                                        },
-                                        {
-                                          title: "Hành động",
-                                          key: "action",
-                                          width: 150,
-                                          render: (_: any, record: any) => (
-                                            <Button
-                                              type="primary"
-                                              icon={<CheckCircleOutlined />}
-                                              onClick={() => {
-                                                setSelectedServiceToApprove(record);
-                                                approveServiceForm.setFieldsValue({
-                                                  quantity: undefined,
-                                                  admin_notes: undefined,
-                                                });
-                                                setApproveServiceModalVisible(true);
-                                              }}
-                                            >
-                                              Xác nhận
-                                            </Button>
-                                          ),
-                                        },
-                                      ]}
-                                      dataSource={pendingServices}
-                                      rowKey="id"
-                                      pagination={false}
-                                      size="middle"
-                                    />
-                                  </Card>
-                                </>
                               );
-                            })()}
+                            },
+                          },
+                        ];
 
-                            {/* Invoice Items */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                              <Typography.Title level={4} style={{ margin: 0 }}>Chi tiết hóa đơn</Typography.Title>
-                              {canEditInvoice(invoice) && (
-                                <Space>
-                                  <Button
-                                    type="primary"
-                                    icon={<ShoppingOutlined />}
-                                    onClick={() => setAddServiceModalVisible(true)}
+                        return (
+                          <div style={{ padding: 0 }}>
+                            {/* Header Actions */}
+                            <div style={{ marginBottom: 24 }}>
+                              <Space>
+                                <Button
+                                  icon={<PrinterOutlined />}
+                                  onClick={() => window.print()}
+                                >
+                                  In hóa đơn
+                                </Button>
+                                <Button icon={<FilePdfOutlined />}>
+                                  Xuất PDF
+                                </Button>
+
+                                {/* Button tách hóa đơn theo phòng */}
+                                {canSplitInvoice(invoice) && (
+                                  <Popconfirm
+                                    title="Tách hóa đơn theo phòng"
+                                    description="Mỗi phòng sẽ có một hóa đơn riêng. Hóa đơn gốc sẽ bị hủy. Bạn có chắc chắn?"
+                                    onConfirm={() =>
+                                      handleSplitInvoiceByRooms(invoice.id)
+                                    }
+                                    okText="Xác nhận"
+                                    cancelText="Hủy"
                                   >
-                                    Thêm dịch vụ
-                                  </Button>
-                                  <Button
-                                    type="primary"
-                                    danger
-                                    icon={<WarningOutlined />}
-                                    onClick={() => setAddDamageModalVisible(true)}
-                                  >
-                                    Thêm thiệt hại
-                                  </Button>
-                                </Space>
-                              )}
+                                    <Button
+                                      icon={<SplitCellsOutlined />}
+                                      type="default"
+                                      danger
+                                    >
+                                      Tách hóa đơn theo phòng
+                                    </Button>
+                                  </Popconfirm>
+                                )}
+
+                                {/* Trạng thái hóa đơn */}
+                                <Select
+                                  value={invoice.invoice_status}
+                                  onChange={(status) =>
+                                    handleUpdateInvoiceStatus(
+                                      invoice.id,
+                                      status
+                                    )
+                                  }
+                                  style={{ width: 180 }}
+                                  disabled={
+                                    invoice.invoice_status === "cancelled"
+                                  }
+                                >
+                                  <Select.Option value="draft">
+                                    Nháp
+                                  </Select.Option>
+                                  <Select.Option value="sent">
+                                    Đã gửi
+                                  </Select.Option>
+                                  <Select.Option value="viewed">
+                                    Đã xem
+                                  </Select.Option>
+                                  <Select.Option value="paid">
+                                    Đã thanh toán
+                                  </Select.Option>
+                                  <Select.Option value="cancelled">
+                                    Đã hủy
+                                  </Select.Option>
+                                </Select>
+                              </Space>
                             </div>
-                            <Table
-                              columns={itemColumns}
-                              dataSource={invoice.items || []}
-                              rowKey="id"
-                              pagination={false}
-                              size="small"
-                            />
 
-                            <Divider />
-
-                            {/* Summary */}
-                            <Row justify="end">
-                              <Col span={8}>
-                                <div style={{ padding: 16, background: "#fafafa", borderRadius: 8 }}>
-                                  <Space direction="vertical" style={{ width: "100%" }} size="small">
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <Typography.Text>Tổng phụ:</Typography.Text>
-                                      <Typography.Text>{(invoice.subtotal || 0).toLocaleString("vi-VN")}₫</Typography.Text>
-                                    </div>
-                                    {(invoice.discount_amount || 0) > 0 && (
-                                      <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
-                                        <Typography.Text>Giảm giá:</Typography.Text>
-                                        <Typography.Text>-{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫</Typography.Text>
-                                      </div>
+                            {/* Invoice Header */}
+                            <Card>
+                              <Row justify="space-between" align="top">
+                                <Col>
+                                  <Typography.Title level={2}>
+                                    HÓA ĐƠN
+                                  </Typography.Title>
+                                  <Typography.Text
+                                    strong
+                                    style={{ fontSize: 18 }}
+                                  >
+                                    {invoice.invoice_number ||
+                                      `INV-${String(invoice.id).padStart(
+                                        6,
+                                        "0"
+                                      )}`}
+                                  </Typography.Text>
+                                </Col>
+                                <Col style={{ textAlign: "right" }}>
+                                  <div style={{ marginBottom: 8 }}>
+                                    <Typography.Text
+                                      type="secondary"
+                                      style={{ marginRight: 8 }}
+                                    >
+                                      Trạng thái:
+                                    </Typography.Text>
+                                    {getInvoiceStatusTag(
+                                      invoice.invoice_status
                                     )}
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <Typography.Text>Thuế ({invoice.tax_rate || 0}%):</Typography.Text>
-                                      <Typography.Text>{(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫</Typography.Text>
-                                    </div>
-                                    <Divider style={{ margin: "8px 0" }} />
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <Typography.Text strong style={{ fontSize: 16 }}>
-                                        Tổng cộng:
+                                  </div>
+                                  <div style={{ marginBottom: 8 }}>
+                                    <Typography.Text
+                                      type="secondary"
+                                      style={{ marginRight: 8 }}
+                                    >
+                                      Thanh toán:
+                                    </Typography.Text>
+                                    {getPaymentStatusTag(
+                                      invoice.payment_status
+                                    )}
+                                  </div>
+                                  <div style={{ marginTop: 8 }}>
+                                    <Typography.Text type="secondary">
+                                      Ngày tạo:
+                                    </Typography.Text>
+                                    <br />
+                                    <Typography.Text strong>
+                                      {dayjs(invoice.issue_date).format(
+                                        "DD/MM/YYYY"
+                                      )}
+                                    </Typography.Text>
+                                  </div>
+                                  <div style={{ marginTop: 8 }}>
+                                    <Typography.Text type="secondary">
+                                      Hạn thanh toán:
+                                    </Typography.Text>
+                                    <br />
+                                    <Typography.Text strong>
+                                      {dayjs(invoice.due_date).format(
+                                        "DD/MM/YYYY"
+                                      )}
+                                    </Typography.Text>
+                                  </div>
+                                </Col>
+                              </Row>
+
+                              <Divider />
+
+                              {/* Customer & Property Info */}
+                              <Row gutter={24}>
+                                <Col span={12}>
+                                  <Descriptions
+                                    title="Thông tin khách hàng"
+                                    column={1}
+                                    size="small"
+                                  >
+                                    <Descriptions.Item label="Tên">
+                                      <Typography.Text strong>
+                                        {invoice.bookingOrder?.guest
+                                          ?.full_name ||
+                                          invoice.bookingOrder?.customer_name ||
+                                          invoice.customer_name ||
+                                          booking?.customer_name ||
+                                          booking?.guest?.full_name ||
+                                          "-"}
                                       </Typography.Text>
-                                      <Typography.Text strong style={{ fontSize: 18, color: "#1890ff" }}>
-                                        {(invoice.total_amount || 0).toLocaleString("vi-VN")}₫
-                                      </Typography.Text>
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <Typography.Text>Đã thanh toán:</Typography.Text>
-                                      <Typography.Text style={{ color: "#52c41a" }}>
-                                        {(invoice.paid_amount || 0).toLocaleString("vi-VN")}₫
-                                      </Typography.Text>
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <Typography.Text strong>Còn lại:</Typography.Text>
-                                      <Typography.Text strong style={{ color: (invoice.remaining_amount || remainingAmount) > 0 ? "#ff4d4f" : "#52c41a" }}>
-                                        {(invoice.remaining_amount || remainingAmount).toLocaleString("vi-VN")}₫
-                                      </Typography.Text>
-                                    </div>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Email">
+                                      {invoice.bookingOrder?.guest?.email ||
+                                        invoice.bookingOrder?.customer_email ||
+                                        invoice.customer_email ||
+                                        booking?.customer_email ||
+                                        booking?.guest?.email ||
+                                        "-"}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Điện thoại">
+                                      {invoice.bookingOrder?.guest
+                                        ?.phone_number ||
+                                        invoice.bookingOrder?.customer_phone ||
+                                        invoice.customer_phone ||
+                                        booking?.customer_phone ||
+                                        booking?.guest?.phone_number ||
+                                        "-"}
+                                    </Descriptions.Item>
+                                  </Descriptions>
+                                </Col>
+                                <Col span={12}>
+                                  <Descriptions
+                                    title="Thông tin thanh toán"
+                                    column={1}
+                                    size="small"
+                                  >
+                                    <Descriptions.Item label="Phương thức">
+                                      {(() => {
+                                        // Lấy payment mới nhất từ invoice payments
+                                        const latestPayment =
+                                          invoice.payments &&
+                                          Array.isArray(invoice.payments) &&
+                                          invoice.payments.length > 0
+                                            ? invoice.payments.sort(
+                                                (a: any, b: any) =>
+                                                  new Date(
+                                                    b.paid_at ||
+                                                      b.created_at ||
+                                                      0
+                                                  ).getTime() -
+                                                  new Date(
+                                                    a.paid_at ||
+                                                      a.created_at ||
+                                                      0
+                                                  ).getTime()
+                                              )[0]
+                                            : null;
+
+                                        return (
+                                          latestPayment?.payment_method ||
+                                          invoice.payment_method ||
+                                          invoice.bookingOrder
+                                            ?.payment_method ||
+                                          booking?.payment_method ||
+                                          "Chưa xác định"
+                                        );
+                                      })()}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Ngày thanh toán">
+                                      {(() => {
+                                        // Lấy payment mới nhất từ invoice payments
+                                        const latestPayment =
+                                          invoice.payments &&
+                                          Array.isArray(invoice.payments) &&
+                                          invoice.payments.length > 0
+                                            ? invoice.payments.sort(
+                                                (a: any, b: any) =>
+                                                  new Date(
+                                                    b.paid_at ||
+                                                      b.created_at ||
+                                                      0
+                                                  ).getTime() -
+                                                  new Date(
+                                                    a.paid_at ||
+                                                      a.created_at ||
+                                                      0
+                                                  ).getTime()
+                                              )[0]
+                                            : null;
+
+                                        if (latestPayment?.paid_at) {
+                                          return dayjs(
+                                            latestPayment.paid_at
+                                          ).format("DD/MM/YYYY");
+                                        }
+                                        if (
+                                          latestPayment?.created_at &&
+                                          latestPayment?.status === "success"
+                                        ) {
+                                          return dayjs(
+                                            latestPayment.created_at
+                                          ).format("DD/MM/YYYY");
+                                        }
+                                        if (invoice.payment_date) {
+                                          return dayjs(
+                                            invoice.payment_date
+                                          ).format("DD/MM/YYYY");
+                                        }
+                                        return "Chưa thanh toán";
+                                      })()}
+                                    </Descriptions.Item>
+                                  </Descriptions>
+                                </Col>
+                              </Row>
+
+                              <Divider />
+
+                              {/* Dịch vụ chờ xác nhận */}
+                              {(() => {
+                                const rawDetails =
+                                  booking?.details ||
+                                  (booking as any)?.bookingDetails;
+                                const details = Array.isArray(rawDetails)
+                                  ? rawDetails
+                                  : [];
+                                const pendingServices: any[] = [];
+
+                                details.forEach((detail: any) => {
+                                  // Backend trả về booking_services (snake_case)
+                                  const services =
+                                    detail.booking_services ||
+                                    detail.bookingServices;
+                                  if (services && Array.isArray(services)) {
+                                    services.forEach((bs: any) => {
+                                      if (bs.status === "pending") {
+                                        pendingServices.push({
+                                          ...bs,
+                                          roomName:
+                                            detail.room?.name ||
+                                            detail.room_name ||
+                                            `Phòng #${detail.id}`,
+                                          bookingDetailId: detail.id,
+                                        });
+                                      }
+                                    });
+                                  }
+                                });
+
+                                if (pendingServices.length === 0) return null;
+
+                                return (
+                                  <>
+                                    <Divider orientation="left">
+                                      <Space>
+                                        <ClockCircleOutlined
+                                          style={{ color: "#faad14" }}
+                                        />
+                                        <span
+                                          style={{
+                                            fontSize: 16,
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          Dịch vụ chờ xác nhận (
+                                          {pendingServices.length})
+                                        </span>
+                                      </Space>
+                                    </Divider>
+                                    <Card
+                                      style={{
+                                        marginBottom: 24,
+                                        border: "2px solid #faad14",
+                                        background: "#fffbe6",
+                                      }}
+                                    >
+                                      <Table
+                                        columns={[
+                                          {
+                                            title: "Phòng",
+                                            dataIndex: "roomName",
+                                            key: "roomName",
+                                            render: (text: string) => (
+                                              <Space>
+                                                <HomeOutlined
+                                                  style={{
+                                                    color: "#1890ff",
+                                                    fontSize: 16,
+                                                  }}
+                                                />
+                                                <strong
+                                                  style={{
+                                                    color: "#1890ff",
+                                                    fontSize: 15,
+                                                  }}
+                                                >
+                                                  {text}
+                                                </strong>
+                                              </Space>
+                                            ),
+                                          },
+                                          {
+                                            title: "Dịch vụ",
+                                            key: "service",
+                                            render: (_: any, record: any) => (
+                                              <Space
+                                                direction="vertical"
+                                                size="small"
+                                              >
+                                                <span
+                                                  style={{
+                                                    fontWeight: 500,
+                                                    fontSize: 15,
+                                                  }}
+                                                >
+                                                  {record.service?.name ||
+                                                    "N/A"}
+                                                </span>
+                                                <Tag
+                                                  color="orange"
+                                                  style={{ fontSize: 12 }}
+                                                >
+                                                  {record.service?.price?.toLocaleString(
+                                                    "vi-VN"
+                                                  )}
+                                                  ₫/{record.service?.unit}
+                                                </Tag>
+                                              </Space>
+                                            ),
+                                          },
+                                          {
+                                            title: "Ngày yêu cầu",
+                                            dataIndex: "created_at",
+                                            key: "created_at",
+                                            render: (date: string) =>
+                                              date
+                                                ? dayjs(date).format(
+                                                    "DD/MM/YYYY HH:mm"
+                                                  )
+                                                : "-",
+                                          },
+                                          {
+                                            title: "Ghi chú",
+                                            dataIndex: "notes",
+                                            key: "notes",
+                                            render: (notes: string) => (
+                                              <Typography.Text
+                                                ellipsis
+                                                style={{ maxWidth: 200 }}
+                                              >
+                                                {notes || "-"}
+                                              </Typography.Text>
+                                            ),
+                                          },
+                                          {
+                                            title: "Hành động",
+                                            key: "action",
+                                            width: 150,
+                                            render: (_: any, record: any) => (
+                                              <Button
+                                                type="primary"
+                                                icon={<CheckCircleOutlined />}
+                                                onClick={() => {
+                                                  setSelectedServiceToApprove(
+                                                    record
+                                                  );
+                                                  approveServiceForm.setFieldsValue(
+                                                    {
+                                                      quantity: undefined,
+                                                      admin_notes: undefined,
+                                                    }
+                                                  );
+                                                  setApproveServiceModalVisible(
+                                                    true
+                                                  );
+                                                }}
+                                              >
+                                                Xác nhận
+                                              </Button>
+                                            ),
+                                          },
+                                        ]}
+                                        dataSource={pendingServices}
+                                        rowKey="id"
+                                        pagination={false}
+                                        size="middle"
+                                      />
+                                    </Card>
+                                  </>
+                                );
+                              })()}
+
+                              {/* Invoice Items */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  marginBottom: 16,
+                                }}
+                              >
+                                <Typography.Title
+                                  level={4}
+                                  style={{ margin: 0 }}
+                                >
+                                  Chi tiết hóa đơn
+                                </Typography.Title>
+                                {canEditInvoice(invoice) && (
+                                  <Space>
+                                    <Button
+                                      type="primary"
+                                      icon={<ShoppingOutlined />}
+                                      onClick={() =>
+                                        setAddServiceModalVisible(true)
+                                      }
+                                    >
+                                      Thêm dịch vụ
+                                    </Button>
+                                    <Button
+                                      type="primary"
+                                      danger
+                                      icon={<WarningOutlined />}
+                                      onClick={() =>
+                                        setAddDamageModalVisible(true)
+                                      }
+                                    >
+                                      Thêm thiệt hại
+                                    </Button>
                                   </Space>
-                                </div>
-                              </Col>
-                            </Row>
+                                )}
+                              </div>
+                              <Table
+                                columns={itemColumns}
+                                dataSource={invoice.items || []}
+                                rowKey="id"
+                                pagination={false}
+                                size="small"
+                              />
 
-                            {/* Notes */}
-                            {invoice.notes && (
-                              <>
-                                <Divider />
-                                <div>
-                                  <Typography.Text strong>Ghi chú:</Typography.Text>
-                                  <div style={{ marginTop: 8, padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
-                                    {invoice.notes}
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                              <Divider />
 
-                            {/* Terms & Conditions */}
-                            {invoice.terms_conditions && (
-                              <>
-                                <Divider />
-                                <div>
-                                  <Typography.Text strong>Điều khoản:</Typography.Text>
-                                  <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-                                    {invoice.terms_conditions}
+                              {/* Summary */}
+                              <Row justify="end">
+                                <Col span={8}>
+                                  <div
+                                    style={{
+                                      padding: 16,
+                                      background: "#fafafa",
+                                      borderRadius: 8,
+                                    }}
+                                  >
+                                    <Space
+                                      direction="vertical"
+                                      style={{ width: "100%" }}
+                                      size="small"
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography.Text>
+                                          Tổng phụ:
+                                        </Typography.Text>
+                                        <Typography.Text>
+                                          {(
+                                            invoice.subtotal || 0
+                                          ).toLocaleString("vi-VN")}
+                                          ₫
+                                        </Typography.Text>
+                                      </div>
+                                      {(invoice.discount_amount || 0) > 0 && (
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            color: "#52c41a",
+                                          }}
+                                        >
+                                          <Typography.Text>
+                                            Giảm giá:
+                                          </Typography.Text>
+                                          <Typography.Text>
+                                            -
+                                            {(
+                                              invoice.discount_amount || 0
+                                            ).toLocaleString("vi-VN")}
+                                            ₫
+                                          </Typography.Text>
+                                        </div>
+                                      )}
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography.Text>
+                                          Thuế ({invoice.tax_rate || 0}%):
+                                        </Typography.Text>
+                                        <Typography.Text>
+                                          {(
+                                            invoice.tax_amount || 0
+                                          ).toLocaleString("vi-VN")}
+                                          ₫
+                                        </Typography.Text>
+                                      </div>
+                                      <Divider style={{ margin: "8px 0" }} />
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography.Text
+                                          strong
+                                          style={{ fontSize: 16 }}
+                                        >
+                                          Tổng cộng:
+                                        </Typography.Text>
+                                        <Typography.Text
+                                          strong
+                                          style={{
+                                            fontSize: 18,
+                                            color: "#1890ff",
+                                          }}
+                                        >
+                                          {(
+                                            invoice.total_amount || 0
+                                          ).toLocaleString("vi-VN")}
+                                          ₫
+                                        </Typography.Text>
+                                      </div>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography.Text>
+                                          Đã thanh toán:
+                                        </Typography.Text>
+                                        <Typography.Text
+                                          style={{ color: "#52c41a" }}
+                                        >
+                                          {(
+                                            invoice.paid_amount || 0
+                                          ).toLocaleString("vi-VN")}
+                                          ₫
+                                        </Typography.Text>
+                                      </div>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography.Text strong>
+                                          Còn lại:
+                                        </Typography.Text>
+                                        <Typography.Text
+                                          strong
+                                          style={{
+                                            color:
+                                              (invoice.remaining_amount ||
+                                                remainingAmount) > 0
+                                                ? "#ff4d4f"
+                                                : "#52c41a",
+                                          }}
+                                        >
+                                          {(
+                                            invoice.remaining_amount ||
+                                            remainingAmount
+                                          ).toLocaleString("vi-VN")}
+                                          ₫
+                                        </Typography.Text>
+                                      </div>
+                                    </Space>
                                   </div>
-                                </div>
-                              </>
-                            )}
-                          </Card>
-                        </div>
-                      );
+                                </Col>
+                              </Row>
+
+                              {/* Notes */}
+                              {invoice.notes && (
+                                <>
+                                  <Divider />
+                                  <div>
+                                    <Typography.Text strong>
+                                      Ghi chú:
+                                    </Typography.Text>
+                                    <div
+                                      style={{
+                                        marginTop: 8,
+                                        padding: 12,
+                                        background: "#f5f5f5",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      {invoice.notes}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Terms & Conditions */}
+                              {invoice.terms_conditions && (
+                                <>
+                                  <Divider />
+                                  <div>
+                                    <Typography.Text strong>
+                                      Điều khoản:
+                                    </Typography.Text>
+                                    <div
+                                      style={{
+                                        marginTop: 8,
+                                        fontSize: 12,
+                                        color: "#888",
+                                      }}
+                                    >
+                                      {invoice.terms_conditions}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </Card>
+                          </div>
+                        );
                       };
 
                       // Nếu chỉ có 1 invoice, hiển thị trực tiếp
@@ -1739,35 +2231,64 @@ const ViewBooking: React.FC = () => {
                       const invoiceTabs = invoices.map((inv, index) => {
                         const raw = inv as any;
                         // Tìm phòng liên quan từ invoice items
-                        const rawDetails = booking?.details || (booking as any)?.bookingDetails;
-                        const details = Array.isArray(rawDetails) ? rawDetails : [];
+                        const rawDetails =
+                          booking?.details || (booking as any)?.bookingDetails;
+                        const details = Array.isArray(rawDetails)
+                          ? rawDetails
+                          : [];
                         let relatedRoom: any = null;
-                        const items = raw.items || raw.invoice_items || raw.invoiceItems || [];
+                        const items =
+                          raw.items ||
+                          raw.invoice_items ||
+                          raw.invoiceItems ||
+                          [];
                         if (items.length > 0) {
-                          const firstItem = items.find((item: any) => item.booking_detail_id);
+                          const firstItem = items.find(
+                            (item: any) => item.booking_detail_id
+                          );
                           if (firstItem?.booking_detail_id) {
-                            relatedRoom = details.find((d: any) => d.id === firstItem.booking_detail_id);
+                            relatedRoom = details.find(
+                              (d: any) => d.id === firstItem.booking_detail_id
+                            );
                           }
                         }
-                        const roomName = relatedRoom?.room?.name || relatedRoom?.room_name || 'Tất cả phòng';
+                        const roomName =
+                          relatedRoom?.room?.name ||
+                          relatedRoom?.room_name ||
+                          "Tất cả phòng";
                         // Kiểm tra xem invoice này có phải là invoice đã tách không
                         // - Nếu invoice có splitFrom relationship hoặc chỉ có items của 1 phòng (booking_detail_id giống nhau) và có nhiều invoices
-                        const uniqueRoomIds = new Set(items.filter((item: any) => item.booking_detail_id).map((item: any) => item.booking_detail_id));
-                        const isSplit = (raw.splitFrom || uniqueRoomIds.size === 1) && invoices.length > 1;
+                        const uniqueRoomIds = new Set(
+                          items
+                            .filter((item: any) => item.booking_detail_id)
+                            .map((item: any) => item.booking_detail_id)
+                        );
+                        const isSplit =
+                          (raw.splitFrom || uniqueRoomIds.size === 1) &&
+                          invoices.length > 1;
                         // Kiểm tra xem có phải hóa đơn gốc không (có splitInvoices relationship)
-                        const isOriginal = raw.splitInvoices && raw.splitInvoices.length > 0;
+                        const isOriginal =
+                          raw.splitInvoices && raw.splitInvoices.length > 0;
 
-                        
                         return {
                           key: String(inv.id),
                           label: (
                             <Space>
-                              {isOriginal && <Tag color="orange">Hóa đơn gốc</Tag>}
-                              {isSplit && !isOriginal && <Tag color="blue">Đã tách</Tag>}
+                              {isOriginal && (
+                                <Tag color="orange">Hóa đơn gốc</Tag>
+                              )}
+                              {isSplit && !isOriginal && (
+                                <Tag color="blue">Đã tách</Tag>
+                              )}
 
                               <span>{roomName}</span>
-                              <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                                ({inv.invoice_number || `INV-${String(inv.id).padStart(6, "0")}`})
+                              <span
+                                style={{ color: "#8c8c8c", fontSize: "12px" }}
+                              >
+                                (
+                                {inv.invoice_number ||
+                                  `INV-${String(inv.id).padStart(6, "0")}`}
+                                )
                               </span>
                             </Space>
                           ),
@@ -1778,7 +2299,11 @@ const ViewBooking: React.FC = () => {
                       return (
                         <Tabs
                           defaultActiveKey={String(invoices[0]?.id)}
-                          activeKey={selectedInvoiceId ? String(selectedInvoiceId) : undefined}
+                          activeKey={
+                            selectedInvoiceId
+                              ? String(selectedInvoiceId)
+                              : undefined
+                          }
                           onChange={(key) => setSelectedInvoiceId(Number(key))}
                           items={invoiceTabs}
                           type="card"
@@ -1825,7 +2350,7 @@ const ViewBooking: React.FC = () => {
           setCheckoutModalVisible(false);
         }}
       />
-      
+
       {/* Modal thêm dịch vụ */}
       <Modal
         title={
@@ -1844,11 +2369,7 @@ const ViewBooking: React.FC = () => {
         cancelText="Hủy"
         width={600}
       >
-        <Form
-          form={serviceForm}
-          layout="vertical"
-          onFinish={handleAddService}
-        >
+        <Form form={serviceForm} layout="vertical" onFinish={handleAddService}>
           <Form.Item
             name="booking_detail_id"
             label="Phòng"
@@ -1860,7 +2381,9 @@ const ViewBooking: React.FC = () => {
               optionFilterProp="children"
               onChange={(value) => {
                 // Khi chọn phòng, lấy room_type_id và load lại services
-                const selectedDetail = booking?.details?.find((d: BookingDetail) => d.id === value);
+                const selectedDetail = booking?.details?.find(
+                  (d: BookingDetail) => d.id === value
+                );
                 if (selectedDetail?.room?.roomType?.id) {
                   fetchServicesByRoomType(selectedDetail.room.roomType.id);
                 }
@@ -1885,12 +2408,19 @@ const ViewBooking: React.FC = () => {
               showSearch
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             >
               {services.map((service) => (
-                <Select.Option key={service.id} value={service.id} label={service.name}>
-                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/{service.unit}
+                <Select.Option
+                  key={service.id}
+                  value={service.id}
+                  label={service.name}
+                >
+                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/
+                  {service.unit}
                 </Select.Option>
               ))}
             </Select>
@@ -1911,17 +2441,11 @@ const ViewBooking: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="is_paid"
-            valuePropName="checked"
-          >
+          <Form.Item name="is_paid" valuePropName="checked">
             <Checkbox>Đã thanh toán</Checkbox>
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Ghi chú (tùy chọn)"
-          >
+          <Form.Item name="description" label="Ghi chú (tùy chọn)">
             <Input.TextArea rows={3} placeholder="Nhập ghi chú nếu có" />
           </Form.Item>
         </Form>
@@ -1948,11 +2472,7 @@ const ViewBooking: React.FC = () => {
         cancelText="Hủy"
         width={600}
       >
-        <Form
-          form={damageForm}
-          layout="vertical"
-          onFinish={handleAddDamage}
-        >
+        <Form form={damageForm} layout="vertical" onFinish={handleAddDamage}>
           <Form.Item
             name="booking_detail_id"
             label="Phòng"
@@ -1964,7 +2484,9 @@ const ViewBooking: React.FC = () => {
               optionFilterProp="children"
               onChange={(value) => {
                 // Khi chọn phòng, load supplies của phòng đó
-                const selectedDetail = booking?.details?.find((d: BookingDetail) => d.id === value);
+                const selectedDetail = booking?.details?.find(
+                  (d: BookingDetail) => d.id === value
+                );
                 if (selectedDetail?.room?.id) {
                   fetchSuppliesByRoom(selectedDetail.room.id);
                 } else {
@@ -1994,12 +2516,19 @@ const ViewBooking: React.FC = () => {
               showSearch
               optionFilterProp="children"
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             >
               {supplies.map((supply) => (
-                <Select.Option key={supply.id} value={supply.id} label={supply.name}>
-                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/{supply.unit || "cái"}
+                <Select.Option
+                  key={supply.id}
+                  value={supply.id}
+                  label={supply.name}
+                >
+                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/
+                  {supply.unit || "cái"}
                 </Select.Option>
               ))}
             </Select>
@@ -2020,24 +2549,15 @@ const ViewBooking: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="is_paid"
-            valuePropName="checked"
-          >
+          <Form.Item name="is_paid" valuePropName="checked">
             <Checkbox>Đã thanh toán</Checkbox>
           </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Mô tả thiệt hại (tùy chọn)"
-          >
+          <Form.Item name="description" label="Mô tả thiệt hại (tùy chọn)">
             <Input.TextArea rows={2} placeholder="Mô tả chi tiết thiệt hại" />
           </Form.Item>
 
-          <Form.Item
-            name="notes"
-            label="Ghi chú (tùy chọn)"
-          >
+          <Form.Item name="notes" label="Ghi chú (tùy chọn)">
             <Input.TextArea rows={2} placeholder="Ghi chú thêm về thiệt hại" />
           </Form.Item>
 
@@ -2087,11 +2607,29 @@ const ViewBooking: React.FC = () => {
         width={600}
       >
         {selectedServiceToComplete && (
-          <div style={{ marginBottom: 16, padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
+          <div
+            style={{
+              marginBottom: 16,
+              padding: 12,
+              background: "#f5f5f5",
+              borderRadius: 4,
+            }}
+          >
             <Space direction="vertical" style={{ width: "100%" }}>
-              <div><strong>Dịch vụ:</strong> {selectedServiceToComplete.service?.name}</div>
-              <div><strong>Phòng:</strong> {selectedServiceToComplete.roomName}</div>
-              <div><strong>Đơn giá tham khảo:</strong> {selectedServiceToComplete.service?.price?.toLocaleString("vi-VN")}₫/{selectedServiceToComplete.service?.unit}</div>
+              <div>
+                <strong>Dịch vụ:</strong>{" "}
+                {selectedServiceToComplete.service?.name}
+              </div>
+              <div>
+                <strong>Phòng:</strong> {selectedServiceToComplete.roomName}
+              </div>
+              <div>
+                <strong>Đơn giá tham khảo:</strong>{" "}
+                {selectedServiceToComplete.service?.price?.toLocaleString(
+                  "vi-VN"
+                )}
+                ₫/{selectedServiceToComplete.service?.unit}
+              </div>
             </Space>
           </div>
         )}
@@ -2120,22 +2658,25 @@ const ViewBooking: React.FC = () => {
             label="Đơn giá thực tế (VNĐ)"
             rules={[
               { required: true, message: "Vui lòng nhập đơn giá" },
-              { type: "number", min: 0, message: "Đơn giá phải lớn hơn hoặc bằng 0" },
+              {
+                type: "number",
+                min: 0,
+                message: "Đơn giá phải lớn hơn hoặc bằng 0",
+              },
             ]}
           >
             <InputNumber
               style={{ width: "100%" }}
               min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => value!.replace(/\$\s?|(,*)/g, "")}
               placeholder="Nhập đơn giá thực tế"
             />
           </Form.Item>
 
-          <Form.Item
-            name="notes"
-            label="Ghi chú (tùy chọn)"
-          >
+          <Form.Item name="notes" label="Ghi chú (tùy chọn)">
             <Input.TextArea
               rows={3}
               placeholder="Ghi chú về dịch vụ đã sử dụng"
@@ -2164,32 +2705,63 @@ const ViewBooking: React.FC = () => {
         width={600}
       >
         {selectedServiceToApprove && (
-          <div style={{ marginBottom: 16, padding: 16, background: "#e6f7ff", borderRadius: 8, border: "2px solid #1890ff" }}>
+          <div
+            style={{
+              marginBottom: 16,
+              padding: 16,
+              background: "#e6f7ff",
+              borderRadius: 8,
+              border: "2px solid #1890ff",
+            }}
+          >
             <Space direction="vertical" style={{ width: "100%" }} size="middle">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <HomeOutlined style={{ fontSize: 20, color: "#1890ff" }} />
                 <div>
-                  <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Phòng sử dụng dịch vụ:</div>
-                  <div style={{ fontSize: 18, fontWeight: "bold", color: "#1890ff" }}>
+                  <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+                    Phòng sử dụng dịch vụ:
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: "bold",
+                      color: "#1890ff",
+                    }}
+                  >
                     {selectedServiceToApprove.roomName}
                   </div>
                 </div>
               </div>
               <Divider style={{ margin: "8px 0" }} />
               <div>
-                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Tên dịch vụ:</div>
-                <div style={{ fontSize: 16, fontWeight: 500 }}>{selectedServiceToApprove.service?.name}</div>
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+                  Tên dịch vụ:
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 500 }}>
+                  {selectedServiceToApprove.service?.name}
+                </div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Đơn giá tham khảo:</div>
-                <div style={{ fontSize: 16, color: "#52c41a", fontWeight: 500 }}>
-                  {selectedServiceToApprove.service?.price?.toLocaleString("vi-VN")}₫/{selectedServiceToApprove.service?.unit}
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+                  Đơn giá tham khảo:
+                </div>
+                <div
+                  style={{ fontSize: 16, color: "#52c41a", fontWeight: 500 }}
+                >
+                  {selectedServiceToApprove.service?.price?.toLocaleString(
+                    "vi-VN"
+                  )}
+                  ₫/{selectedServiceToApprove.service?.unit}
                 </div>
               </div>
               {selectedServiceToApprove.notes && (
                 <div>
-                  <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Ghi chú từ khách:</div>
-                  <div style={{ fontSize: 14, fontStyle: "italic", color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+                    Ghi chú từ khách:
+                  </div>
+                  <div
+                    style={{ fontSize: 14, fontStyle: "italic", color: "#888" }}
+                  >
                     {selectedServiceToApprove.notes}
                   </div>
                 </div>
@@ -2220,10 +2792,7 @@ const ViewBooking: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="admin_notes"
-            label="Ghi chú (tùy chọn)"
-          >
+          <Form.Item name="admin_notes" label="Ghi chú (tùy chọn)">
             <Input.TextArea
               rows={3}
               placeholder="Ghi chú về việc xác nhận dịch vụ"
