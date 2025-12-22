@@ -170,15 +170,15 @@ const PaymentSuccessPage: React.FC = () => {
         icon={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
         title={
           isInvoicePayment
-            ? "Thanh toán hóa đơn tiền phòng thành công!"
-            : "Thanh toán thành công!"
+            ? "Thanh toán thành công !"
+            : "Thanh toán hóa đơn tiền phòng thành công"
         }
         subTitle={
           <Space direction="vertical" size="small" style={{ marginTop: 16 }}>
             <Paragraph>
               {isInvoicePayment
-                ? "Cảm ơn bạn đã thanh toán hóa đơn tiền phòng. Đơn đặt phòng của bạn đã được xác nhận."
-                : "Cảm ơn bạn đã thanh toán . Đơn đặt phòng của bạn đã được hoàn tất."}
+                ? "Cảm ơn bạn đã thanh toán . Đơn đặt phòng của bạn đã được hoàn tất. "
+                : "Cảm ơn bạn đã thanh toán hóa đơn tiền phòng. Đơn đặt phòng của bạn đã được xác nhận."}
             </Paragraph>
             {/* Hiển thị mã giao dịch từ VNPay hoặc PayOS */}
             {(orderCode || transactionNo) && (
@@ -284,7 +284,7 @@ const PaymentSuccessPage: React.FC = () => {
                   }}
                 >
                   {booking.payment_status === "paid"
-                    ? "Đã thanh toán đầy đủ"
+                    ? "Đã thanh toán tiền phòng"
                     : booking.payment_status === "partial"
                     ? "Đã đặt cọc"
                     : "Chưa thanh toán"}
