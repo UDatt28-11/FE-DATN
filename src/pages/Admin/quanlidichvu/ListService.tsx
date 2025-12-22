@@ -10,6 +10,7 @@ import {
   Modal,
   Spin,
   Select,
+  Dropdown,
 } from "antd";
 import { toast } from "react-toastify";
 import {
@@ -18,6 +19,9 @@ import {
   EditOutlined,
   DeleteOutlined,
   ShoppingOutlined,
+  MoreOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import axios from "../../../service/axiosConfig";
@@ -96,28 +100,20 @@ const ListService: React.FC = () => {
     loadServices(1, searchText, propertyFilter);
   }, [searchText, propertyFilter, pageSize]);
 
-  // Xóa service
-  const handleDeleteService = async (service: Service) => {
-    Modal.confirm({
-      title: "Xóa dịch vụ",
-      content: `Bạn có chắc muốn xóa dịch vụ "${service.name}"?`,
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
-      async onOk() {
-        try {
-          const response = await serviceService.deleteService(service.id);
-          if (response.success) {
-            toast.success(`Đã xóa dịch vụ "${service.name}"`);
-            loadServices(pagination.current, searchText, propertyFilter);
-          } else {
-            toast.error(response.message || "Có lỗi xảy ra khi xóa");
-          }
-        } catch (error: any) {
-          toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
-        }
-      },
-    });
+  // Cập nhật trạng thái
+  const handleToggleStatus = async (service: Service) => {
+    try {
+      const newStatus = service.status === 'active' ? 'disabled' : 'active';
+      const response = await serviceService.updateStatus(service.id, newStatus);
+      if (response.success) {
+        toast.success(`Đã cập nhật trạng thái dịch vụ "${service.name}"`);
+        loadServices(pagination.current, searchText, propertyFilter);
+      } else {
+        toast.error(response.message || "Có lỗi xảy ra khi cập nhật trạng thái");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái");
+    }
   };
 
   // Cấu hình phân trang
@@ -161,6 +157,21 @@ const ListService: React.FC = () => {
       render: (unit: string) => <Tag>{unit}</Tag>,
     },
     {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 150,
+      render: (status: string, record: Service) => (
+        <Tag
+          color={status === "active" ? "success" : "default"}
+          style={{ cursor: "pointer", minWidth: 100, textAlign: "center" }}
+          onClick={() => handleToggleStatus(record)}
+        >
+          {status === "active" ? "Hoạt động" : "Không hoạt động"}
+        </Tag>
+      ),
+    },
+    {
       title: "Ngày tạo",
       dataIndex: "created_at",
       key: "created_at",
@@ -169,27 +180,31 @@ const ListService: React.FC = () => {
     {
       title: "Thao tác",
       key: "actions",
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              onClick={() => {
-                setSelectedService(record);
-                setEditModalVisible(true);
-              }}
-              icon={<EditOutlined />}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button
-              danger
-              onClick={() => handleDeleteService(record)}
-              icon={<DeleteOutlined />}
-            />
-          </Tooltip>
-        </Space>
-      ),
+      width: 100,
+      render: (_, record) => {
+        const menuItems = [
+          {
+            key: "edit",
+            label: "Chỉnh sửa",
+            icon: <EditOutlined />,
+            onClick: () => {
+              setSelectedService(record);
+              setEditModalVisible(true);
+            },
+          },
+          {
+            key: "toggle-status",
+            label: record.status === "active" ? "Ngưng hoạt động" : "Kích hoạt",
+            icon: record.status === "active" ? <StopOutlined /> : <CheckCircleOutlined />,
+            onClick: () => handleToggleStatus(record),
+          },
+        ];
+        return (
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
+        );
+      },
     },
   ];
 
