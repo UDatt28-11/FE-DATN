@@ -297,6 +297,7 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                     identity_image_value: identityImageValue,
                     identity_images_type: typeof identityImagesValue,
                     identity_images_is_array: Array.isArray(identityImagesValue),
+                    identity_images_length: Array.isArray(identityImagesValue) ? identityImagesValue.length : 'not_array',
                 });
                 
                 // Ưu tiên nhiều ảnh, fallback về 1 ảnh
@@ -309,15 +310,46 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                         ? identityImagesValue 
                         : (identityImagesValue as any)?.fileList || [];
                     
+                    console.log('AdminCheckInModal - Processing fileList', {
+                        guest_index: index,
+                        fileList_length: fileList.length,
+                        fileList_items: fileList.map((item: any) => ({
+                            has_originFileObj: !!item?.originFileObj,
+                            originFileObj_type: item?.originFileObj ? typeof item.originFileObj : 'N/A',
+                            is_File: item instanceof File,
+                            is_UploadFile: item?.uid !== undefined,
+                            item_keys: item ? Object.keys(item) : [],
+                        })),
+                    });
+                    
                     if (fileList.length > 0) {
-                        fileList.forEach((fileItem: any) => {
-                            // UploadFile có originFileObj
+                        fileList.forEach((fileItem: any, itemIndex: number) => {
+                            // UploadFile có originFileObj (đây là cách Ant Design Upload lưu File)
                             if (fileItem?.originFileObj instanceof File) {
                                 files.push(fileItem.originFileObj);
+                                console.log('AdminCheckInModal - Added file from originFileObj', {
+                                    guest_index: index,
+                                    item_index: itemIndex,
+                                    file_name: fileItem.originFileObj.name,
+                                    file_size: fileItem.originFileObj.size,
+                                });
                             } 
                             // Hoặc có thể là File trực tiếp
                             else if (fileItem instanceof File) {
                                 files.push(fileItem);
+                                console.log('AdminCheckInModal - Added file directly', {
+                                    guest_index: index,
+                                    item_index: itemIndex,
+                                    file_name: fileItem.name,
+                                    file_size: fileItem.size,
+                                });
+                            } else {
+                                console.warn('AdminCheckInModal - File item is not a File', {
+                                    guest_index: index,
+                                    item_index: itemIndex,
+                                    fileItem_type: typeof fileItem,
+                                    fileItem_keys: fileItem ? Object.keys(fileItem) : [],
+                                });
                             }
                         });
                     }
@@ -468,8 +500,8 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
                 formData.append('notes', values.notes);
             }
             
-            // Gọi API check-in với FormData
-            const response = await api.post(`/staff/check-in/${booking.id}`, formData, {
+            // Gọi API check-in với FormData - SỬ DỤNG ĐÚNG ROUTE ADMIN
+            const response = await api.post(`/admin/booking-orders/${booking.id}/check-in-direct`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -497,17 +529,43 @@ const AdminCheckInModal: React.FC<AdminCheckInModalProps> = ({
     };
 
     const normFile = (e: any) => {
+        console.log('AdminCheckInModal - normFile called', {
+            e_type: typeof e,
+            e_is_array: Array.isArray(e),
+            has_fileList: !!e?.fileList,
+            has_file: !!e?.file,
+            e_keys: e ? Object.keys(e) : [],
+        });
+        
         if (Array.isArray(e)) {
+            console.log('AdminCheckInModal - normFile: returning array directly', {
+                length: e.length,
+                items: e.map((item: any) => ({
+                    has_originFileObj: !!item?.originFileObj,
+                    is_File: item instanceof File,
+                })),
+            });
             return e;
         }
         // Handle file list from Upload component
         if (e?.fileList) {
+            console.log('AdminCheckInModal - normFile: returning fileList', {
+                length: e.fileList.length,
+                items: e.fileList.map((item: any) => ({
+                    has_originFileObj: !!item?.originFileObj,
+                    is_File: item instanceof File,
+                })),
+            });
             return e.fileList;
         }
         // Handle single file
         if (e?.file) {
+            console.log('AdminCheckInModal - normFile: returning single file', {
+                is_File: e.file instanceof File,
+            });
             return [e.file];
         }
+        console.warn('AdminCheckInModal - normFile: returning empty array');
         return [];
     };
 
