@@ -768,7 +768,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <AntImage.PreviewGroup>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                     {damageImagesModal.images.map((url, index) => (
-                        <Image
+                        <AntImage
                             key={index}
                             src={url}
                             width={200}

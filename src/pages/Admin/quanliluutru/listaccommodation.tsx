@@ -323,40 +323,6 @@ const ListAccommodation: React.FC = () => {
                             <Descriptions.Item label="Số giấy tờ">
                                 <strong>{selectedGuest.identity_number}</strong>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Ảnh giấy tờ" span={2}>
-                                {(() => {
-                                    const firstStay = selectedGuest.stays[0];
-                                    const images = firstStay?.identity_images && firstStay.identity_images.length > 0 
-                                        ? firstStay.identity_images 
-                                        : (firstStay?.identity_image_url ? [{ image_url: firstStay.identity_image_url, side: 'front', order: 0 }] : []);
-                                    
-                                    if (images.length === 0) {
-                                        return <Text type="secondary">Chưa có ảnh</Text>;
-                                    }
-                                    
-                                    return (
-                                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                                            {images.map((img, idx) => (
-                                                <Space key={idx} size="small" style={{ width: '100%' }}>
-                                                    <Image
-                                                        src={img.image_url}
-                                                        alt={`Ảnh giấy tờ ${img.side === 'front' ? 'mặt trước' : img.side === 'back' ? 'mặt sau' : ''}`}
-                                                        width={60}
-                                                        height={40}
-                                                        style={{ borderRadius: 4, border: '1px solid #d9d9d9', objectFit: 'cover' }}
-                                                        preview={{
-                                                            mask: 'Xem ảnh',
-                                                        }}
-                                                    />
-                                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                                        {img.side === 'front' ? 'Mặt trước' : img.side === 'back' ? 'Mặt sau' : `Ảnh ${idx + 1}`}
-                                                    </Text>
-                                                </Space>
-                                            ))}
-                                        </Space>
-                                    );
-                                })()}
-                            </Descriptions.Item>
                         </Descriptions>
 
                         <Divider orientation="left">

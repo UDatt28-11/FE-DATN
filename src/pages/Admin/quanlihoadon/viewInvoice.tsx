@@ -38,6 +38,7 @@ import invoiceService from "../../../service/invoiceService";
 import serviceService, { type Service } from "../../../service/serviceService";
 import supplyService, { type Supply } from "../../../service/supplyService";
 import type { Invoice, InvoiceItem } from "../../../types/invoice/invoice";
+import { formatVND } from "../../../utils/currency";
 
 const { Title, Text } = Typography;
 
@@ -370,7 +371,7 @@ const ViewInvoice: React.FC = () => {
               opacity: isPaid ? 0.6 : 1,
             }}
           >
-            {(price || 0).toLocaleString("vi-VN")}₫
+            {formatVND(price || 0, false)}₫
           </Typography.Text>
         );
       },
@@ -380,7 +381,7 @@ const ViewInvoice: React.FC = () => {
       dataIndex: "tax_amount",
       key: "tax_amount",
       align: "right",
-      render: (tax) => (tax ? `${tax.toLocaleString("vi-VN")}₫` : "-"),
+      render: (tax) => (tax ? `${formatVND(tax, false)}₫` : "-"),
     },
     {
       title: "Tổng",
@@ -399,7 +400,7 @@ const ViewInvoice: React.FC = () => {
               opacity: isPaid ? 0.6 : 1,
             }}
           >
-            {amount.toLocaleString("vi-VN")}₫
+            {formatVND(amount, false)}₫
             {isPaid && (
               <span style={{ marginLeft: 8, fontSize: 12, color: "#52c41a" }}>
                 (Đã thanh toán)
@@ -736,7 +737,7 @@ const ViewInvoice: React.FC = () => {
                 >
                   <Text>Tổng phụ:</Text>
                   <Text>
-                    {(invoice.subtotal || 0).toLocaleString("vi-VN")}₫
+                    {formatVND(invoice.subtotal || 0, false)}₫
                   </Text>
                 </div>
                 {(invoice.discount_amount || 0) > 0 && (
@@ -749,7 +750,7 @@ const ViewInvoice: React.FC = () => {
                   >
                     <Text>Giảm giá:</Text>
                     <Text>
-                      -{(invoice.discount_amount || 0).toLocaleString("vi-VN")}₫
+                      -{formatVND(invoice.discount_amount || 0, false)}₫
                     </Text>
                   </div>
                 )}
@@ -758,7 +759,7 @@ const ViewInvoice: React.FC = () => {
                 >
                   <Text>Thuế ({invoice.tax_rate || 0}%):</Text>
                   <Text>
-                    {(invoice.tax_amount || 0).toLocaleString("vi-VN")}₫
+                    {formatVND(invoice.tax_amount || 0, false)}₫
                   </Text>
                 </div>
                 <Divider style={{ margin: "8px 0" }} />
@@ -769,7 +770,7 @@ const ViewInvoice: React.FC = () => {
                     Tổng cộng:
                   </Text>
                   <Text strong style={{ fontSize: 18, color: "#1890ff" }}>
-                    {(invoice.total_amount || 0).toLocaleString("vi-VN")}₫
+                    {formatVND(invoice.total_amount || 0, false)}₫
                   </Text>
                 </div>
                 <div
@@ -777,7 +778,7 @@ const ViewInvoice: React.FC = () => {
                 >
                   <Text>Đã thanh toán:</Text>
                   <Text style={{ color: "#52c41a" }}>
-                    {(invoice.paid_amount || 0).toLocaleString("vi-VN")}₫
+                    {formatVND(invoice.paid_amount || 0, false)}₫
                   </Text>
                 </div>
                 <div
@@ -790,7 +791,7 @@ const ViewInvoice: React.FC = () => {
                       color: (invoice.balance || 0) > 0 ? "#ff4d4f" : "#52c41a",
                     }}
                   >
-                    {(invoice.balance || 0).toLocaleString("vi-VN")}₫
+                    {formatVND(invoice.balance || 0, false)}₫
                   </Text>
                 </div>
               </Space>
@@ -873,7 +874,7 @@ const ViewInvoice: React.FC = () => {
                   value={service.id}
                   label={service.name}
                 >
-                  {service.name} - {service.price.toLocaleString("vi-VN")}₫/
+                  {service.name} - {formatVND(service.price, false)}₫/
                   {service.unit}
                 </Select.Option>
               ))}
@@ -942,7 +943,7 @@ const ViewInvoice: React.FC = () => {
                   value={supply.id}
                   label={supply.name}
                 >
-                  {supply.name} - {supply.unit_price?.toLocaleString("vi-VN")}₫/
+                  {supply.name} - {supply.unit_price ? formatVND(supply.unit_price, false) : '0'}₫/
                   {supply.unit || "cái"}
                 </Select.Option>
               ))}

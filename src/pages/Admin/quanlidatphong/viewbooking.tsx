@@ -48,6 +48,7 @@ import {
   SplitCellsOutlined,
 } from "@ant-design/icons";
 import { Alert } from "antd";
+import { formatVND } from "../../../utils/currency";
 import dayjs from "dayjs";
 
 import type {
@@ -658,7 +659,7 @@ const ViewBooking: React.FC = () => {
           <Tag color="blue">{record.room?.roomType?.name || "N/A"}</Tag>
           {record.room?.price_per_night && (
             <span style={{ fontSize: 12, color: "#52c41a" }}>
-              {record.room.price_per_night.toLocaleString("vi-VN")} đ/đêm
+              {formatVND(record.room.price_per_night, false)} đ/đêm
             </span>
           )}
         </Space>
@@ -736,7 +737,7 @@ const ViewBooking: React.FC = () => {
       render: (amount: number) => (
         <Space direction="vertical" size={0} align="end">
           <span style={{ fontSize: 16, fontWeight: "bold", color: "#52c41a" }}>
-            {(amount || 0).toLocaleString("vi-VN")} đ
+            {formatVND(amount || 0, false)} đ
           </span>
         </Space>
       ),
